@@ -2,24 +2,20 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/",
-      "destination": "/Index.html"
-    },
-    {
       "source": "/client",
-      "destination": "/Client.html"
+      "destination": "/client.html"
     },
     {
       "source": "/klien",
-      "destination": "/Client.html"
+      "destination": "/client.html"
     },
     {
       "source": "/autoselect",
-      "destination": "/AutoSelect.html"
+      "destination": "/autoselect.html"
     },
     {
       "source": "/(.*)",
-      "destination": "/Index.html"
+      "destination": "/index.html"
     }
   ]
 }
