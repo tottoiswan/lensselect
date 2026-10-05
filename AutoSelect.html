@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AutoSelect File - Ttwins Selection</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .custom-scroll-y::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .custom-scroll-y::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 6px;
+        }
+    </style>
+</head>
+
+<body class="text-gray-800 antialiased p-4 md:p-8">
+    <div id="app-container" class="max-w-5xl mx-auto pb-10">
+
+        <!-- Header -->
+        <div class="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-gray-200 flex-wrap">
+            <div class="flex items-center gap-3">
+                <div
+                    class="w-12 h-12 rounded-xl bg-gradient-to-tr from-blue-700 via-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-md">
+                    <i class="fas fa-magic text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">AutoSelect File Lokal</h1>
+                    <p class="text-sm text-gray-500">Ttwins Selection Photo Utility</p>
+                </div>
+            </div>
+            <div id="env-badge"
+                class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Universal Ready</span>
+            </div>
+        </div>
+
+        <!-- Penjelasan Singkat -->
+        <div
+            class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-2xl text-xs sm:text-sm text-blue-900 leading-relaxed flex items-start gap-3">
+            <i class="fas fa-info-circle text-blue-600 text-lg mt-0.5 shrink-0"></i>
+            <div>
+                <strong>Cara Kerja Otomatis:</strong> Pilih Folder Master di laptop Anda, lalu sistem akan mencocokkan
+                nama file foto yang dipilih klien (RAW Sony/Canon/Nikon/Fuji atau JPG). Setelah klik Mulai, script
+                penyalinan otomatis (atau ZIP) akan diunduh sehingga ratusan GB file tersalin dalam hitungan detik tanpa
+                membebani browser!
+            </div>
+        </div>
+
+        <!-- Main UI -->
+        <div id="main-ui" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- Kolom Kiri: Input Daftar File Klien -->
+            <div class="bg-white p-5 sm:p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col">
+                <div class="flex items-center justify-between mb-2">
+                    <label class="block text-sm font-bold text-gray-700">
+                        <i class="fas fa-list-ol text-blue-500 mr-1.5"></i>Daftar File Pilihan Klien
+                    </label>
+                    <span id="as-count-badge"
+                        class="px-2.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-xs font-bold font-mono">0
+                        File Terdeteksi</span>
+                </div>
+                <p class="text-[11px] text-gray-500 mb-3 leading-relaxed">
+                    Paste teks rekap WhatsApp atau format "Salin Daftar Foto" ke kolom di bawah ini. Ekstensi tidak
+                    perlu sama persis (misal di WA tertulis JPG, file RAW/CR2 di laptop akan tetap tersalin).
+                </p>
+                <textarea id="as-filelist" rows="12"
+                    class="w-full flex-1 p-3.5 border border-gray-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none bg-gray-50"
+                    placeholder="Contoh teks dari klien:&#10;1. DSC001.JPG&#10;2. DSC005.CR2 : Tolong edit bagian ini&#10;3. IMG_9921&#10;4. _DSC8820"></textarea>
+
+                <div class="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-gray-100 text-xs">
+                    <button type="button" id="btn-sample"
+                        class="text-blue-600 hover:text-blue-800 font-semibold cursor-pointer flex items-center gap-1">
+                        <i class="fas fa-magic"></i> Contoh Teks WA
+                    </button>
+                    <button type="button" id="btn-clear-text"
+                        class="text-rose-500 hover:text-rose-700 cursor-pointer flex items-center gap-1">
+                        <i class="fas fa-trash-alt"></i> Bersihkan
+                    </button>
+                </div>
+            </div>
+
+            <!-- Kolom Kanan: Folder Sumber & Folder Tujuan -->
+            <div class="space-y-4">
+
+                <!-- 1. Folder Sumber (Master) -->
+                <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">
+                        <i class="fas fa-folder-open text-amber-500 mr-1.5"></i>Folder Sumber (Lokasi File Asli / RAW)
+                    </label>
+                    <p class="text-[11px] text-gray-500 mb-3">Pilih folder master tempat ratusan foto asli Anda
+                        tersimpan di komputer.</p>
+
+                    <!-- Hidden native file input fallback for universal directory picking -->
+                    <input type="file" id="as-source-input" webkitdirectory directory multiple class="hidden">
+
+                    <button type="button" id="btn-pick-src"
+                        class="w-full px-4 py-3.5 bg-amber-50 hover:bg-amber-100 text-amber-900 text-sm font-semibold rounded-xl flex items-center justify-between gap-2.5 transition-colors border border-amber-200 shadow-2xs cursor-pointer truncate">
+                        <div class="flex items-center gap-2.5 truncate">
+                            <i class="fas fa-mouse-pointer text-amber-600 shrink-0"></i>
+                            <span id="as-source-label" class="truncate font-bold">Pilih Folder Master di
+                                Laptop/PC</span>
+                        </div>
+                        <span
+                            class="px-3 py-1 bg-amber-200/80 text-amber-900 rounded-lg text-xs font-bold shrink-0">Pilih
+                            Folder</span>
+                    </button>
+                </div>
+
+                <!-- 2. Folder Tujuan / Mode Penempatan -->
+                <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
+                    <div class="flex items-center justify-between mb-1">
+                        <label class="block text-sm font-bold text-gray-700">
+                            <i class="fas fa-folder-plus text-emerald-500 mr-1.5"></i>Folder Tujuan & Mode Penempatan
+                        </label>
+                        <span id="as-dest-mode-badge"
+                            class="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[11px] font-bold">
+                            Script 1-Klik (.bat)
+                        </span>
+                    </div>
+                    <p class="text-[11px] text-gray-500 mb-3">Pilih metode penempatan file pilihan ke laptop Anda:</p>
+
+                    <div class="grid grid-cols-2 gap-2 mb-3">
+                        <button type="button" id="btn-mode-script"
+                            class="p-2.5 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-left transition cursor-pointer">
+                            <div class="font-bold text-xs text-emerald-900 flex items-center justify-between">
+                                <span><i class="fas fa-terminal text-emerald-600 mr-1"></i> Script (.bat)</span>
+                                <span
+                                    class="text-[9px] bg-emerald-600 text-white px-1 py-0.5 rounded font-bold">TERCEPAT</span>
+                            </div>
+                            <div class="text-[10px] text-emerald-700 mt-0.5">Copy RAW ratusan GB langsung di Windows
+                            </div>
+                        </button>
+                        <button type="button" id="btn-mode-zip"
+                            class="p-2.5 rounded-xl border border-gray-200 hover:border-gray-300 text-left transition cursor-pointer">
+                            <div class="font-bold text-xs text-gray-800">
+                                <i class="fas fa-file-archive text-amber-500 mr-1"></i> Paket ZIP (.zip)
+                            </div>
+                            <div class="text-[10px] text-gray-500 mt-0.5">Download semua foto dalam 1 file ZIP</div>
+                        </button>
+                    </div>
+
+                    <!-- Detail Mode Target -->
+                    <div id="as-dest-detail" class="p-3 bg-gray-50 rounded-xl border border-gray-200 text-xs">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="font-semibold text-gray-700">Nama Subfolder Target:</span>
+                            <input type="text" id="as-subfolder-input" value="_PILIHAN_KLIEN"
+                                class="px-2.5 py-1 bg-white border border-gray-300 rounded-lg text-xs font-mono font-bold text-emerald-700 focus:outline-none w-44"
+                                placeholder="_PILIHAN_KLIEN">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Tombol Eksekusi -->
+                <button type="button" id="as-start-btn"
+                    class="w-full py-4 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 active:scale-98 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2.5 cursor-pointer">
+                    <i class="fas fa-magic"></i>
+                    <span id="as-start-btn-text">Mulai Eksekusi Copy File</span>
+                </button>
+
+            </div>
+        </div>
+
+        <!-- Terminal Log -->
+        <div id="as-log-container"
+            class="hidden mt-6 bg-[#0f172a] border border-slate-800 rounded-2xl overflow-hidden shadow-inner flex-col">
+            <div class="px-4 py-2 border-b border-slate-700 bg-slate-800 flex items-center justify-between shadow-md">
+                <span class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <i class="fas fa-terminal text-blue-400"></i> Terminal Output
+                </span>
+                <button type="button" id="btn-clear-log"
+                    class="text-[10px] bg-slate-700 hover:bg-slate-600 px-2 py-1 rounded text-slate-300 transition-colors cursor-pointer border border-slate-600">
+                    Bersihkan Log
+                </button>
+            </div>
+            <div id="as-log-content"
+                class="p-4 text-emerald-400 font-mono text-[11px] leading-relaxed max-h-64 sm:max-h-80 overflow-y-auto custom-scroll-y">
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-4 right-4 z-50 transform transition-transform duration-300 translate-x-full">
+        <div id="toast-box"
+            class="bg-gray-800 text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 border border-gray-700">
+            <i id="toastIcon" class="fas fa-info-circle text-blue-400 text-lg"></i>
+            <span id="toastMessage" class="text-xs sm:text-sm font-medium">Pesan notifikasi</span>
+        </div>
+    </div>
+
+    <script>
+        // State Global Aplikasi AutoSelect
+        var asState = {
+            srcHandle: null,
+            srcFiles: [],
+            srcName: '',
+            destMode: 'script', // 'script' | 'zip'
+            destSubfolder: '_PILIHAN_KLIEN',
+            targets: [],
+            isProcessing: false,
+            isIframe: false
+        };
+
+        // Deteksi apakah sedang di dalam iframe (Google Apps Script)
+        try {
+            asState.isIframe = window.self !== window.top;
+        } catch (e) {
+            asState.isIframe = true;
+        }
+
+        // Toast Helper
+        function showToast(msg, isError) {
+            var toast = document.getElementById('toast');
+            var msgEl = document.getElementById('toastMessage');
+            var iconEl = document.getElementById('toastIcon');
+
+            msgEl.textContent = msg;
+            iconEl.className = isError ? 'fas fa-exclamation-circle text-rose-400 text-lg' : 'fas fa-check-circle text-emerald-400 text-lg';
+
+            toast.classList.remove('translate-x-full');
+            clearTimeout(window._toastTimeout);
+            window._toastTimeout = setTimeout(function () {
+                toast.classList.add('translate-x-full');
+            }, 3500);
+        }
+
+        // Logger Helper
+        function asLog(msg, type) {
+            var cnt = document.getElementById('as-log-content');
+            if (!cnt) return;
+            var color = 'text-emerald-400';
+            if (type === 'info') color = 'text-blue-300 font-bold mt-1';
+            if (type === 'warn') color = 'text-yellow-400';
+            if (type === 'err') color = 'text-rose-400 font-bold';
+
+            var div = document.createElement('div');
+            div.className = color;
+            div.textContent = msg;
+            cnt.appendChild(div);
+            cnt.scrollTop = cnt.scrollHeight;
+        }
+
+        // Parse Target Foto dari Teks
+        function parseTargets(text) {
+            if (!text || !text.trim()) {
+                asState.targets = [];
+                updateTargetCount(0);
+                return;
+            }
+
+            var targetsMap = new Map();
+            var lines = text.split('\n');
+            var extPattern = /\b([A-Za-z0-9_-]+)\.(jpg|jpeg|png|cr2|cr3|arw|nef|dng|raw|tif|tiff|raf|rw2)\b/gi;
+
+            lines.forEach(function (rawLine) {
+                var line = rawLine.trim();
+                if (!line) return;
+                var matched = false;
+                var match;
+                extPattern.lastIndex = 0;
+                while ((match = extPattern.exec(line)) !== null) {
+                    var base = match[1].toUpperCase();
+                    if (base.length >= 3) {
+                        targetsMap.set(base, true);
+                        matched = true;
+                    }
+                }
+                if (!matched) {
+                    var clean = line.replace(/^[\s\*\-\•\d]+[\.\)\:\-\]]*\s*/, '').trim();
+                    var token = clean.split(/[\s\:\,\;\(\)]+/)[0];
+                    if (token) {
+                        token = token.replace(/[\.]+(jpg|jpeg|png|cr2|cr3|arw|nef|dng|raw)$/i, '').toUpperCase();
+                        if (token.length >= 3) targetsMap.set(token, true);
+                    }
+                }
+            });
+
+            asState.targets = Array.from(targetsMap.keys());
+            updateTargetCount(asState.targets.length);
+        }
+
+        function updateTargetCount(count) {
+            var badge = document.getElementById('as-count-badge');
+            if (badge) {
+                badge.textContent = count + ' File Terdeteksi';
+            }
+        }
+
+        // Helper Download Blob
+        function downloadBlob(blob, filename) {
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function () {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
+        }
+
+        // Inisialisasi Event Listener saat DOM siap
+        document.addEventListener('DOMContentLoaded', function () {
+
+            // 1. Textarea Real-time Parsing
+            var textarea = document.getElementById('as-filelist');
+            textarea.addEventListener('input', function () {
+                parseTargets(this.value);
+            });
+
+            // 2. Tombol Contoh Teks WA
+            document.getElementById('btn-sample').addEventListener('click', function () {
+                var sample = "1. DSC01021.JPG\n2. DSC01045.CR2 : tolong edit mata\n3. IMG_9921\n4. _DSC8820\n5. DSC_4500";
+                textarea.value = sample;
+                parseTargets(sample);
+                showToast('Contoh teks berhasil dimuat.', false);
+            });
+
+            // 3. Tombol Bersihkan Teks
+            document.getElementById('btn-clear-text').addEventListener('click', function () {
+                textarea.value = '';
+                parseTargets('');
+                showToast('Daftar file dibersihkan.', false);
+            });
+
+            // 4. Tombol Bersihkan Log
+            document.getElementById('btn-clear-log').addEventListener('click', function () {
+                document.getElementById('as-log-content').innerHTML = '';
+            });
+
+            // 5. Pemilihan Mode Target
+            var btnScript = document.getElementById('btn-mode-script');
+            var btnZip = document.getElementById('btn-mode-zip');
+            var destBadge = document.getElementById('as-dest-mode-badge');
+            var subfolderInput = document.getElementById('as-subfolder-input');
+
+            subfolderInput.addEventListener('input', function () {
+                asState.destSubfolder = this.value.trim() || '_PILIHAN_KLIEN';
+            });
+
+            btnScript.addEventListener('click', function () {
+                asState.destMode = 'script';
+                btnScript.className = 'p-2.5 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-left transition cursor-pointer';
+                btnZip.className = 'p-2.5 rounded-xl border border-gray-200 hover:border-gray-300 text-left transition cursor-pointer';
+                destBadge.textContent = 'Script 1-Klik (.bat)';
+            });
+
+            btnZip.addEventListener('click', function () {
+                asState.destMode = 'zip';
+                btnZip.className = 'p-2.5 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-left transition cursor-pointer';
+                btnScript.className = 'p-2.5 rounded-xl border border-gray-200 hover:border-gray-300 text-left transition cursor-pointer';
+                destBadge.textContent = 'Paket ZIP (.zip)';
+            });
+
+            // 6. Pemilihan Folder Master (Universal & Aman dari Cross-Origin Iframe)
+            var sourceInput = document.getElementById('as-source-input');
+
+            document.getElementById('btn-pick-src').addEventListener('click', async function () {
+                // Di dalam iframe Google Apps Script, showDirectoryPicker pasti ditolak oleh browser.
+                // Gunakan input directory picker native yang 100% didukung di semua browser!
+                if (!asState.isIframe && window.showDirectoryPicker && window.isSecureContext) {
+                    try {
+                        var dirHandle = await window.showDirectoryPicker({ mode: 'read' });
+                        asState.srcHandle = dirHandle;
+                        asState.srcFiles = [];
+                        asState.srcName = dirHandle.name;
+                        document.getElementById('as-source-label').innerHTML = `<strong class="text-amber-900 truncate">📁 ${dirHandle.name}</strong>`;
+                        showToast('Folder sumber berhasil dipilih: ' + dirHandle.name, false);
+                        return;
+                    } catch (err) {
+                        if (err.name === 'AbortError') return;
+                    }
+                }
+
+                // Fallback Universal untuk Google Apps Script Web App
+                sourceInput.value = '';
+                sourceInput.click();
+            });
+
+            sourceInput.addEventListener('change', function (e) {
+                var files = Array.from(e.target.files || []);
+                if (files.length === 0) return;
+
+                asState.srcHandle = null;
+                asState.srcFiles = files;
+
+                var firstPath = files[0].webkitRelativePath || '';
+                var folderName = firstPath ? firstPath.split('/')[0] : 'Folder Master';
+                asState.srcName = folderName;
+
+                document.getElementById('as-source-label').innerHTML = `<strong class="text-amber-900 truncate">📁 ${folderName} (${files.length} file)</strong>`;
+                showToast('Folder master berhasil dimuat: ' + folderName, false);
+                asLog(`[FOLDER MASTER] Berhasil membaca ${files.length} file dari folder: ${folderName}`, 'info');
+            });
+
+            // 7. Mulai Eksekusi Copy File
+            document.getElementById('as-start-btn').addEventListener('click', async function () {
+                if (asState.isProcessing) return;
+
+                var text = textarea.value;
+                parseTargets(text);
+
+                if (asState.targets.length === 0) {
+                    showToast('Harap masukkan daftar foto pilihan klien terlebih dahulu.', true);
+                    textarea.focus();
+                    return;
+                }
+
+                var hasSource = asState.srcHandle || (asState.srcFiles && asState.srcFiles.length > 0);
+                if (!hasSource) {
+                    showToast('Harap pilih Folder Master di komputer Anda terlebih dahulu.', true);
+                    document.getElementById('btn-pick-src').click();
+                    return;
+                }
+
+                asState.isProcessing = true;
+                var startBtn = document.getElementById('as-start-btn');
+                var startBtnText = document.getElementById('as-start-btn-text');
+                startBtn.disabled = true;
+                startBtnText.textContent = 'Sedang Mencocokkan Data...';
+
+                var logContainer = document.getElementById('as-log-container');
+                logContainer.classList.remove('hidden');
+                document.getElementById('as-log-content').innerHTML = '';
+
+                asLog('================================================================', 'info');
+                asLog(`[START] Mulai mencocokkan ${asState.targets.length} target foto dari folder master...`, 'info');
+                asLog(`Mode Eksekusi: ${asState.destMode.toUpperCase()}`, 'info');
+                asLog('================================================================', 'info');
+
+                try {
+                    // Buat index pencarian cepat Map O(1)
+                    var fileIndex = new Map();
+                    if (asState.srcFiles && asState.srcFiles.length > 0) {
+                        asState.srcFiles.forEach(function (f) {
+                            var dot = f.name.lastIndexOf('.');
+                            var b = (dot !== -1 ? f.name.substring(0, dot) : f.name).toUpperCase();
+                            var clean = b.replace(/^_+/, '');
+                            if (!fileIndex.has(b)) fileIndex.set(b, []);
+                            fileIndex.get(b).push(f);
+                            if (clean !== b) {
+                                if (!fileIndex.has(clean)) fileIndex.set(clean, []);
+                                fileIndex.get(clean).push(f);
+                            }
+                        });
+                    }
+
+                    var matchedFiles = [];
+                    var missing = [];
+
+                    asState.targets.forEach(function (target) {
+                        var t = target.toUpperCase();
+                        var cleanT = t.replace(/^_+/, '');
+                        var found = fileIndex.get(t) || fileIndex.get(cleanT);
+                        if (found && found.length > 0) {
+                            found.forEach(function (f) { matchedFiles.push(f); });
+                            asLog(`[DITEMUKAN] ${target} -> ${found.map(f => f.name).join(', ')}`, '');
+                        } else {
+                            missing.push(target);
+                            asLog(`[TIDAK DITEMUKAN] ${target}`, 'warn');
+                        }
+                    });
+
+                    if (asState.destMode === 'zip') {
+                        // MODE PAKET ZIP
+                        if (typeof JSZip === 'undefined') throw new Error('Pustaka JSZip gagal dimuat.');
+                        var zip = new JSZip();
+                        asLog(`Menambahkan ${matchedFiles.length} file ke arsip ZIP...`, 'info');
+                        matchedFiles.forEach(function (f) { zip.file(f.name, f); });
+
+                        startBtnText.textContent = 'Mengompresi ZIP...';
+                        var content = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+                        downloadBlob(content, 'Foto_Pilihan_Klien.zip');
+
+                        asLog(`[SUKSES] File Foto_Pilihan_Klien.zip berhasil diunduh!`, 'info');
+                        showToast(`Sukses! ${matchedFiles.length} file diunduh dalam ZIP.`, false);
+                    } else {
+                        // MODE SCRIPT WINDOWS (.BAT) - SANGAT CEPAT UNTUK RAW
+                        var sub = asState.destSubfolder || '_PILIHAN_KLIEN';
+                        var batLines = [
+                            '@echo off',
+                            'chcp 65001 >nul',
+                            'title AutoSelect File - Ttwins Selection',
+                            'color 0b',
+                            'echo ================================================================',
+                            'echo       AUTOSELECT FILE - TTWINS SELECTION (WINDOWS RUNNER)       ',
+                            'echo ================================================================',
+                            'echo.',
+                            'echo Folder Kerja Saat Ini: %CD%',
+                            'set "TARGET_DIR=%~dp0' + sub + '"',
+                            'if not exist "%TARGET_DIR%" (',
+                            '    mkdir "%TARGET_DIR%"',
+                            '    echo [INFO] Berhasil membuat folder: %TARGET_DIR%',
+                            ')',
+                            'echo.',
+                            'echo Menyalin ' + matchedFiles.length + ' file pilihan klien...',
+                            'echo Mohon tunggu sebentar...',
+                            'echo.',
+                            'set /a count_ok=0'
+                        ];
+
+                        matchedFiles.forEach(function (f) {
+                            var rel = f.webkitRelativePath ? f.webkitRelativePath.replace(/\//g, '\\') : f.name;
+                            if (rel.indexOf('\\') !== -1) rel = rel.substring(rel.indexOf('\\') + 1);
+                            batLines.push('if exist "%~dp0' + rel + '" (');
+                            batLines.push('    copy /y "%~dp0' + rel + '" "%TARGET_DIR%\\" >nul 2>&1 && (echo [OK] ' + f.name + ' & set /a count_ok+=1)');
+                            batLines.push(') else (');
+                            batLines.push('    copy /y "' + f.name + '" "%TARGET_DIR%\\" >nul 2>&1 && (echo [OK] ' + f.name + ' & set /a count_ok+=1)');
+                            batLines.push(')');
+                        });
+
+                        batLines.push('echo.');
+                        batLines.push('echo ================================================================');
+                        batLines.push('echo [SELESAI] Total berhasil disalin: %count_ok% file.');
+                        batLines.push('echo Hasil tersimpan di: %TARGET_DIR%');
+                        batLines.push('echo ================================================================');
+                        batLines.push('echo.');
+                        batLines.push('pause');
+
+                        var blob = new Blob([batLines.join('\r\n')], { type: 'application/x-bat;charset=utf-8' });
+                        downloadBlob(blob, 'Salin_Foto_Pilihan.bat');
+
+                        asLog('----------------------------------------------------------------', 'info');
+                        asLog(`[SUKSES] Script 'Salin_Foto_Pilihan.bat' telah diunduh!`, 'info');
+                        asLog(`Total File Ditemukan: ${matchedFiles.length} file`, 'info');
+                        if (missing.length > 0) {
+                            asLog(`File Tidak Ditemukan: ${missing.length} (${missing.join(', ')})`, 'warn');
+                        }
+                        asLog('----------------------------------------------------------------', 'info');
+                        asLog('CARA PENGGUNAAN:', 'info');
+                        asLog(`1. Pindahkan file 'Salin_Foto_Pilihan.bat' yang baru terunduh ke dalam Folder Master Anda.`, 'info');
+                        asLog(`2. Double-click file tersebut. Semua file pilihan langsung tersalin otomatis ke folder '${sub}'!`, 'info');
+                        showToast(`Script siap! ${matchedFiles.length} file cocok ditemukan.`, false);
+                    }
+                } catch (err) {
+                    asLog(`[ERROR FATAL] ${err.message}`, 'err');
+                    showToast('Gagal memproses: ' + err.message, true);
+                } finally {
+                    asState.isProcessing = false;
+                    startBtn.disabled = false;
+                    startBtnText.textContent = 'Mulai Eksekusi Copy File';
+                }
+            });
+
+        });
+    </script>
+</body>
+
+</html>

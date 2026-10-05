@@ -1,0 +1,3554 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>
+        <?= (typeof pageTitle !== 'undefined' && pageTitle) ? pageTitle : 'Seleksi Foto Klien - Ttwins Selection' ?>
+    </title>
+    <!-- Preconnect to CDNs for fastest page rendering -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com">
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://drive.google.com" crossorigin>
+    <link rel="preconnect" href="https://lh3.googleusercontent.com" crossorigin>
+    <link rel="dns-prefetch" href="https://drive.google.com">
+    <link rel="dns-prefetch" href="https://lh3.googleusercontent.com">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <style>
+        /* Mencegah pergeseran layar horizontal di smartphone */
+        html,
+        body {
+            width: 100%;
+            max-width: 100vw;
+            overflow-x: hidden;
+            position: relative;
+            margin: 0;
+            padding: 0;
+            -webkit-text-size-adjust: 100%;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+
+        /* Area dengan scroll horizontal mulus */
+        .custom-scroll-x {
+            overflow-x: auto !important;
+            max-width: 100% !important;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        .custom-scroll-x::-webkit-scrollbar {
+            display: none;
+        }
+
+        .custom-scroll-y::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .custom-scroll-y::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        /* Loading Overlays */
+        #fullPageLoading {
+            position: fixed;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.94);
+            z-index: 9999;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(6px);
+        }
+
+        .spinner {
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #2563eb;
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            animation: spin 0.85s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Toast Notification */
+        #toast {
+            position: fixed;
+            bottom: 5.5rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            z-index: 99999;
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            opacity: 0;
+            pointer-events: none;
+            max-width: 90vw;
+        }
+
+        #toast.show {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Photo Grid Masonry */
+        .photo-grid {
+            column-count: 4;
+            column-gap: 1rem;
+        }
+
+        @media (max-width: 1200px) {
+            .photo-grid {
+                column-count: 3;
+                column-gap: 0.875rem;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .photo-grid {
+                column-count: 2 !important;
+                column-gap: 0.5rem !important;
+            }
+        }
+
+        .photo-item {
+            break-inside: avoid;
+            margin-bottom: 1rem;
+            display: inline-block;
+            width: 100%;
+            position: relative;
+            border-radius: 0.85rem;
+            overflow: hidden;
+            border: 2px solid #e2e8f0;
+            background-color: #ffffff;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        @media (max-width: 640px) {
+            .photo-item {
+                margin-bottom: 0.5rem !important;
+                border-radius: 0.75rem;
+            }
+        }
+
+        .photo-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.12);
+            border-color: #93c5fd;
+        }
+
+        .photo-item.selected {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.25), 0 8px 16px -4px rgba(37, 99, 235, 0.2);
+        }
+
+        .photo-sel-badge {
+            position: absolute;
+            top: 0.6rem;
+            right: 0.6rem;
+            background: #2563eb;
+            color: #ffffff;
+            font-size: 0.7rem;
+            font-weight: 700;
+            padding: 0.2rem 0.55rem;
+            border-radius: 9999px;
+            z-index: 5;
+            letter-spacing: 0.025em;
+            box-shadow: 0 2px 5px rgba(37, 99, 235, 0.35);
+        }
+
+        @media (max-width: 640px) {
+            .photo-sel-badge {
+                top: 0.4rem;
+                right: 0.4rem;
+                font-size: 0.62rem;
+                padding: 0.12rem 0.4rem;
+            }
+        }
+
+        .sticky-selection-bar {
+            position: fixed;
+            bottom: 1.25rem;
+            left: 1rem;
+            right: 1rem;
+            max-width: 56rem;
+            margin: 0 auto;
+            z-index: 45;
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            background: rgba(15, 23, 42, 0.94);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 20px 30px -5px rgba(0, 0, 0, 0.4), 0 10px 15px -5px rgba(0, 0, 0, 0.3);
+        }
+
+        @media (max-width: 640px) {
+            .sticky-selection-bar {
+                bottom: 0.75rem;
+                left: 0.75rem;
+                right: 0.75rem;
+                padding: 0.75rem 0.9rem;
+                border-radius: 1rem;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body data-runtime-mode="<?= (typeof runtimeMode !== 'undefined' && runtimeMode) ? runtimeMode : 'production' ?>"
+    data-webapp-url="<?= (typeof webAppUrl !== 'undefined' && webAppUrl) ? webAppUrl : '' ?>"
+    data-initial-galeri="<?= (typeof initialGaleri !== 'undefined' && initialGaleri) ? initialGaleri : '' ?>">
+
+    <script id="tempEmbedScript">
+        (function () {
+            try {
+                var initialGaleri = "<?= (typeof initialGaleri !== 'undefined' && initialGaleri) ? initialGaleri : '' ?>";
+                var hasInitial = !!(initialGaleri && initialGaleri.indexOf('<' + '?') === -1);
+                var ref = document.referrer || '';
+                var href = window.location.href || '';
+                var search = window.location.search || '';
+                var hash = window.location.hash || '';
+                var codeMatch = hasInitial ||
+                    search.match(/[?&#](?:galeri|client_galeri|g|id)=([A-Z0-9_\-]+)/i) ||
+                    hash.match(/[?&#](?:galeri|client_galeri|g|id)=([A-Z0-9_\-]+)/i) ||
+                    ref.match(/[?&#](?:galeri|client_galeri|g|id)=([A-Z0-9_\-]+)/i) ||
+                    href.match(/[?&#](?:galeri|client_galeri|g|id)=([A-Z0-9_\-]+)/i) ||
+                    ref.match(/\bGAL[-_0-9A-Za-z]+\b/i) ||
+                    href.match(/\bGAL[-_0-9A-Za-z]+\b/i);
+                if (codeMatch) {
+                    var s = document.createElement('style');
+                    s.id = 'tempEmbedLoadingStyle';
+                    s.textContent = '#clientPortalView{display:none !important;}#fullPageLoading{display:flex !important;}';
+                    document.head.appendChild(s);
+                }
+            } catch (e) { }
+        })();
+    </script>
+
+    <!-- TOAST NOTIFICATION -->
+    <div id="toast"
+        class="flex items-center gap-2.5 px-4 py-3 rounded-2xl shadow-xl text-xs sm:text-sm font-semibold border backdrop-blur-md bg-gray-900/95 text-white border-white/20">
+        <i id="toastIcon" class="fas fa-check-circle text-emerald-400 text-base shrink-0"></i>
+        <span id="toastMsg" class="leading-snug">Pemberitahuan</span>
+    </div>
+
+    <!-- FULL PAGE LOADING OVERLAY -->
+    <div id="fullPageLoading">
+        <div class="spinner mb-4"></div>
+        <h3 class="text-base font-bold text-gray-800" id="loadingTitle">Memuat Galeri Foto...</h3>
+        <p class="text-xs text-gray-500 mt-1" id="loadingSubtitle">Menyiapkan foto-foto terbaik Anda</p>
+    </div>
+
+    <!-- 1. CLIENT PORTAL / INPUT KODE (Tampil jika dibuka tanpa parameter kode galeri) -->
+    <div id="clientPortalView"
+        class="min-h-screen flex flex-col justify-between bg-gradient-to-b from-blue-50/70 via-slate-50 to-white">
+        <!-- Header Portal -->
+        <header class="w-full bg-white/80 backdrop-blur-md border-b border-gray-200/80 sticky top-0 z-30">
+            <div class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 via-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+                        <i class="fas fa-images text-lg"></i>
+                    </div>
+                    <div>
+                        <span class="text-lg font-bold tracking-tight text-gray-900 block leading-tight">Portal
+                            Klien</span>
+                        <span class="text-[10px] font-semibold text-blue-600 uppercase tracking-wider">Ttwins
+                            Selection</span>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="clientApp.redirectToMainWebsite()"
+                        class="px-3.5 py-1.5 text-xs font-semibold text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all flex items-center gap-1.5 border border-transparent hover:border-blue-100"
+                        title="Buka Website Utama">
+                        <i class="fas fa-globe text-blue-500"></i>
+                        <span class="hidden sm:inline">Website Utama</span>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Portal Form -->
+        <main class="flex-1 flex items-center justify-center p-4 py-12">
+            <div
+                class="max-w-lg w-full bg-white rounded-3xl shadow-xl border-2 border-blue-500/20 p-6 sm:p-8 relative overflow-hidden">
+                <!-- Ambient Accent -->
+                <div
+                    class="absolute -top-16 -right-16 w-36 h-36 bg-blue-500/10 rounded-full blur-2xl pointer-events-none">
+                </div>
+
+                <!-- Portal Badge -->
+                <div
+                    class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-xs font-bold mb-4">
+                    <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                    <span>Khusus Klien Fotografi</span>
+                </div>
+
+                <h1 class="text-2xl sm:text-3xl font-extrabold text-gray-900 tracking-tight">
+                    Buka Galeri Foto Anda
+                </h1>
+                <p class="text-xs sm:text-sm text-gray-500 mt-1.5 leading-relaxed">
+                    Masukkan kode galeri unik yang dikirimkan oleh fotografer Anda melalui WhatsApp untuk mulai memilih
+                    foto.
+                </p>
+
+                <!-- Recent Gallery Resume Banner (Jika pernah dibuka) -->
+                <div id="recentGalleryBanner"
+                    class="hidden mt-4 p-3 bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-between gap-2 shadow-2xs">
+                    <div class="flex items-center gap-2 text-xs text-emerald-950 truncate">
+                        <i class="fas fa-history text-emerald-600 shrink-0"></i>
+                        <span class="truncate">Sesi Terakhir: <strong id="recentGalleryCodeText"
+                                class="font-bold"></strong></span>
+                    </div>
+                    <button type="button" onclick="clientApp.openRecentGallery()"
+                        class="shrink-0 px-3 py-1 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1 cursor-pointer">
+                        <span>Lanjutkan</span>
+                        <i class="fas fa-arrow-right text-[10px]"></i>
+                    </button>
+                </div>
+
+                <!-- Tombol Tempel Instan WhatsApp (Cara Termudah untuk Klien) -->
+                <div class="mt-5 p-4 bg-emerald-50/80 border-2 border-emerald-300/80 rounded-2xl">
+                    <button type="button" onclick="clientApp.pasteFromClipboard()" id="btnPortalPasteLarge"
+                        class="w-full py-3.5 px-4 bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-bold rounded-xl shadow-md shadow-emerald-600/25 transition-all flex items-center justify-center gap-2.5 cursor-pointer text-sm sm:text-base">
+                        <i class="fab fa-whatsapp text-xl"></i>
+                        <span>Tempel Pesan / Kode Dari Whatsapp</span>
+                    </button>
+                    <p class="text-[11px] text-emerald-800 text-center mt-2 font-medium">
+                        💡 Salin pesan WhatsApp dari fotografer, lalu klik tombol hijau di atas untuk langsung membuka
+                        galeri.
+                    </p>
+                </div>
+
+                <div class="relative my-4 flex items-center justify-center">
+                    <div class="border-t border-gray-200 w-full"></div>
+                    <span
+                        class="bg-white px-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wider shrink-0">Atau
+                        Ketik Kode Manual</span>
+                </div>
+
+                <form onsubmit="clientApp.handlePortalSubmit(event)" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                            Kode Galeri Klien:
+                        </label>
+                        <div class="relative">
+                            <i
+                                class="fas fa-key absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-base"></i>
+                            <input type="text" id="portalCodeInput" placeholder="CONTOH: GAL001"
+                                oninput="this.value = this.value.toUpperCase(); clientApp.handlePortalInput(this.value);"
+                                autocomplete="off" required
+                                class="w-full pl-11 pr-4 py-3 bg-slate-50 border-2 border-gray-200 rounded-xl text-base sm:text-lg font-bold text-gray-900 placeholder-gray-400 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-100 uppercase tracking-widest outline-none transition-all">
+                        </div>
+                    </div>
+
+                    <button type="submit" id="btnPortalSubmit"
+                        class="w-full py-3 px-5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 text-white text-sm font-bold rounded-xl shadow-md shadow-blue-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                        <span>Buka &amp; Pilih Foto</span>
+                        <i class="fas fa-arrow-right text-xs"></i>
+                    </button>
+                </form>
+
+                <!-- Help notes -->
+                <div class="mt-5 pt-4 border-t border-gray-100 flex items-start gap-2.5 text-xs text-gray-500">
+                    <i class="fas fa-info-circle text-blue-500 text-sm mt-0.5 shrink-0"></i>
+                    <p class="leading-relaxed">
+                        Jika Anda menerima tautan langsung (1-Klik) dari WhatsApp, klik tautan tersebut untuk membuka
+                        galeri secara instan tanpa perlu memasukkan kode.
+                    </p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer Portal -->
+        <footer class="w-full py-4 px-6 text-xs text-gray-400 border-t border-gray-200/60 bg-white/60">
+            <div
+                class="max-w-lg mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
+                <span>Platform Seleksi Foto Klien • Powered by Ttwins Selection</span>
+                <a href="?page=admin"
+                    class="text-[11px] text-gray-400 hover:text-blue-600 transition-colors flex items-center gap-1 font-medium cursor-pointer">
+                    <i class="fas fa-lock text-[10px]"></i>
+                    <span>Login Fotografer</span>
+                </a>
+            </div>
+        </footer>
+    </div>
+
+    <!-- 2. CLIENT SELECTION APP (Tampil saat galeri aktif dipilih) -->
+    <div id="clientApp" class="hidden min-h-screen bg-gray-50 flex flex-col">
+        <!-- Error State: Not Found -->
+        <div id="clientNotFoundView" class="hidden min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12">
+            <div class="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 text-center border border-gray-100">
+                <div
+                    class="w-16 h-16 mx-auto rounded-2xl bg-red-50 text-red-500 border border-red-100 flex items-center justify-center mb-4 text-2xl shadow-xs">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h2 class="text-xl font-bold text-gray-900 mb-2">Galeri Tidak Ditemukan</h2>
+                <p class="text-xs sm:text-sm text-gray-500 mb-6 leading-relaxed" id="clientNotFoundMsg">
+                    Kode galeri tidak valid atau sudah tidak aktif. Pastikan kode atau tautan yang Anda terima dari
+                    fotografer sudah benar.
+                </p>
+                <button type="button" onclick="clientApp.showPortal()"
+                    class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-semibold transition-all shadow-md shadow-blue-500/20 cursor-pointer flex items-center justify-center gap-2">
+                    <i class="fas fa-key"></i>
+                    <span>Masukkan Kode Lain</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Main Client Container -->
+        <div id="clientMainWrapper" class="flex-1 flex flex-col">
+            <!-- Client Header -->
+            <header class="bg-white/95 backdrop-blur-md shadow-xs sticky top-0 z-40 border-b border-gray-200/80">
+                <div class="w-full mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <!-- Tombol Beranda / Ganti Kode -->
+                        <button type="button" onclick="clientApp.showPortal()" title="Buka Portal Klien / Ganti Kode"
+                            class="text-gray-500 hover:text-blue-600 p-2 rounded-xl hover:bg-gray-100 transition-colors text-sm font-medium flex items-center gap-1.5 shrink-0">
+                            <i class="fas fa-arrow-left"></i>
+                            <span class="hidden sm:inline text-xs font-semibold">Ganti Kode</span>
+                        </button>
+
+                        <div class="min-w-0">
+                            <h1 class="text-base sm:text-lg font-bold text-gray-900 truncate" id="clientGalleryTitle">
+                                Galeri Acara</h1>
+                            <p class="text-xs text-gray-500 truncate" id="clientNameHeader">Klien</p>
+                        </div>
+                    </div>
+
+                    <!-- Progress badge & Quick Website Link -->
+                    <div class="flex items-center gap-2 shrink-0">
+                        <a id="clientDriveLinkBtn" href="#" target="_blank" rel="noopener noreferrer"
+                            class="hidden inline-flex items-center gap-1.5 bg-white text-gray-700 hover:text-blue-600 hover:bg-blue-50 border border-gray-200 text-xs px-3 py-1.5 rounded-full font-semibold whitespace-nowrap shadow-2xs transition-all"
+                            title="Buka Folder Google Drive Galeri">
+                            <i class="fab fa-google-drive text-emerald-600"></i>
+                            <span class="hidden sm:inline">Google Drive</span>
+                        </a>
+                        <span
+                            class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 text-xs px-3 py-1.5 rounded-full font-bold whitespace-nowrap shadow-2xs"
+                            id="clientSelectionProgress">0 / 0</span>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Main Content Area -->
+            <main class="flex-1 w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-32 sm:pb-28">
+                <!-- Highlight Quote -->
+                <div id="clientHighlight"
+                    class="hidden mb-4 text-center text-xs sm:text-sm text-gray-600 max-w-2xl mx-auto italic bg-white/60 p-2.5 rounded-xl border border-gray-200/60">
+                </div>
+
+                <!-- Client Success Alert Banner (Jika status galeri sudah 'Selesai') -->
+                <div id="clientSuccessBanner"
+                    class="hidden mb-4 sm:mb-5 bg-gradient-to-r from-emerald-600 to-teal-700 text-white p-3.5 sm:p-4 rounded-2xl shadow-md border border-emerald-400/30 flex items-start sm:items-center justify-between gap-3 animate-in fade-in duration-300">
+                    <div class="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0">
+                        <div
+                            class="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0 text-lg sm:text-xl backdrop-blur-xs">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <h4 class="text-xs sm:text-sm font-bold flex items-center gap-1.5 flex-wrap">
+                                <span>Pilihan Foto Berhasil Terkirim!</span>
+                                <span
+                                    class="text-[10px] bg-white text-emerald-800 font-extrabold px-2 py-0.2 rounded-full">Selesai</span>
+                            </h4>
+                            <p class="text-[11px] sm:text-xs text-emerald-100 leading-relaxed mt-0.5 line-clamp-2 sm:line-clamp-none"
+                                id="clientSuccessBannerText">
+                                Pilihan foto Anda telah berhasil dikirim ke fotografer dan terkunci. Anda tetap dapat
+                                melihat kembali foto-foto di bawah ini.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                        <button type="button" onclick="clientApp.openClientReviewModal()"
+                            class="px-2.5 sm:px-3 py-1 sm:py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg text-xs font-semibold backdrop-blur-xs transition-colors cursor-pointer"
+                            title="Buka Rekap Seleksi">
+                            <i class="fas fa-list-ul mr-1"></i> Rekap
+                        </button>
+                        <button type="button"
+                            onclick="document.getElementById('clientSuccessBanner').classList.add('hidden')"
+                            class="p-1 sm:p-1.5 text-white/70 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                            title="Tutup pemberitahuan">
+                            <i class="fas fa-times text-xs sm:text-sm"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Navigation & Filter Toolbar -->
+                <div
+                    class="relative z-10 mb-4 sm:mb-6 bg-white/95 backdrop-blur-md p-3 sm:p-5 rounded-2xl border border-gray-200/90 shadow-xs space-y-3 sm:space-y-4">
+                    <!-- Bar 1: Filter Status & Search -->
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                        <div class="flex items-center gap-2 select-none custom-scroll-x pb-2 md:pb-0 w-full md:w-auto [&>button]:shrink-0 [&>button]:whitespace-nowrap"
+                            id="clientFilterMenuBar">
+                            <!-- 1. Semua Foto -->
+                            <button type="button" id="clientFilterAll" onclick="clientApp.setClientFilterAll()"
+                                class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white transition-all cursor-pointer shrink-0 shadow-2xs">
+                                Semua Foto
+                            </button>
+                            <!-- 2. Terpilih -->
+                            <button type="button" id="clientFilterSelected"
+                                onclick="clientApp.setClientFilter('selected')"
+                                class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all cursor-pointer shrink-0">
+                                <i class="fas fa-check text-emerald-500 mr-1"></i> Dipilih (<span
+                                    id="clientFilterCountSelected">0</span>)
+                            </button>
+                            <!-- 3. Belum Dipilih -->
+                            <button type="button" id="clientFilterUnselected"
+                                onclick="clientApp.setClientFilter('unselected')"
+                                class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all cursor-pointer shrink-0">
+                                Belum Dipilih
+                            </button>
+                            <!-- 4. Ada Catatan -->
+                            <button type="button" id="clientFilterWithNote"
+                                onclick="clientApp.setClientFilter('with-note')"
+                                class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all cursor-pointer shrink-0">
+                                <i class="fas fa-comment-dots text-amber-500 mr-1"></i> Catatan (<span
+                                    id="clientFilterCountNote">0</span>)
+                            </button>
+                            <!-- 5. Clear Pilihan -->
+                            <button type="button" id="clientFilterClearBtn"
+                                onclick="clientApp.promptClearClientSelections()"
+                                class="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-all cursor-pointer shrink-0 border border-rose-200"
+                                title="Hapus semua foto yang telah dipilih">
+                                <i class="fas fa-trash-alt mr-1"></i> Bersihkan
+                            </button>
+                        </div>
+
+                        <!-- Search input -->
+                        <div class="relative w-full md:w-64 shrink-0">
+                            <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+                            <input type="text" id="clientSearchInput" placeholder="Cari nama file foto..."
+                                oninput="clientApp.handleClientSearch(this.value)"
+                                class="w-full pl-8 pr-3 py-1.5 bg-gray-100/80 border border-gray-200 rounded-lg text-xs outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                        </div>
+                    </div>
+
+                    <!-- Bar 2: Folder tabs -->
+                    <div class="flex items-center gap-2 select-none custom-scroll-x pt-1 border-t border-gray-100 [&>button]:shrink-0 [&>button]:whitespace-nowrap"
+                        id="clientFolderMenuTabs">
+                        <!-- Populated dynamically: Folder pills -->
+                    </div>
+
+                    <!-- Bar 3: Subfolder tabs (jika folder aktif memiliki subfolder) -->
+                    <div id="clientSubfolderBar" class="hidden pt-1 border-t border-gray-100">
+                        <div class="flex items-center gap-2 select-none custom-scroll-x [&>button]:shrink-0 [&>button]:whitespace-nowrap"
+                            id="clientSubfolderTabs">
+                            <!-- Populated dynamically: Subfolder pills -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Photos Container (Masonry Grid) -->
+                <div id="clientPhotoContainer" class="photo-grid">
+                    <!-- Populated dynamically -->
+                </div>
+            </main>
+
+            <!-- Sticky Bottom Selection Bar (Muncul saat foto telah dipilih) -->
+            <div id="clientStickyBottomBar"
+                class="hidden sticky-selection-bar rounded-2xl p-3.5 sm:p-4 text-white flex flex-col sm:flex-row items-center justify-between gap-3 animate-in slide-in-from-bottom-5 duration-300">
+                <div class="flex items-center gap-3 w-full sm:w-auto">
+                    <div
+                        class="w-10 h-10 rounded-xl bg-blue-600/30 border border-blue-400/40 flex items-center justify-center text-blue-400 shrink-0 text-base">
+                        <i class="fas fa-check-double"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs sm:text-sm font-bold text-white truncate" id="clientBottomCountText">0
+                                Foto Terpilih</span>
+                            <span id="clientBottomCompleteBadge"
+                                class="hidden text-[10px] px-2 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                                Kuota Terpenuhi
+                            </span>
+                        </div>
+                        <p id="clientBottomNoticeDesc" class="text-[11px] text-emerald-200 mt-0.5 hidden">
+                            <i class="fas fa-check-circle mr-1 text-emerald-400"></i> Semua foto telah dipilih. Silakan
+                            klik tombol Kirim Pilihan.
+                        </p>
+                        <div class="w-full bg-white/10 rounded-full h-1.5 mt-1.5 overflow-hidden">
+                            <div id="clientBottomProgressBar"
+                                class="bg-gradient-to-r from-blue-500 to-indigo-500 h-1.5 rounded-full transition-all duration-300"
+                                style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <button type="button" id="btnBottomSubmitSelection" onclick="clientApp.openClientReviewModal()"
+                        class="w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-95 text-white shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                        <i class="fas fa-paper-plane mr-1"></i>
+                        <span>Kirim Pilihan</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Client Footer -->
+            <footer class="w-full text-center py-6 text-xs text-gray-400 border-t border-gray-200/80 bg-white/70">
+                Galeri Seleksi Foto Klien • Powered by Ttwins Selection
+            </footer>
+        </div>
+    </div>
+
+    <!-- MODAL: CATATAN FOTO (Client Note) -->
+    <div id="modalClientNote"
+        class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-[80] flex items-center justify-center p-4">
+        <div
+            class="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden border border-gray-100 animate-in fade-in zoom-in-95 duration-200">
+            <div class="p-5 border-b border-gray-100 flex items-center justify-between bg-amber-50/60">
+                <h3 class="text-sm sm:text-base font-bold text-gray-900 flex items-center gap-2">
+                    <i class="fas fa-comment-dots text-amber-500 text-lg"></i>
+                    <span>Pilihan Catatan Foto</span>
+                </h3>
+                <button type="button" onclick="clientApp.closeModal('modalClientNote')"
+                    class="text-gray-400 hover:text-gray-600 p-1.5 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer">
+                    <i class="fas fa-times text-base"></i>
+                </button>
+            </div>
+            <div class="p-5 space-y-3">
+                <p class="text-xs text-gray-500 leading-relaxed">
+                    Tuliskan catatan atau permintaan khusus untuk foto ini (misal: rapikan pakaian, hapus
+                    objek latar belakang, dsb).
+                </p>
+                <textarea id="clientNoteInput" rows="4" placeholder="Ketik pilihan catatan di sini..."
+                    class="w-full p-3.5 border border-gray-300 rounded-2xl text-xs sm:text-sm focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none transition-all resize-none bg-slate-50 focus:bg-white"></textarea>
+            </div>
+            <div class="p-4 px-5 border-t border-gray-100 flex justify-end gap-2 bg-gray-50/80">
+                <button type="button" onclick="clientApp.closeModal('modalClientNote')"
+                    class="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer">
+                    Batal
+                </button>
+                <button type="button" onclick="clientApp.saveClientNote()"
+                    class="px-5 py-2 text-xs font-bold text-white bg-amber-500 hover:bg-amber-600 rounded-xl shadow-md shadow-amber-500/20 transition-all cursor-pointer">
+                    Simpan Catatan
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: LIGHTBOX FULLSCREEN VIEWER -->
+    <div id="modalLightbox" class="hidden fixed inset-0 bg-black/95 z-[99] flex flex-col justify-between select-none">
+        <!-- Floating Download button (Muncul jika izin_download aktif di dashboard fotografer) -->
+        <button type="button" id="lbBtnDownloadFloating" onclick="lightbox.downloadCurrent()"
+            class="hidden absolute top-3.5 right-16 sm:top-5 sm:right-18 z-40 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center border border-white/20 backdrop-blur-md transition-all hover:scale-105 cursor-pointer shadow-xl"
+            title="Unduh Foto Ini">
+            <i class="fas fa-download text-base sm:text-lg"></i>
+        </button>
+
+        <!-- Floating Close (X) button -->
+        <button type="button" onclick="lightbox.close()"
+            class="absolute top-3.5 right-3.5 sm:top-5 sm:right-5 z-40 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/60 hover:bg-black/90 text-white flex items-center justify-center border border-white/20 backdrop-blur-md transition-all hover:scale-105 cursor-pointer shadow-xl"
+            title="Tutup (Esc)">
+            <i class="fas fa-times text-base sm:text-lg"></i>
+        </button>
+
+        <!-- Floating Counter -->
+        <div id="lbCounterFloating"
+            class="absolute top-3.5 left-3.5 sm:top-5 sm:left-5 z-40 bg-black/60 backdrop-blur-md px-3 sm:px-3.5 py-1.5 rounded-full border border-white/20 text-white text-xs font-mono shadow-xl flex items-center gap-1.5">
+            <i class="fas fa-images text-blue-400 text-xs"></i>
+            <span id="lbCounterFloatingText">1 / 20</span>
+        </div>
+
+        <!-- Topbar: Zoom Controls -->
+        <div class="p-3 sm:p-4 px-4 sm:px-6 flex items-center justify-center text-white shrink-0">
+            <div class="flex items-center bg-white/10 rounded-xl p-0.5 border border-white/10 backdrop-blur-md">
+                <button type="button" onclick="lightbox.zoomOut()"
+                    class="p-1.5 sm:p-2 text-white/80 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                    title="Perkecil (-)">
+                    <i class="fas fa-search-minus text-sm"></i>
+                </button>
+                <span id="lbZoomLevel" onclick="lightbox.resetZoom()"
+                    class="text-[11px] sm:text-xs font-mono px-2 py-0.5 text-white/90 hover:text-white cursor-pointer select-none"
+                    title="Klik untuk reset zoom">100%</span>
+                <button type="button" onclick="lightbox.zoomIn()"
+                    class="p-1.5 sm:p-2 text-white/80 hover:text-white rounded-lg hover:bg-white/10 transition-colors cursor-pointer"
+                    title="Perbesar (+)">
+                    <i class="fas fa-search-plus text-sm"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Stage with Prev/Next buttons & Image -->
+        <div class="relative flex-1 flex items-center justify-center p-0 overflow-hidden" id="lbImageStage">
+            <button type="button" onclick="lightbox.prev()"
+                class="flex absolute left-2 sm:left-4 z-30 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/40 hover:bg-black/80 text-white items-center justify-center transition-all hover:scale-105 border border-white/10 cursor-pointer shadow-lg"
+                title="Sebelumnya (Panah Kiri)">
+                <i class="fas fa-chevron-left text-base sm:text-lg"></i>
+            </button>
+            <div class="w-full h-full flex items-center justify-center overflow-auto p-0 pb-36 md:p-8 md:pb-24"
+                id="lbZoomContainer">
+                <img id="lbImage" src="" alt=""
+                    class="max-h-full max-w-full object-contain transition-transform duration-200 cursor-zoom-in md:rounded-md shadow-2xl"
+                    style="max-height: 90vh; width: 100vw;" onclick="lightbox.toggleZoomClick()">
+            </div>
+            <button type="button" onclick="lightbox.next()"
+                class="flex absolute right-2 sm:right-4 z-30 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/40 hover:bg-black/80 text-white items-center justify-center transition-all hover:scale-105 border border-white/10 cursor-pointer shadow-lg"
+                title="Berikutnya (Panah Kanan)">
+                <i class="fas fa-chevron-right text-base sm:text-lg"></i>
+            </button>
+        </div>
+
+        <!-- Bottombar Floating Overlay -->
+        <div
+            class="absolute bottom-0 left-0 right-0 p-4 sm:p-6 pb-6 sm:pb-8 bg-gradient-to-t from-black/95 via-black/50 to-transparent flex flex-col gap-3 w-full z-20 pointer-events-none">
+            <!-- Toolbar Catatan Cepat -->
+            <div id="lbNoteToolbar"
+                class="hidden w-full items-center gap-2 sm:gap-3 transition-all duration-300 pointer-events-auto max-w-2xl mx-auto">
+                <input type="text" id="lbQuickNoteInput" onkeydown="if(event.key==='Enter') lightbox.saveNote()"
+                    placeholder="Tulis pilihan catatan foto ini..."
+                    class="flex-1 px-4 py-3 sm:py-3.5 rounded-xl bg-white/10 border border-white/20 text-white text-xs sm:text-sm outline-none focus:bg-white/20 focus:border-amber-400 transition-all placeholder-white/40 shadow-inner">
+                <button type="button" onclick="lightbox.saveNote()"
+                    class="px-5 py-3 sm:py-3.5 rounded-xl font-bold bg-amber-500 hover:bg-amber-600 text-white text-xs sm:text-sm shadow-md transition-all cursor-pointer">
+                    Simpan
+                </button>
+                <button type="button" onclick="lightbox.cancelNote()"
+                    class="px-4 py-3 sm:py-3.5 rounded-xl font-semibold bg-gray-600 hover:bg-gray-500 text-white text-xs sm:text-sm transition-all cursor-pointer">
+                    Batal
+                </button>
+            </div>
+
+            <!-- Action Buttons -->
+            <div id="lbActionButtons"
+                class="flex flex-col items-center justify-between gap-2.5 w-full pointer-events-auto max-w-lg mx-auto">
+                <div id="lbFileNameContainer" class="w-full text-center pb-0.5">
+                    <span id="lbFileNameBottom"
+                        class="text-xs sm:text-sm font-semibold text-white/95 drop-shadow-md truncate inline-block max-w-full px-3 py-1 rounded-lg bg-black/40 backdrop-blur-md border border-white/10">
+                        IMG_001.JPG
+                    </span>
+                </div>
+                <button type="button" id="lbBtnSelect" onclick="lightbox.toggleSelect()"
+                    class="w-full px-6 py-3 sm:py-3.5 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/30 cursor-pointer">
+                    <i id="lbBtnSelectIcon" class="fas fa-plus"></i>
+                    <span id="lbBtnSelectText">Pilih Foto</span>
+                </button>
+                <button type="button" id="lbBtnNote" onclick="lightbox.showNoteToolbar()"
+                    class="hidden w-full px-5 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-semibold bg-white/10 hover:bg-white/20 text-white transition-all flex items-center justify-center gap-2 border border-white/10 cursor-pointer">
+                    <i id="lbBtnNoteIcon" class="fas fa-comment-dots text-amber-400"></i>
+                    <span id="lbBtnNoteText">Catatan</span>
+                </button>
+                <div id="lbNotePreview" onclick="lightbox.showNoteToolbar()" title="Ubah Catatan"
+                    class="w-full text-xs text-amber-300 italic max-w-full truncate hidden bg-amber-950/60 hover:bg-amber-900/60 px-4 py-2.5 rounded-xl border border-amber-800/50 cursor-pointer transition-colors text-center pointer-events-auto">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: CLIENT REVIEW & REKAP SELEKSI -->
+    <div id="modalClientReview"
+        class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4">
+        <div
+            class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-gray-100 animate-in fade-in zoom-in-95 duration-200">
+            <!-- Modal Header -->
+            <div class="p-5 sm:p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/70">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg shrink-0 border border-blue-100">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-gray-900">Periksa Pilihan Foto</h3>
+                        <p class="text-xs text-gray-500 mt-0.5">Pastikan foto dan pilihan catatan sudah sesuai sebelum
+                            dikirim.</p>
+                    </div>
+                </div>
+                <button type="button" onclick="clientApp.closeModal('modalClientReview')"
+                    class="text-gray-400 hover:text-gray-600 p-2 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer"
+                    title="Tutup">
+                    <i class="fas fa-times text-base"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body (Scrollable) -->
+            <div class="p-5 sm:p-6 overflow-y-auto space-y-4 flex-1 custom-scroll-y">
+                <!-- Stat Cards -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="bg-blue-50/80 border border-blue-100 rounded-2xl p-3.5">
+                        <span class="text-[11px] font-semibold text-blue-800 uppercase tracking-wider block">Total Foto
+                            Dipilih</span>
+                        <div class="flex items-baseline gap-1.5 mt-1">
+                            <span id="reviewPhotoCount" class="text-2xl font-black text-blue-600">0</span>
+                            <span id="reviewMaxCountText" class="text-xs text-blue-700/80 font-medium">foto</span>
+                        </div>
+                    </div>
+                    <div class="bg-amber-50/80 border border-amber-200/80 rounded-2xl p-3.5">
+                        <span class="text-[11px] font-semibold text-amber-800 uppercase tracking-wider block">Pilihan
+                            Catatan</span>
+                        <div class="flex items-baseline gap-1.5 mt-1">
+                            <span id="reviewNoteCount" class="text-2xl font-black text-amber-600">0</span>
+                            <span class="text-xs text-amber-700/80 font-medium">foto ada catatan</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Selected Photo Thumbnail & Drive Name List -->
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span
+                            class="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                            <i class="fas fa-folder-open text-blue-500"></i> Rekap Foto Berdasarkan Folder
+                        </span>
+                        <span id="reviewPhotoCountBadge"
+                            class="text-[11px] font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">
+                            0 Foto
+                        </span>
+                    </div>
+
+                    <div id="reviewPhotoListContainer"
+                        class="space-y-2 max-h-56 sm:max-h-64 overflow-y-auto pr-1 border border-gray-200/80 rounded-2xl p-2.5 bg-gray-50/40 custom-scroll-y">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Bagian Catatan Foto -->
+                <div class="bg-amber-50/80 border border-amber-200/90 rounded-2xl p-3.5 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span
+                            class="text-xs font-bold text-amber-950 uppercase tracking-wide flex items-center gap-1.5">
+                            <i class="fas fa-comment-dots text-amber-600"></i> Catatan Khusus Foto :
+                        </span>
+                        <span id="reviewNotesSectionBadge"
+                            class="text-[10px] font-bold text-amber-800 bg-amber-100/90 px-2 py-0.5 rounded-full border border-amber-200">
+                            0 Catatan
+                        </span>
+                    </div>
+                    <div id="reviewNotesListContainer"
+                        class="space-y-1.5 max-h-36 overflow-y-auto pr-1 custom-scroll-y">
+                        <!-- Populated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Quick Copy Buttons -->
+                <div class="space-y-2">
+                    <button type="button" onclick="clientApp.copySimpleFileNames()" id="btnCopySimpleFileNames"
+                        class="w-full bg-blue-50 hover:bg-blue-100 text-blue-800 font-semibold py-2.5 px-4 rounded-xl text-xs sm:text-sm border border-blue-200 shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98">
+                        <i class="fas fa-list-ol text-blue-600"></i>
+                        <span id="btnCopySimpleFileNamesText">Salin Nomor & Nama File</span>
+                    </button>
+                    <button type="button" onclick="clientApp.copyWhatsAppMessage()" id="btnCopyWaMessage"
+                        class="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold py-2.5 px-4 rounded-xl text-xs sm:text-sm border border-emerald-200 shadow-2xs transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98">
+                        <i class="fab fa-whatsapp text-emerald-600"></i>
+                        <span id="btnCopyWaMessageText">Salin Isi Pesan WhatsApp</span>
+                    </button>
+                </div>
+
+                <!-- Setting: Kirim Langsung ke WA Vendor (Tanpa Link Folder Drive) -->
+                <div class="bg-emerald-50/70 border border-emerald-200 rounded-2xl p-3.5 transition-all">
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-2.5 min-w-0">
+                            <div
+                                class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0 text-sm font-bold shadow-2xs">
+                                <i class="fab fa-whatsapp text-emerald-600"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <label for="toggleDirectWaNoDrive"
+                                    class="text-xs font-bold text-gray-900 block cursor-pointer select-none truncate">
+                                    Kirim Langsung ke WA Vendor (Tanpa Link Folder)
+                                </label>
+                                <span class="text-[11px] text-emerald-800/90 block leading-tight">
+                                    Tanpa menunggu pembuatan folder Drive &amp; tanpa menyertakan link folder
+                                </span>
+                            </div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                            <input type="checkbox" id="toggleDirectWaNoDrive" class="sr-only peer" checked
+                                onchange="clientApp.onToggleDirectWaNoDrive(this.checked)">
+                            <div
+                                class="w-10 h-5.5 bg-gray-200 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4.5 after:w-4.5 after:transition-all peer-checked:bg-emerald-600">
+                            </div>
+                        </label>
+                    </div>
+                    <p id="directWaSettingBadgeText"
+                        class="mt-2 text-[11px] text-emerald-700/90 bg-white/70 px-2.5 py-1.5 rounded-lg border border-emerald-100 leading-snug">
+                        Mode Instan Aktif: Pesan WhatsApp langsung dibuka ke vendor tanpa perlu menunggu pembuatan
+                        folder Google Drive.
+                    </p>
+                </div>
+
+                <!-- Input Nomor WhatsApp Fotografer / Vendor -->
+                <div class="bg-gray-50 border border-gray-200 rounded-2xl p-3.5 space-y-1.5">
+                    <label class="block text-xs font-bold text-gray-700">
+                        <i class="fab fa-whatsapp text-emerald-600 mr-1"></i> Nomor WhatsApp Fotografer:
+                    </label>
+                    <input type="tel" id="reviewClientWaInput" placeholder="Contoh: 081234567890"
+                        class="w-full px-3.5 py-2 text-xs sm:text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white" />
+                    <p id="reviewClientWaNote" class="text-[10px] text-gray-500">Pesan dan rekap foto otomatis
+                        diteruskan ke nomor ini saat
+                        "Kirim Sekarang" ditekan.</p>
+                </div>
+
+                <!-- Lock Notice -->
+                <div
+                    class="p-3.5 bg-amber-50 border-2 border-amber-300 rounded-2xl flex items-start gap-3 text-xs text-amber-950">
+                    <div
+                        class="w-7 h-7 rounded-xl bg-amber-200 text-amber-800 flex items-center justify-center shrink-0 text-sm font-bold">
+                        <i class="fas fa-lock"></i>
+                    </div>
+                    <div class="leading-relaxed">
+                        <strong class="block text-amber-900 font-bold mb-0.5">Penting: Pilihan Akan Dikunci</strong>
+                        <span id="reviewLockNoticeDetail">Setelah dikirim, daftar foto pilihan Anda akan <strong>dikunci
+                                permanen</strong> dan tidak
+                            dapat diubah lagi.</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div
+                class="p-4 sm:p-5 px-6 border-t border-gray-100 flex flex-col-reverse sm:flex-row items-center justify-between gap-3 bg-gray-50/80">
+                <button type="button" onclick="clientApp.closeModal('modalClientReview')"
+                    class="w-full sm:w-auto px-4 py-2.5 text-xs sm:text-sm font-medium text-gray-700 hover:text-gray-900 bg-white hover:bg-gray-100 border border-gray-300 rounded-xl transition-colors cursor-pointer text-center">
+                    <i class="fas fa-arrow-left mr-1.5"></i> Periksa Lagi
+                </button>
+                <button type="button" onclick="clientApp.executeFinalSubmit()" id="btnConfirmSubmitClient"
+                    class="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 cursor-pointer">
+                    <i class="fas fa-paper-plane"></i>
+                    <span>Kirim Sekarang</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: PROSES SIMPAN & BUAT FOLDER SELEKSI (MOHON TUNGGU SEBENTAR JANGAN KELUAR) -->
+    <div id="modalProcessingSelection"
+        class="hidden fixed inset-0 bg-black/75 backdrop-blur-sm z-[95] flex items-center justify-center p-4">
+        <div
+            class="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 sm:p-7 text-center border border-gray-100 animate-in fade-in zoom-in-95 duration-200">
+            <!-- Animated Icon / Processing Illustration -->
+            <div class="relative w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+                <div class="absolute inset-0 rounded-2xl bg-amber-200 animate-ping opacity-30"></div>
+                <div
+                    class="w-20 h-20 rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-amber-600 text-white flex items-center justify-center text-3xl shadow-lg shadow-amber-500/30">
+                    <i class="fas fa-folder-plus animate-bounce"></i>
+                </div>
+            </div>
+
+            <!-- Title -->
+            <h3 class="text-lg sm:text-xl font-extrabold text-gray-900 tracking-tight mb-2">
+                Mohon Tunggu Sebentar...
+            </h3>
+
+            <!-- Alert Notice Badge -->
+            <div
+                class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 border border-amber-300 text-amber-900 text-xs sm:text-sm font-bold mb-3 shadow-xs">
+                <i class="fas fa-exclamation-triangle text-amber-600 shrink-0 text-sm"></i>
+                <span>Harap JANGAN KELUAR atau menutup halaman ini</span>
+            </div>
+
+            <!-- Descriptive Body Text -->
+            <p class="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-sm mx-auto mb-4">
+                Sistem kami sedang memproses dan <strong>menyiapkan folder Google Drive baru</strong> khusus untuk
+                foto-foto yang telah Anda seleksi.
+            </p>
+
+            <!-- Loading Spinner & Step Progress Card -->
+            <div class="bg-slate-50 border border-slate-200/90 rounded-2xl p-3.5 space-y-2 text-left">
+                <div class="flex items-center gap-3">
+                    <div class="spinner !w-5 !h-5 !border-2 !border-blue-600 !border-t-transparent shrink-0"></div>
+                    <div class="min-w-0 flex-1">
+                        <span class="text-xs font-bold text-gray-800 block truncate" id="procStepTitle">Membuat folder
+                            baru &amp; menyalin foto...</span>
+                        <span class="text-[11px] text-gray-500 block truncate" id="procStepSub">Menyimpan seleksi foto
+                            Anda ke server</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer Reassurance Note -->
+            <div
+                class="mt-4 pt-3 border-t border-gray-100 flex items-center justify-center gap-1.5 text-xs text-gray-500">
+                <i class="fab fa-whatsapp text-emerald-600 text-base"></i>
+                <span>Setelah selesai, Anda akan <strong>langsung diarahkan ke nomor WhatsApp</strong>
+                    fotografer.</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: SUKSES TERKIRIM -->
+    <div id="modalClientSuccess"
+        class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-[95] flex items-center justify-center p-4">
+        <div
+            class="bg-white rounded-3xl shadow-2xl max-w-lg w-full flex flex-col overflow-hidden border border-gray-100 animate-in fade-in zoom-in-95 duration-200">
+            <!-- Modal Header -->
+            <div
+                class="p-6 text-center bg-gradient-to-b from-green-50/90 to-white border-b border-gray-100 space-y-2.5">
+                <div
+                    class="w-16 h-16 mx-auto rounded-2xl bg-green-100 text-green-600 flex items-center justify-center text-3xl shadow-inner border border-green-200">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Pilihan Foto Berhasil Terkirim!</h2>
+                <div
+                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-semibold border border-emerald-200">
+                    <i class="fas fa-check text-emerald-600"></i> Selesai
+                </div>
+                <p class="text-xs sm:text-sm text-gray-600 leading-relaxed max-w-md mx-auto" id="clientSuccessModalMsg">
+                    Pilihan foto telah berhasil dikirim ke fotografer dan otomatis dikunci.
+                </p>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-5 sm:p-6 space-y-3.5 bg-white">
+                <!-- Box Folder Google Drive Foto Terpilih -->
+                <div id="clientSuccessDriveBox"
+                    class="hidden bg-emerald-50 border border-emerald-200 rounded-2xl p-3.5 space-y-2">
+                    <div class="flex items-center gap-2.5">
+                        <div
+                            class="w-8 h-8 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
+                            <i class="fab fa-google-drive text-base"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <span class="text-xs font-bold text-emerald-950 block">Folder Google Drive Foto
+                                Terpilih:</span>
+                            <span id="clientSuccessDriveName"
+                                class="text-[11px] text-emerald-800 truncate block">[SELEKSI SEMENTARA 3 HARI]</span>
+                        </div>
+                    </div>
+                    <a id="btnOpenClientDriveFolder" href="#" target="_blank" rel="noopener noreferrer"
+                        class="inline-flex items-center gap-1.5 text-xs font-bold text-emerald-700 hover:text-emerald-900 bg-emerald-100/80 hover:bg-emerald-200/80 px-3 py-1.5 rounded-xl transition-all">
+                        <span>Buka Folder di Google Drive</span>
+                        <i class="fas fa-external-link-alt text-[10px]"></i>
+                    </a>
+                </div>
+
+                <div class="bg-gray-50 p-4 rounded-2xl border border-gray-200/80 space-y-3">
+                    <span class="text-[11px] font-bold text-gray-700 block uppercase tracking-wider">Simpan / Teruskan
+                        Rekap:</span>
+                    <div class="space-y-2">
+                        <a id="btnDirectSendWaSuccess" href="#" target="_blank" rel="noopener noreferrer"
+                            class="hidden w-full px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-98 cursor-pointer ring-2 ring-emerald-400/40">
+                            <i class="fab fa-whatsapp text-xl"></i>
+                            <span>Kirim / Buka WhatsApp Fotografer</span>
+                        </a>
+                        <button type="button" onclick="clientApp.copySimpleFileNames()"
+                            class="w-full px-4 py-2.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs active:scale-98">
+                            <i class="fas fa-list-ol text-blue-600"></i>
+                            <span>Salin Daftar Nama File</span>
+                        </button>
+                        <button type="button" onclick="clientApp.copyWhatsAppMessage()"
+                            class="w-full bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-800 rounded-xl px-4 py-2.5 text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs active:scale-98">
+                            <i class="fab fa-whatsapp text-emerald-600"></i>
+                            <span>Salin Teks WhatsApp Lengkap</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div
+                class="p-4 px-6 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-2.5 bg-gray-50/80">
+                <button type="button" onclick="clientApp.closeSuccessAndBackToPhotos()"
+                    class="w-full sm:w-auto px-5 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md shadow-blue-500/25 flex items-center justify-center gap-2 cursor-pointer">
+                    <i class="fas fa-images"></i>
+                    <span>Lihat Kembali Foto Saya</span>
+                </button>
+                <button type="button" onclick="clientApp.showPortal()"
+                    class="w-full sm:w-auto px-4 py-2 text-xs text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-xl transition-colors cursor-pointer text-center font-medium">
+                    <i class="fas fa-key mr-1"></i> Portal Klien
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: TEMPEL PESAN WHATSAPP / KODE GALERI -->
+    <div id="modalPasteWhatsApp"
+        class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[99] flex items-center justify-center p-4">
+        <div
+            class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-emerald-500/20 animate-in fade-in zoom-in-95 duration-200">
+            <!-- Modal Header -->
+            <div
+                class="p-5 sm:p-6 border-b border-gray-100 flex items-center justify-between bg-gradient-to-r from-emerald-50 via-teal-50 to-emerald-50">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-11 h-11 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-md shadow-emerald-600/30 text-xl shrink-0">
+                        <i class="fab fa-whatsapp"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-gray-900 leading-tight">Tempel Pesan WhatsApp
+                        </h3>
+                        <p class="text-xs text-gray-500 mt-0.5">Buka galeri instan dari fotografer Anda</p>
+                    </div>
+                </div>
+                <button type="button" onclick="clientApp.closePasteModal()"
+                    class="text-gray-400 hover:text-gray-600 p-2 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer"
+                    title="Tutup">
+                    <i class="fas fa-times text-base"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-5 sm:p-6 space-y-4 bg-white">
+                <div
+                    class="p-3.5 bg-emerald-50/80 border border-emerald-200 rounded-2xl flex items-start gap-2.5 text-xs text-emerald-950">
+                    <i class="fas fa-info-circle text-emerald-600 mt-0.5 shrink-0 text-sm"></i>
+                    <div class="leading-relaxed">
+                        <strong>Petunjuk:</strong> Di HP, <strong>sentuh &amp; tahan (long press)</strong> kotak di
+                        bawah lalu pilih <strong>"Tempel"</strong> atau <strong>"Paste"</strong> (atau tekan
+                        <strong>Ctrl+V</strong> di PC). Sistem akan otomatis mendeteksi kode galeri Anda.
+                    </div>
+                </div>
+
+                <div>
+                    <label
+                        class="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                        <span>Kotak Tempel Pesan WhatsApp:</span>
+                        <span id="pasteModalCharCount" class="text-[11px] text-gray-400 font-normal"></span>
+                    </label>
+                    <div class="relative">
+                        <textarea id="pasteWhatsAppTextarea" rows="4"
+                            placeholder="Tempel (Paste) seluruh teks pesan WhatsApp Anda di sini...&#10;&#10;Contoh:&#10;Halo Kak, foto Anda sudah siap dipilih.&#10;Kode Galeri: GAL001...&#10;Link: https://..."
+                            oninput="clientApp.handlePasteModalInput(this.value)"
+                            class="w-full p-4 border-2 border-emerald-300 rounded-2xl text-xs sm:text-sm focus:ring-4 focus:ring-emerald-100 focus:border-emerald-600 outline-none transition-all resize-none bg-slate-50 focus:bg-white text-gray-800 placeholder-gray-400 font-mono"></textarea>
+                    </div>
+                </div>
+
+                <!-- Live Detection Banner -->
+                <div id="pasteModalDetectionResult" class="hidden p-3.5 rounded-2xl border transition-all"></div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div
+                class="p-4 sm:p-5 px-6 border-t border-gray-100 flex flex-col-reverse sm:flex-row items-center justify-between gap-2.5 bg-gray-50/80">
+                <button type="button" onclick="clientApp.closePasteModal()"
+                    class="w-full sm:w-auto px-4 py-2.5 text-xs sm:text-sm font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer text-center">
+                    Batal / Ketik Manual
+                </button>
+                <div class="flex items-center gap-2 w-full sm:w-auto">
+                    <button type="button" id="btnModalPasteFromClipboard"
+                        onclick="clientApp.tryReadClipboardInsideModal()"
+                        class="px-3.5 py-2.5 bg-slate-100 hover:bg-slate-200 active:scale-95 text-slate-700 text-xs sm:text-sm font-bold rounded-xl border border-slate-300 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                        title="Coba baca otomatis clipboard">
+                        <i class="fas fa-paste text-emerald-600"></i>
+                        <span>Tempel Clipboard</span>
+                    </button>
+                    <button type="button" id="btnModalSubmitPaste" onclick="clientApp.submitFromPasteModal()"
+                        class="flex-1 sm:flex-none px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md shadow-emerald-600/25 flex items-center justify-center gap-2 cursor-pointer">
+                        <i class="fas fa-arrow-right"></i>
+                        <span>Buka Galeri</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SERVER-SIDE EMBEDDED DATA -->
+    <script type="application/json" id="initialGalleryDataJson">
+        <?!= (typeof initialGalleryDataJson !== 'undefined' && initialGalleryDataJson) ? initialGalleryDataJson : ((typeof initialGalleryData !== 'undefined' && initialGalleryData) ? JSON.stringify(initialGalleryData) : 'null') ?>
+    </script>
+
+    <!-- CLIENT LOGIC & SCRIPTS -->
+    <script>
+        window.WEB_APP_URL = "<?= (typeof webAppUrl !== 'undefined' && webAppUrl) ? webAppUrl : '' ?>";
+        var rawClientSitesUrl = "<?= (typeof googleSitesUrl !== 'undefined' && googleSitesUrl) ? googleSitesUrl : '' ?>" || "https://sites.google.com/view/ttwinselect/client";
+        if (rawClientSitesUrl.indexOf('ttwinselect/beranda') !== -1) {
+            rawClientSitesUrl = rawClientSitesUrl.replace(/ttwinselect\/beranda/gi, 'ttwinselect/client');
+        } else if (rawClientSitesUrl.endsWith('/beranda')) {
+            rawClientSitesUrl = rawClientSitesUrl.replace(/\/beranda$/i, '/client');
+        }
+        window.GOOGLE_SITES_URL = rawClientSitesUrl;
+        window.INITIAL_GALLERY_ID = "<?= (typeof initialGaleri !== 'undefined' && initialGaleri) ? initialGaleri : '' ?>";
+        try {
+            var _initDataEl = document.getElementById('initialGalleryDataJson');
+            window.INITIAL_GALLERY_DATA = _initDataEl ? JSON.parse(_initDataEl.textContent.trim()) : null;
+        } catch (e) {
+            window.INITIAL_GALLERY_DATA = null;
+        }
+
+        // --- UTILITIES ---
+        function escapeHTML(str) {
+            if (str === null || str === undefined) return '';
+            return String(str).replace(/[&<>'"]/g, function (tag) {
+                var chars = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
+                return chars[tag] || tag;
+            });
+        }
+
+        function decodeHTMLEntities(text) {
+            if (!text) return '';
+            var txt = document.createElement('textarea');
+            txt.innerHTML = String(text);
+            return txt.value;
+        }
+
+        function extractDriveId(url) {
+            if (!url) return '';
+            var str = String(url).trim();
+            var mId = str.match(/[?&]id=([-\w]{15,})/i);
+            if (mId) return mId[1];
+            var mFolder = str.match(/\/folders\/([-\w]{15,})/i);
+            if (mFolder) return mFolder[1];
+            var mD = str.match(/\/d\/([-\w]{15,})/i);
+            if (mD) return mD[1];
+            var mGeneral = str.match(/([-\w]{25,})/);
+            if (mGeneral) return mGeneral[1];
+            var mShort = str.match(/([-\w]{15,})/);
+            return mShort ? mShort[1] : '';
+        }
+
+        function formatPhotoDisplayUrl(url, targetSize) {
+            if (!url) return '';
+            var sz = targetSize || 'w600';
+            var driveId = extractDriveId(url);
+            if (driveId && (url.indexOf('drive.google.com') !== -1 || url.indexOf('google.com') !== -1 || url.indexOf('googleusercontent.com') !== -1)) {
+                return 'https://drive.google.com/thumbnail?id=' + driveId + '&sz=' + sz;
+            }
+            if (url.indexOf('thumbnail?') !== -1) {
+                if (url.indexOf('sz=') === -1) return url + '&sz=' + sz;
+                return url.replace(/sz=[^&]+/, 'sz=' + sz);
+            }
+            return url;
+        }
+
+        function handleImageError(img, driveId) {
+            if (!img) return;
+            var dId = driveId || extractDriveId(img.src);
+            if (dId && !img.dataset.triedCdn) {
+                img.dataset.triedCdn = 'true';
+                img.src = 'https://lh3.googleusercontent.com/d/' + dId + '=w600';
+                return;
+            }
+            img.style.display = 'none';
+            var parent = img.parentElement;
+            if (parent && !parent.querySelector('.drive-img-fallback')) {
+                var fb = document.createElement('div');
+                fb.className = 'drive-img-fallback w-full h-full min-h-[160px] flex flex-col items-center justify-center p-3 bg-slate-100 text-slate-500 text-center select-none';
+                fb.innerHTML = `
+                    <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-sm mb-1.5 shadow-xs">
+                        <i class="fab fa-google-drive"></i>
+                    </div>
+                    <p class="text-[11px] font-semibold text-gray-800 line-clamp-1">${escapeHTML(img.alt || 'Foto Drive')}</p>
+                    <span class="text-[9px] text-gray-500 mt-0.5">Pratinjau Foto</span>
+                `;
+                parent.appendChild(fb);
+            }
+        }
+
+        // --- BACKEND API RUNNER (GAS + LOCAL CANVAS MOCK) ---
+        var isCanvasMode = (document.body.getAttribute('data-runtime-mode') !== 'production');
+
+        function gasRun(functionName) {
+            var args = Array.prototype.slice.call(arguments, 1);
+            if (isCanvasMode) return runMock(functionName, args);
+
+            return new Promise(function (resolve, reject) {
+                if (!window.google || !google.script || !google.script.run) {
+                    // Coba fallback ke mock jika dibuka lokal tanpa Apps Script environment
+                    return runMock(functionName, args).then(resolve).catch(reject);
+                }
+                var runner = google.script.run
+                    .withSuccessHandler(resolve)
+                    .withFailureHandler(reject);
+                runner[functionName].apply(runner, args);
+            });
+        }
+
+        // Mock database untuk pengetesan lokal tanpa GAS
+        var mockDB = {
+            galeri: [
+                {
+                    id_galeri: 'GAL001',
+                    nama_client: 'Anike & Pratama',
+                    judul_acara: 'Wedding Celebration Special',
+                    link_drive: 'https://drive.google.com/drive/folders/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs',
+                    batas_foto: 30,
+                    deadline: '2026-10-25',
+                    highlight: 'Setiap detik adalah kenangan abadi yang tak tergantikan.',
+                    whatsapp_client: '082149315005',
+                    whatsapp_vendor: '081234567890',
+                    nama_vendor: 'Ttwins Photography Studio',
+                    izin_download: true,
+                    status: 'Aktif'
+                }
+            ],
+            foto: []
+        };
+
+        var gal001DriveId = '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs';
+        var mockFolders = [
+            { name: '01. Akad Nikah / Persiapan & Rias', start: 1, end: 5 },
+            { name: '01. Akad Nikah / Ijab Qabul', start: 6, end: 10 },
+            { name: '02. Sungkeman & Adat Keluarga', start: 11, end: 15 },
+            { name: '03. Resepsi & Pelaminan', start: 16, end: 20 }
+        ];
+        for (var i = 1; i <= 20; i++) {
+            var numStr = String(i).padStart(3, '0');
+            var fldObj = mockFolders.find(function (f) { return i >= f.start && i <= f.end; }) || { name: 'Folder Utama' };
+            mockDB.foto.push({
+                id_foto: 'GAL001_F' + i,
+                id_galeri: 'GAL001',
+                nama_file: 'WEDDING_IMG_' + numStr + '.JPG',
+                url_foto: 'https://drive.google.com/thumbnail?id=' + gal001DriveId + '&sz=w1200',
+                id_drive: gal001DriveId,
+                nomor_foto: i,
+                nama_folder: fldObj.name
+            });
+        }
+
+        function runMock(funcName, args) {
+            return new Promise(function (resolve) {
+                setTimeout(function () {
+                    if (funcName === 'getPublicGallery') {
+                        var code = String(args[0] || '').trim().toUpperCase();
+                        var gal = mockDB.galeri.find(function (g) { return g.id_galeri === code; });
+                        if (!gal) {
+                            // Sediakan galeri otomatis jika diuji dengan kode lain di mode lokal
+                            gal = Object.assign({}, mockDB.galeri[0], { id_galeri: code, nama_client: 'Klien ' + code });
+                        }
+                        var pList = mockDB.foto.map(function (f) { return Object.assign({}, f, { id_galeri: code }); });
+                        resolve({
+                            success: true,
+                            gallery: gal,
+                            photos: pList,
+                            selections: []
+                        });
+                    } else if (funcName === 'submitClientSelection') {
+                        var options = args[2] || {};
+                        var skip = options.skipDriveFolder === true;
+                        resolve({
+                            success: true,
+                            driveFolderUrl: skip ? '' : 'https://drive.google.com/drive/folders/mock_selected_folder',
+                            folderName: skip ? '' : ('[SELEKSI SEMENTARA 3 HARI] - ' + (args[0] || 'Klien')),
+                            skippedDrive: skip
+                        });
+                    } else {
+                        resolve({ success: true });
+                    }
+                }, 300);
+            });
+        }
+
+        // --- CLIENT APPLICATION STATE & LOGIC ---
+        var clientApp = {
+            clientData: {
+                gallery: null,
+                photos: [],
+                selected: new Map(), // photoId => note
+                activeFolder: 'all',
+                activeSubfolder: 'all',
+                activeFilter: 'all',
+                searchQuery: '',
+                currentLoadingGalId: ''
+            },
+            currentNotePhotoId: null,
+
+            isPhotoSelected: function (photoId) {
+                if (!this.clientData || !this.clientData.selected) return false;
+                var idStr = String(photoId);
+                return this.clientData.selected.has(idStr) || this.clientData.selected.has(photoId);
+            },
+
+            getPhotoNote: function (photoId) {
+                if (!this.clientData || !this.clientData.selected) return '';
+                var idStr = String(photoId);
+                return this.clientData.selected.get(idStr) || this.clientData.selected.get(photoId) || '';
+            },
+
+            init: function () {
+                var self = this;
+                var targetGalId = '';
+
+                function extractCode(str) {
+                    if (!str) return '';
+                    var s = String(str).trim();
+                    if (s.indexOf('<' + '?=') !== -1) return '';
+                    var m = s.match(/[?&#](?:galeri|client_galeri|g|id)=([A-Z0-9_\-]+)/i) || s.match(/\bGAL[-_0-9A-Za-z]+\b/i);
+                    if (m) return (m[1] || m[0]).toUpperCase();
+                    if (/^[A-Z0-9_\-]{3,20}$/i.test(s) && !/^(TRUE|FALSE|NULL|UNDEFINED|BERANDA|HOME|CLIENT)$/i.test(s)) {
+                        return s.toUpperCase();
+                    }
+                    return '';
+                }
+
+                // 1. Cek parameter server pre-load
+                if (window.INITIAL_GALLERY_ID && window.INITIAL_GALLERY_ID.indexOf('<' + '?') === -1) {
+                    targetGalId = extractCode(window.INITIAL_GALLERY_ID);
+                }
+
+                // 2. Cek query string URL (?galeri=, ?client_galeri=, ?g=, ?id=)
+                if (!targetGalId && window.location) {
+                    try {
+                        targetGalId = extractCode(window.location.search) || extractCode(window.location.href);
+                    } catch (e) { }
+                }
+
+                // 3. Cek URL Hash iframe (#galeri=, #GAL...)
+                if (!targetGalId && window.location && window.location.hash) {
+                    try {
+                        targetGalId = extractCode(window.location.hash);
+                    } catch (e) { }
+                }
+
+                // 4. Deteksi dari document.referrer (saat di-embed di Google Sites)
+                if (!targetGalId && document.referrer) {
+                    try {
+                        targetGalId = extractCode(document.referrer);
+                    } catch (e) { }
+                }
+
+                // 5. Deteksi dari window.name jika iframe diberikan name berparameter
+                if (!targetGalId && window.name) {
+                    try {
+                        targetGalId = extractCode(window.name);
+                    } catch (e) { }
+                }
+
+                // 6. Deteksi dari window.top / parent jika same-origin atau diizinkan
+                if (!targetGalId) {
+                    try {
+                        if (window.top && window.top !== window && window.top.location) {
+                            targetGalId = extractCode(window.top.location.search) ||
+                                extractCode(window.top.location.hash) ||
+                                extractCode(window.top.location.href);
+                        }
+                    } catch (e) { }
+                    if (!targetGalId) {
+                        try {
+                            if (window.parent && window.parent !== window && window.parent.location) {
+                                targetGalId = extractCode(window.parent.location.search) ||
+                                    extractCode(window.parent.location.hash) ||
+                                    extractCode(window.parent.location.href);
+                            }
+                        } catch (e) { }
+                    }
+                }
+
+                // Jika sudah ditemukan langsung secara sinkron, muat galeri seketika
+                if (targetGalId) {
+                    this.loadGallery(targetGalId);
+                    return;
+                }
+
+                var isEmbedded = false;
+                try {
+                    isEmbedded = (window.self !== window.top) || (document.referrer && document.referrer.indexOf('sites.google.com') !== -1);
+                } catch (e) {
+                    isEmbedded = true;
+                }
+
+                // Tampilkan loading jika sedang di-embed di Google Sites / GAS
+                if (isEmbedded || (window.google && google.script && google.script.url)) {
+                    this.showFullLoading('Menghubungkan ke Galeri...', 'Memeriksa akses galeri foto pilihan Anda');
+                }
+
+                var resolved = false;
+                var timeoutHandle = setTimeout(function () {
+                    if (!resolved && !self.clientData.gallery && !self.clientData.currentLoadingGalId) {
+                        self.hideFullLoading();
+                        self.showPortal();
+                    }
+                }, 1500);
+
+                // 7. Cek google.script.url.getLocation untuk integrasi resmi iframe GAS & Google Sites
+                if (window.google && google.script && google.script.url) {
+                    google.script.url.getLocation(function (loc) {
+                        resolved = true;
+                        clearTimeout(timeoutHandle);
+                        if (loc && loc.url) {
+                            window.WEB_APP_URL = loc.url.split('?')[0].split('#')[0];
+                        }
+
+                        var asyncCode = '';
+                        if (loc) {
+                            if (loc.parameter) {
+                                asyncCode = loc.parameter.galeri || loc.parameter.client_galeri || loc.parameter.g || loc.parameter.id || '';
+                            }
+                            if (!asyncCode && loc.parameters) {
+                                var pG = loc.parameters.galeri || loc.parameters.client_galeri || loc.parameters.g || loc.parameters.id;
+                                if (pG && pG.length > 0) asyncCode = pG[0];
+                            }
+                            if (!asyncCode && loc.hash) {
+                                asyncCode = extractCode(loc.hash);
+                            }
+                            if (!asyncCode && loc.url) {
+                                asyncCode = extractCode(loc.url);
+                            }
+                        }
+
+                        if (asyncCode) {
+                            var cleanAsync = String(asyncCode).trim().toUpperCase();
+                            if (self.clientData.currentLoadingGalId !== cleanAsync && (!self.clientData.gallery || String(self.clientData.gallery.id_galeri).toUpperCase() !== cleanAsync)) {
+                                self.loadGallery(cleanAsync);
+                            }
+                        } else {
+                            if (!self.clientData.gallery && !self.clientData.currentLoadingGalId) {
+                                self.hideFullLoading();
+                                self.showPortal();
+                            }
+                        }
+                    });
+                } else if (!isEmbedded) {
+                    clearTimeout(timeoutHandle);
+                    this.showPortal();
+                }
+
+                // Coba kirim postMessage ke parent container untuk meminta URL jika ada wrapper custom
+                try {
+                    if (window.parent && window.parent !== window) {
+                        window.parent.postMessage('GET_CURRENT_URL', '*');
+                        window.parent.postMessage({ type: 'GET_GALLERY_CODE' }, '*');
+                    }
+                } catch (e) { }
+
+                // Smart auto-detection saat menempel di input kode langsung
+                var portalInp = document.getElementById('portalCodeInput');
+                if (portalInp && !portalInp._pasteBound) {
+                    portalInp._pasteBound = true;
+                    portalInp.addEventListener('paste', function (e) {
+                        var pastedText = '';
+                        if (e.clipboardData && e.clipboardData.getData) {
+                            pastedText = e.clipboardData.getData('text/plain');
+                        } else if (window.clipboardData && window.clipboardData.getData) {
+                            pastedText = window.clipboardData.getData('Text');
+                        }
+                        if (pastedText && pastedText.trim()) {
+                            var detected = self.extractGalleryCodeFromText(pastedText);
+                            if (detected) {
+                                e.preventDefault();
+                                portalInp.value = detected;
+                                self.showToast('Kode ' + detected + ' terdeteksi! Membuka galeri...', false);
+                                setTimeout(function () {
+                                    self.loadGallery(detected);
+                                }, 200);
+                            }
+                        }
+                    });
+                }
+            },
+
+            showPortal: function () {
+                var overrideStyle = document.getElementById('tempEmbedLoadingStyle');
+                if (overrideStyle && overrideStyle.parentNode) {
+                    overrideStyle.parentNode.removeChild(overrideStyle);
+                }
+                this.hideFullLoading();
+                document.getElementById('clientApp').classList.add('hidden');
+                document.getElementById('clientPortalView').classList.remove('hidden');
+                document.getElementById('clientPortalView').style.display = '';
+
+                // Cek riwayat galeri sebelumnya dari localStorage
+                var lastCode = '';
+                try { lastCode = localStorage.getItem('last_opened_gallery') || ''; } catch (e) { }
+                var banner = document.getElementById('recentGalleryBanner');
+                var codeText = document.getElementById('recentGalleryCodeText');
+                if (banner && codeText) {
+                    if (lastCode) {
+                        codeText.textContent = lastCode;
+                        banner.classList.remove('hidden');
+                    } else {
+                        banner.classList.add('hidden');
+                    }
+                }
+
+                var input = document.getElementById('portalCodeInput');
+                if (input) {
+                    input.value = '';
+                    setTimeout(function () { input.focus(); }, 150);
+                }
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            },
+
+            openRecentGallery: function () {
+                try {
+                    var lastCode = localStorage.getItem('last_opened_gallery') || '';
+                    if (lastCode) this.loadGallery(lastCode);
+                } catch (e) { }
+            },
+
+            handlePortalSubmit: function (e) {
+                if (e && e.preventDefault) e.preventDefault();
+                var input = document.getElementById('portalCodeInput');
+                var val = input ? input.value.trim().toUpperCase() : '';
+                if (!val) {
+                    this.showToast('Silakan ketik atau tempel kode galeri Anda.', true);
+                    return;
+                }
+                this.loadGallery(val);
+            },
+
+            handlePortalInput: function (val) {
+                var self = this;
+                if (!val) return;
+                var clean = String(val).trim().toUpperCase();
+                var extracted = self.extractGalleryCodeFromText(clean) || (clean.length >= 4 && clean.startsWith('GAL') ? clean : '');
+                if (extracted && extracted.length >= 4) {
+                    clearTimeout(self._portalInputTimer);
+                    self._portalInputTimer = setTimeout(function () {
+                        self.loadGallery(extracted);
+                    }, 400);
+                }
+            },
+
+            pasteFromClipboard: function () {
+                var self = this;
+
+                function applyAndOpen(code) {
+                    if (!code) {
+                        self.showPasteModal();
+                        return;
+                    }
+                    var input = document.getElementById('portalCodeInput');
+                    if (input) input.value = code;
+                    self.closePasteModal();
+                    self.showToast('Kode ' + code + ' berhasil diterapkan! Membuka galeri...', false);
+                    setTimeout(function () {
+                        self.loadGallery(code);
+                    }, 100);
+                }
+
+                // 1. Cek jika sudah ada teks / kode di input utama
+                var inputEl = document.getElementById('portalCodeInput');
+                var existingVal = inputEl ? inputEl.value.trim() : '';
+                var existingExtracted = self.extractGalleryCodeFromText(existingVal);
+                if (existingExtracted) {
+                    applyAndOpen(existingExtracted);
+                    return;
+                }
+
+                // 2. Coba baca via Clipboard API modern jika didukung dan diizinkan browser
+                if (navigator.clipboard && typeof navigator.clipboard.readText === 'function') {
+                    navigator.clipboard.readText().then(function (clipText) {
+                        if (clipText && clipText.trim()) {
+                            var extracted = self.extractGalleryCodeFromText(clipText);
+                            if (extracted) {
+                                applyAndOpen(extracted);
+                                return;
+                            }
+                            // Teks ada tapi kode belum otomatis dipastikan: buka modal dengan teks terisi
+                            self.showPasteModal(clipText);
+                        } else {
+                            // Clipboard kosong, buka modal tempel instan
+                            self.showPasteModal();
+                        }
+                    }).catch(function () {
+                        // Jika dibatasi/ditolak browser/iframe tanpa izin: langsung buka modal tempel tanpa error toast/prompt
+                        self.showPasteModal();
+                    });
+                } else {
+                    // Browser/lingkungan tidak mendukung navigator.clipboard.readText: buka modal tempel instan
+                    self.showPasteModal();
+                }
+            },
+
+            showPasteModal: function (prefilledText) {
+                var modal = document.getElementById('modalPasteWhatsApp');
+                var textarea = document.getElementById('pasteWhatsAppTextarea');
+                var count = document.getElementById('pasteModalCharCount');
+                var result = document.getElementById('pasteModalDetectionResult');
+                if (!modal || !textarea) return;
+
+                if (prefilledText && typeof prefilledText === 'string') {
+                    textarea.value = prefilledText;
+                    this.handlePasteModalInput(prefilledText);
+                } else {
+                    var mainInput = document.getElementById('portalCodeInput');
+                    if (mainInput && mainInput.value.trim()) {
+                        textarea.value = mainInput.value.trim();
+                        this.handlePasteModalInput(textarea.value);
+                    } else {
+                        textarea.value = '';
+                        if (result) {
+                            result.className = 'hidden';
+                            result.innerHTML = '';
+                        }
+                        if (count) count.textContent = '';
+                    }
+                }
+
+                this.openModal('modalPasteWhatsApp');
+                setTimeout(function () {
+                    textarea.focus();
+                    if (textarea.select && textarea.value) textarea.select();
+                }, 150);
+            },
+
+            closePasteModal: function () {
+                clearTimeout(this._pasteAutoSubmitTimer);
+                this.closeModal('modalPasteWhatsApp');
+                var input = document.getElementById('portalCodeInput');
+                if (input) {
+                    setTimeout(function () { input.focus(); }, 100);
+                }
+            },
+
+            handlePasteModalInput: function (val) {
+                var self = this;
+                clearTimeout(self._pasteAutoSubmitTimer);
+                var str = String(val || '').trim();
+                var count = document.getElementById('pasteModalCharCount');
+                var result = document.getElementById('pasteModalDetectionResult');
+                var btnSubmit = document.getElementById('btnModalSubmitPaste');
+
+                function sanitizeText(s) {
+                    return String(s || '').replace(/[&<>'"]/g, function (t) {
+                        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[t] || t);
+                    });
+                }
+
+                if (count) {
+                    count.textContent = str ? (str.length + ' karakter') : '';
+                }
+
+                if (!str) {
+                    if (result) {
+                        result.className = 'hidden';
+                        result.innerHTML = '';
+                    }
+                    if (btnSubmit) {
+                        btnSubmit.innerHTML = '<i class="fas fa-arrow-right"></i><span>Buka Galeri</span>';
+                        btnSubmit.className = 'flex-1 sm:flex-none px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md shadow-emerald-600/25 flex items-center justify-center gap-2 cursor-pointer';
+                    }
+                    return;
+                }
+
+                var code = self.extractGalleryCodeFromText(str);
+                if (code) {
+                    if (result) {
+                        result.className = 'p-3.5 bg-emerald-50 border border-emerald-300 rounded-2xl flex items-center justify-between gap-2 text-xs text-emerald-950 animate-in fade-in duration-150';
+                        result.innerHTML = '<div class="flex items-center gap-2 truncate">' +
+                            '<i class="fas fa-check-circle text-emerald-600 text-base shrink-0"></i>' +
+                            '<span>Kode Terdeteksi: <strong class="font-extrabold text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-lg border border-emerald-300">' + sanitizeText(code) + '</strong></span>' +
+                            '</div>' +
+                            '<span class="text-[11px] text-emerald-700 font-semibold shrink-0">Membuka otomatis...</span>';
+                    }
+                    if (btnSubmit) {
+                        btnSubmit.innerHTML = '<i class="fas fa-check-circle"></i><span>Buka Galeri (' + sanitizeText(code) + ')</span>';
+                        btnSubmit.className = 'flex-1 sm:flex-none px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md shadow-emerald-600/30 flex items-center justify-center gap-2 cursor-pointer';
+                    }
+
+                    // Auto submit setelah jeda singkat jika kode valid ditemukan
+                    self._pasteAutoSubmitTimer = setTimeout(function () {
+                        self.submitFromPasteModal();
+                    }, 400);
+                } else {
+                    if (result) {
+                        result.className = 'p-3 bg-amber-50 border border-amber-300 rounded-2xl flex items-start gap-2 text-xs text-amber-950';
+                        result.innerHTML = '<i class="fas fa-info-circle text-amber-600 text-sm mt-0.5 shrink-0"></i>' +
+                            '<span>Belum mendeteksi kode otomatis (contoh: GAL001). Klik "Buka Galeri" jika sudah selesai menempel teks.</span>';
+                    }
+                    if (btnSubmit) {
+                        btnSubmit.innerHTML = '<i class="fas fa-arrow-right"></i><span>Buka Galeri</span>';
+                        btnSubmit.className = 'flex-1 sm:flex-none px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md shadow-emerald-600/25 flex items-center justify-center gap-2 cursor-pointer';
+                    }
+                }
+            },
+
+            tryReadClipboardInsideModal: function () {
+                var self = this;
+                var textarea = document.getElementById('pasteWhatsAppTextarea');
+                if (navigator.clipboard && typeof navigator.clipboard.readText === 'function') {
+                    navigator.clipboard.readText().then(function (text) {
+                        if (text && text.trim()) {
+                            if (textarea) {
+                                textarea.value = text;
+                                self.handlePasteModalInput(text);
+                                self.showToast('Teks berhasil ditempel dari clipboard!', false);
+                            }
+                        } else {
+                            self.showToast('Clipboard Anda masih kosong.', true);
+                            if (textarea) textarea.focus();
+                        }
+                    }).catch(function () {
+                        if (textarea) textarea.focus();
+                        self.showToast('Akses clipboard otomatis dibatasi. Silakan tekan Ctrl+V atau sentuh lama untuk Tempel.', false);
+                    });
+                } else {
+                    if (textarea) textarea.focus();
+                    self.showToast('Silakan tekan Ctrl+V atau sentuh & tahan di kotak untuk Tempel.', false);
+                }
+            },
+
+            submitFromPasteModal: function () {
+                clearTimeout(this._pasteAutoSubmitTimer);
+                var textarea = document.getElementById('pasteWhatsAppTextarea');
+                var val = textarea ? textarea.value.trim() : '';
+                if (!val) {
+                    this.showToast('Silakan tempel atau ketik teks pesan WhatsApp Anda terlebih dahulu.', true);
+                    if (textarea) textarea.focus();
+                    return;
+                }
+
+                var code = this.extractGalleryCodeFromText(val);
+                if (!code) {
+                    var cleaned = val.replace(/[*"'`#]/g, ' ').trim();
+                    var tokens = cleaned.split(/\s+/);
+                    for (var i = 0; i < tokens.length; i++) {
+                        var t = tokens[i].toUpperCase();
+                        if (t.startsWith('GAL') && t.length >= 4) {
+                            code = t;
+                            break;
+                        }
+                    }
+                    if (!code && /^[A-Z0-9_\-]{3,20}$/i.test(val.trim())) {
+                        code = val.trim().toUpperCase();
+                    }
+                }
+
+                if (!code || code.length < 3) {
+                    this.showToast('Tidak ditemukan kode galeri yang valid dari teks yang ditempel.', true);
+                    if (textarea) textarea.focus();
+                    return;
+                }
+
+                var mainInput = document.getElementById('portalCodeInput');
+                if (mainInput) mainInput.value = code;
+
+                this.closeModal('modalPasteWhatsApp');
+                this.showToast('Membuka galeri ' + code + '...', false);
+                this.loadGallery(code);
+            },
+
+            extractGalleryCodeFromText: function (text) {
+                if (!text) return '';
+                var str = String(text).trim();
+                if (str.indexOf('<' + '?=') !== -1) return '';
+
+                // 1. Cek parameter URL galeri (?galeri=, ?client_galeri=, ?g=, ?id=)
+                var mParam = str.match(/[?&#](?:galeri|client_galeri|g|id)=([A-Z0-9_\-]+)/i);
+                if (mParam && mParam[1] && !/^(TRUE|FALSE|NULL|UNDEFINED|BERANDA|HOME|CLIENT)$/i.test(mParam[1])) {
+                    return mParam[1].toUpperCase();
+                }
+
+                // 2. Cek format teks "Kode Galeri: XXX" atau "Kode: XXX" dari pesan WhatsApp
+                var mText = str.match(/(?:kode\s*(?:galeri)?|galeri)\s*[:=*#\s]+([A-Z0-9_\-]+)/i);
+                if (mText && mText[1] && mText[1].length >= 3 && !/^(TRUE|FALSE|NULL|UNDEFINED|BERANDA|HOME|CLIENT|FOTO|FOTOGRAFER|LINK)$/i.test(mText[1])) {
+                    return mText[1].toUpperCase();
+                }
+
+                // 3. Cek format standar GAL... (contoh: GAL001, GAL-001, GAL_2026_01, GAL3E9B7A1C)
+                // Hindari mencocokkan kata biasa 'galeri' atau 'gallery'
+                var mGalMatches = str.match(/\bGAL[-_0-9A-Za-z]+\b/ig) || [];
+                for (var j = 0; j < mGalMatches.length; j++) {
+                    var gCode = mGalMatches[j].toUpperCase();
+                    if (gCode !== 'GALERI' && gCode !== 'GALLERY' && gCode !== 'GALERIA' && gCode !== 'GAL' && gCode.length >= 4) {
+                        return gCode;
+                    }
+                }
+
+                // 4. Cek jika dibungkus bintang markdown WhatsApp: *XXX*
+                var mBold = str.match(/\*([A-Z0-9_\-]{3,20})\*/i);
+                if (mBold && mBold[1] && !/^(HTTPS?|WWW|HTTP|LINK|KODE|GALERI)$/i.test(mBold[1])) {
+                    return mBold[1].toUpperCase();
+                }
+
+                // 5. Cek jika seluruh teks berupa kode langsung
+                var clean = str.replace(/[*"'`]/g, '').trim();
+                if (/^[A-Z0-9_\-]{3,20}$/i.test(clean) && !/^(HTTPS?|WWW|HTTP|TRUE|FALSE|NULL|UNDEFINED|BERANDA|HOME|CLIENT)$/i.test(clean)) {
+                    return clean.toUpperCase();
+                }
+
+                return '';
+            },
+
+            redirectToMainWebsite: function () {
+                var googleSitesUrl = window.GOOGLE_SITES_URL || 'https://sites.google.com/view/ttwinselect/client';
+                if (googleSitesUrl.indexOf('ttwinselect/beranda') !== -1) {
+                    googleSitesUrl = googleSitesUrl.replace(/ttwinselect\/beranda/gi, 'ttwinselect/client');
+                } else if (googleSitesUrl.endsWith('/beranda')) {
+                    googleSitesUrl = googleSitesUrl.replace(/\/beranda$/i, '/client');
+                }
+                window.open(googleSitesUrl, '_blank');
+            },
+
+            loadGallery: function (galId) {
+                if (!galId) return;
+                var cleanId = String(galId).trim().toUpperCase();
+                this.clientData.currentLoadingGalId = cleanId;
+
+                var overrideStyle = document.getElementById('tempEmbedLoadingStyle');
+                if (overrideStyle && overrideStyle.parentNode) {
+                    overrideStyle.parentNode.removeChild(overrideStyle);
+                }
+
+                try {
+                    localStorage.setItem('last_opened_gallery', cleanId);
+                    localStorage.setItem('ttwins_recent_gallery', JSON.stringify({ id: cleanId, name: '', time: Date.now() }));
+                } catch (e) { }
+
+                // Update URL parameter tanpa reload jika didukung browser
+                try {
+                    var newUrl = new URL(window.location.href);
+                    newUrl.searchParams.set('page', 'client');
+                    newUrl.searchParams.set('galeri', cleanId);
+                    window.history.replaceState({ galeri: cleanId }, '', newUrl.toString());
+                } catch (e) { }
+
+                var portalEl = document.getElementById('clientPortalView');
+                if (portalEl) {
+                    portalEl.classList.add('hidden');
+                    portalEl.style.display = 'none';
+                }
+                document.getElementById('clientNotFoundView').classList.add('hidden');
+                document.getElementById('clientMainWrapper').classList.remove('hidden');
+                document.getElementById('clientApp').classList.remove('hidden');
+
+                // 1. Cek Server Pre-loaded Data untuk respon 0ms
+                if (window.INITIAL_GALLERY_DATA && window.INITIAL_GALLERY_DATA.success && window.INITIAL_GALLERY_DATA.gallery &&
+                    String(window.INITIAL_GALLERY_DATA.gallery.id_galeri).toUpperCase() === cleanId) {
+                    try { sessionStorage.setItem('cached_client_gal_' + cleanId, JSON.stringify(window.INITIAL_GALLERY_DATA)); } catch (e) { }
+                    this.applyGalleryData(window.INITIAL_GALLERY_DATA, cleanId);
+                    return;
+                }
+
+                // 2. Cek sessionStorage untuk navigasi instan (< 10ms)
+                var cachedRaw = null;
+                try { cachedRaw = sessionStorage.getItem('cached_client_gal_' + cleanId); } catch (e) { }
+                if (cachedRaw) {
+                    try {
+                        var cachedData = JSON.parse(cachedRaw);
+                        if (cachedData && cachedData.success) {
+                            this.applyGalleryData(cachedData, cleanId);
+                            // Sinkronkan pembaruan data secara hening
+                            gasRun('getPublicGallery', cleanId).then(function (fresh) {
+                                if (fresh && fresh.success) {
+                                    try { sessionStorage.setItem('cached_client_gal_' + cleanId, JSON.stringify(fresh)); } catch (e) { }
+                                    clientApp.applyGalleryData(fresh, cleanId);
+                                }
+                            }).catch(function () { });
+                            return;
+                        }
+                    } catch (e) { }
+                }
+
+                // 3. Fallback request ke server jika belum ada cache
+                this.showFullLoading('Memuat Galeri Foto...', 'Menyiapkan foto-foto terbaik Anda');
+                gasRun('getPublicGallery', cleanId).then(function (res) {
+                    clientApp.hideFullLoading();
+                    if (res && res.success) {
+                        try { sessionStorage.setItem('cached_client_gal_' + cleanId, JSON.stringify(res)); } catch (e) { }
+                        clientApp.applyGalleryData(res, cleanId);
+                    } else {
+                        clientApp.showNotFound(res.message || 'Galeri tidak ditemukan.');
+                    }
+                }).catch(function (err) {
+                    clientApp.hideFullLoading();
+                    clientApp.showNotFound('Terjadi kesalahan saat memuat galeri: ' + ((err && err.message) || ''));
+                });
+            },
+
+            showNotFound: function (msg) {
+                document.getElementById('clientMainWrapper').classList.add('hidden');
+                document.getElementById('clientNotFoundView').classList.remove('hidden');
+                var msgEl = document.getElementById('clientNotFoundMsg');
+                if (msgEl) msgEl.textContent = msg || 'Kode galeri tidak valid atau sudah kadaluarsa.';
+            },
+
+            applyGalleryData: function (data, cleanId) {
+                var self = this;
+                var g = data.gallery;
+                this.clientData.gallery = g;
+                this.clientData.photos = data.photos || [];
+
+                // Load selections
+                this.clientData.selected = new Map();
+                if (data.selections && Array.isArray(data.selections)) {
+                    data.selections.forEach(function (s) {
+                        self.clientData.selected.set(String(s.id_foto), s.pesan || '');
+                    });
+                }
+
+                // Ambil seleksi lokal jika ada (draft tersimpan di browser klien)
+                try {
+                    var localSaved = localStorage.getItem('client_sel_' + cleanId);
+                    if (localSaved && g.status !== 'Selesai') {
+                        var parsed = JSON.parse(localSaved);
+                        if (Array.isArray(parsed)) {
+                            parsed.forEach(function (item) {
+                                if (!self.clientData.selected.has(item.id_foto)) {
+                                    self.clientData.selected.set(item.id_foto, item.pesan || '');
+                                }
+                            });
+                        }
+                    }
+                } catch (e) { }
+
+                // Update judul dan header
+                document.getElementById('clientGalleryTitle').textContent = decodeHTMLEntities(g.judul_acara || 'Galeri Acara');
+                document.getElementById('clientNameHeader').textContent = decodeHTMLEntities(g.nama_client || 'Klien');
+                document.title = (g.judul_acara || g.nama_client || 'Galeri') + ' - Seleksi Foto Klien';
+
+                // Update Link Google Drive di header klien
+                var driveBtn = document.getElementById('clientDriveLinkBtn');
+                if (driveBtn) {
+                    if (g && g.link_drive) {
+                        driveBtn.href = g.link_drive;
+                        driveBtn.classList.remove('hidden');
+                    } else {
+                        driveBtn.classList.add('hidden');
+                    }
+                }
+
+                if (g.highlight) {
+                    var hl = document.getElementById('clientHighlight');
+                    hl.textContent = `"${decodeHTMLEntities(g.highlight)}"`;
+                    hl.classList.remove('hidden');
+                }
+
+                // Banner Selesai
+                var banner = document.getElementById('clientSuccessBanner');
+                if (g.status === 'Selesai') {
+                    banner.classList.remove('hidden');
+                } else {
+                    banner.classList.add('hidden');
+                }
+
+                this.renderGallery();
+            },
+
+            saveLocalSelections: function () {
+                var g = this.clientData.gallery;
+                if (!g || g.status === 'Selesai') return;
+                try {
+                    var arr = [];
+                    this.clientData.selected.forEach(function (note, id) {
+                        arr.push({ id_foto: id, pesan: note });
+                    });
+                    localStorage.setItem('client_sel_' + g.id_galeri, JSON.stringify(arr));
+                } catch (e) { }
+            },
+
+            // --- FILTER & NAVIGATION METHODS ---
+            setClientFilterAll: function () {
+                this.clientData.activeFolder = 'all';
+                this.clientData.activeSubfolder = 'all';
+                this.setClientFilter('all');
+            },
+
+            setClientFilter: function (filter) {
+                this.clientData.activeFilter = filter || 'all';
+                if (filter === 'all') {
+                    this.clientData.activeFolder = 'all';
+                    this.clientData.activeSubfolder = 'all';
+                }
+
+                var btnAll = document.getElementById('clientFilterAll');
+                var btnSel = document.getElementById('clientFilterSelected');
+                var btnUnsel = document.getElementById('clientFilterUnselected');
+                var btnNote = document.getElementById('clientFilterWithNote');
+
+                [btnAll, btnSel, btnUnsel, btnNote].forEach(function (b) {
+                    if (b) b.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all cursor-pointer shrink-0';
+                });
+
+                if (filter === 'selected' && btnSel) {
+                    btnSel.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white transition-all cursor-pointer shrink-0 shadow-2xs';
+                } else if (filter === 'unselected' && btnUnsel) {
+                    btnUnsel.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white transition-all cursor-pointer shrink-0 shadow-2xs';
+                } else if (filter === 'with-note' && btnNote) {
+                    btnNote.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white transition-all cursor-pointer shrink-0 shadow-2xs';
+                } else if (btnAll) {
+                    btnAll.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white transition-all cursor-pointer shrink-0 shadow-2xs';
+                }
+
+                this.renderGallery();
+            },
+
+            setClientFolder: function (fKey) {
+                this.clientData.activeFolder = fKey || 'all';
+                this.clientData.activeSubfolder = 'all';
+                this.clientData.activeFilter = 'all';
+
+                var btnAll = document.getElementById('clientFilterAll');
+                if (btnAll) {
+                    btnAll.className = (fKey === 'all')
+                        ? 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 text-white transition-all cursor-pointer shrink-0 shadow-2xs'
+                        : 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-all cursor-pointer shrink-0';
+                }
+                this.renderGallery();
+            },
+
+            setClientSubfolder: function (subPath) {
+                this.clientData.activeSubfolder = subPath || 'all';
+                this.renderGallery();
+            },
+
+            handleClientSearch: function (query) {
+                this.clientData.searchQuery = (query || '').trim().toLowerCase();
+                this.renderGallery();
+            },
+
+            resetFilters: function () {
+                this.clientData.activeFolder = 'all';
+                this.clientData.activeSubfolder = 'all';
+                this.clientData.activeFilter = 'all';
+                this.clientData.searchQuery = '';
+                var sInput = document.getElementById('clientSearchInput');
+                if (sInput) sInput.value = '';
+                this.setClientFilter('all');
+            },
+
+            extractFolderStructure: function (photos) {
+                var folderMap = {};
+                var allPhotos = photos || [];
+                var self = this;
+
+                allPhotos.forEach(function (p) {
+                    var rawFolder = (p.nama_folder || 'Folder Utama').trim() || 'Folder Utama';
+                    var parts = rawFolder.split('/').map(function (s) { return s.trim(); }).filter(Boolean);
+                    var mainFolder = parts.length > 0 ? parts[0] : 'Folder Utama';
+                    var subFolder = parts.length > 1 ? parts.slice(1).join(' / ') : '';
+
+                    if (!folderMap[mainFolder]) {
+                        folderMap[mainFolder] = { name: mainFolder, count: 0, selectedCount: 0, subfolders: {} };
+                    }
+                    folderMap[mainFolder].count++;
+                    if (self.clientData.selected.has(p.id_foto)) {
+                        folderMap[mainFolder].selectedCount++;
+                    }
+
+                    if (subFolder) {
+                        if (!folderMap[mainFolder].subfolders[subFolder]) {
+                            folderMap[mainFolder].subfolders[subFolder] = { name: subFolder, count: 0, selectedCount: 0 };
+                        }
+                        folderMap[mainFolder].subfolders[subFolder].count++;
+                        if (self.clientData.selected.has(p.id_foto)) {
+                            folderMap[mainFolder].subfolders[subFolder].selectedCount++;
+                        }
+                    }
+                });
+                return folderMap;
+            },
+
+            getFilteredPhotos: function () {
+                var state = this.clientData;
+                var photos = state.photos || [];
+                var filter = state.activeFilter || 'all';
+                var activeFolder = state.activeFolder || 'all';
+                var activeSubfolder = state.activeSubfolder || 'all';
+                var search = state.searchQuery || '';
+
+                return photos.filter(function (p) {
+                    var isSel = state.selected.has(p.id_foto);
+                    var note = state.selected.get(p.id_foto);
+
+                    if (filter === 'selected' && !isSel) return false;
+                    if (filter === 'unselected' && isSel) return false;
+                    if (filter === 'with-note' && (!isSel || !note || !note.trim())) return false;
+
+                    var rawFolder = (p.nama_folder || 'Folder Utama').trim() || 'Folder Utama';
+                    var parts = rawFolder.split('/').map(function (s) { return s.trim(); }).filter(Boolean);
+                    var mainFolder = parts.length > 0 ? parts[0] : 'Folder Utama';
+
+                    if (activeFolder !== 'all') {
+                        if (mainFolder !== activeFolder) return false;
+                        if (activeSubfolder !== 'all') {
+                            var subPart = parts.length > 1 ? parts.slice(1).join(' / ') : '';
+                            if (subPart !== activeSubfolder && rawFolder !== activeSubfolder) return false;
+                        }
+                    }
+
+                    if (search) {
+                        var fName = (p.nama_file || '').toLowerCase();
+                        var fFolder = rawFolder.toLowerCase();
+                        if (fName.indexOf(search) === -1 && fFolder.indexOf(search) === -1) {
+                            return false;
+                        }
+                    }
+                    return true;
+                });
+            },
+
+            renderFolderNav: function (folderMap) {
+                var state = this.clientData;
+                var container = document.getElementById('clientFolderMenuTabs');
+                var subfolderBar = document.getElementById('clientSubfolderBar');
+                var subfolderTabs = document.getElementById('clientSubfolderTabs');
+
+                if (!container) return;
+                container.innerHTML = '';
+
+                var folderKeys = Object.keys(folderMap || {});
+                if (folderKeys.length > 0) {
+                    folderKeys.sort(function (a, b) {
+                        if (a === 'Folder Utama') return -1;
+                        if (b === 'Folder Utama') return 1;
+                        return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+                    });
+
+                    folderKeys.forEach(function (fKey) {
+                        var fObj = folderMap[fKey];
+                        var isActive = (state.activeFolder === fKey);
+                        var btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ' +
+                            (isActive ? 'bg-blue-600 text-white shadow-2xs' : 'bg-gray-100 text-gray-700 hover:bg-gray-200');
+                        btn.innerHTML = `
+                            <i class="fas fa-folder ${isActive ? 'text-blue-200' : 'text-blue-500'}"></i>
+                            <span>${escapeHTML(fKey)}</span>
+                            <span class="text-[10px] font-bold px-1.5 py-0.2 rounded-full ${isActive ? 'bg-blue-700 text-blue-100' : 'bg-gray-200 text-gray-600'}">${fObj.count}</span>
+                            ${fObj.selectedCount > 0 ? `<span class="w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-300' : 'bg-emerald-500'} inline-block" title="${fObj.selectedCount} terpilih"></span>` : ''}
+                        `;
+                        btn.onclick = function () { clientApp.setClientFolder(fKey); };
+                        container.appendChild(btn);
+                    });
+                }
+
+                // Subfolder rendering
+                if (subfolderBar && subfolderTabs) {
+                    if (state.activeFolder !== 'all' && folderMap[state.activeFolder]) {
+                        var cur = folderMap[state.activeFolder];
+                        var subKeys = Object.keys(cur.subfolders || {});
+                        if (subKeys.length > 0) {
+                            subfolderBar.classList.remove('hidden');
+                            subfolderTabs.innerHTML = '';
+
+                            var allSubActive = (state.activeSubfolder === 'all');
+                            var allBtn = document.createElement('button');
+                            allBtn.type = 'button';
+                            allBtn.className = 'px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1 ' +
+                                (allSubActive ? 'bg-blue-600 text-white shadow-2xs' : 'bg-gray-100 text-gray-600 hover:bg-gray-200');
+                            allBtn.innerHTML = `<span>Semua di ${escapeHTML(cur.name)} (${cur.count})</span>`;
+                            allBtn.onclick = function () { clientApp.setClientSubfolder('all'); };
+                            subfolderTabs.appendChild(allBtn);
+
+                            subKeys.forEach(function (sKey) {
+                                var sObj = cur.subfolders[sKey];
+                                var isSubActive = (state.activeSubfolder === sKey);
+                                var sBtn = document.createElement('button');
+                                sBtn.type = 'button';
+                                sBtn.className = 'px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1.5 ' +
+                                    (isSubActive ? 'bg-blue-600 text-white shadow-2xs' : 'bg-gray-100 text-gray-600 hover:bg-gray-200');
+                                sBtn.innerHTML = `
+                                    <i class="fas fa-folder-open ${isSubActive ? 'text-blue-200' : 'text-blue-500'}"></i>
+                                    <span>${escapeHTML(sObj.name)}</span>
+                                    <span class="text-[10px] font-bold px-1.5 py-0.2 rounded-full ${isSubActive ? 'bg-blue-700 text-blue-100' : 'bg-gray-200 text-gray-600'}">${sObj.count}</span>
+                                `;
+                                sBtn.onclick = function () { clientApp.setClientSubfolder(sKey); };
+                                subfolderTabs.appendChild(sBtn);
+                            });
+                        } else {
+                            subfolderBar.classList.add('hidden');
+                        }
+                    } else {
+                        subfolderBar.classList.add('hidden');
+                    }
+                }
+            },
+
+            renderGallery: function () {
+                var gal = this.clientData.gallery;
+                if (!gal) return;
+
+                var folderMap = this.extractFolderStructure(this.clientData.photos);
+                this.renderFolderNav(folderMap);
+                this.updateProgressCounters();
+
+                var filtered = this.getFilteredPhotos();
+                var container = document.getElementById('clientPhotoContainer');
+                if (!container) return;
+                container.innerHTML = '';
+
+                if (filtered.length === 0) {
+                    container.innerHTML = `
+                        <div class="py-16 text-center bg-white rounded-3xl border border-gray-200 shadow-2xs p-6 col-span-full">
+                            <div class="w-14 h-14 mx-auto rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-2xl mb-3 shadow-inner">
+                                <i class="${this.clientData.activeFilter === 'selected' ? 'fas fa-check-circle' : 'fas fa-images'}"></i>
+                            </div>
+                            <h4 class="text-base font-bold text-gray-800">
+                                ${this.clientData.activeFilter === 'selected' ? 'Belum Ada Foto Dipilih' : 'Tidak Ada Foto'}
+                            </h4>
+                            <p class="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+                                ${this.clientData.activeFilter === 'selected' ? 'Pilih foto favorit Anda dengan menekan tombol "Pilih Foto".' : 'Coba ubah kata kunci pencarian atau bersihkan filter.'}
+                            </p>
+                            <button type="button" onclick="clientApp.resetFilters()" class="mt-4 px-4 py-2 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-xl text-xs font-bold transition-all cursor-pointer">
+                                Reset Filter
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                filtered.forEach(function (p, idx) {
+                    container.appendChild(clientApp.createPhotoCard(p, idx));
+                });
+            },
+
+            renderCardBottomHtml: function (p, isSelected, selectedOrder, isFinished, isQuotaFull, note) {
+                var selectButtonHtml = '';
+                if (isFinished) {
+                    selectButtonHtml = isSelected
+                        ? `<button type="button" disabled class="w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-emerald-700/90 text-white cursor-default shadow-xs"><i class="fas fa-lock text-emerald-300"></i> #${selectedOrder} Terpilih (Terkunci)</button>`
+                        : `<button type="button" disabled class="w-full py-2 px-3 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 bg-gray-800/80 text-gray-300 cursor-default border border-white/10">Tidak Terpilih</button>`;
+                } else if (isSelected) {
+                    selectButtonHtml = `
+                        <button type="button" onclick="event.stopPropagation(); clientApp.togglePhotoSelection('${escapeHTML(p.id_foto)}')"
+                            class="w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/30">
+                            <i class="fas fa-check-circle text-[11px]"></i>
+                            <span>${selectedOrder ? ('#' + selectedOrder + ' ') : ''}Pesan Terpilih</span>
+                        </button>
+                    `;
+                } else if (isQuotaFull) {
+                    selectButtonHtml = `
+                        <button type="button" disabled
+                            class="w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 bg-gray-800/80 text-amber-300/90 border border-amber-500/30 cursor-not-allowed">
+                            <i class="fas fa-lock text-[11px] text-amber-400"></i>
+                            <span>Kuota Penuh (Terkunci)</span>
+                        </button>
+                    `;
+                } else {
+                    selectButtonHtml = `
+                        <button type="button" onclick="event.stopPropagation(); clientApp.togglePhotoSelection('${escapeHTML(p.id_foto)}')"
+                            class="w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer bg-black/50 text-white hover:bg-black/70 border border-white/20 backdrop-blur-xs">
+                            <i class="fas fa-plus text-[11px]"></i>
+                            <span>Pilih Foto</span>
+                        </button>
+                    `;
+                }
+
+                var noteButtonHtml = isSelected ? `
+                    <button type="button" onclick="event.stopPropagation(); clientApp.openNoteModal('${escapeHTML(p.id_foto)}')"
+                        class="w-full py-1.5 px-3 rounded-xl text-xs font-semibold bg-white/20 hover:bg-white/30 text-white transition-all flex items-center justify-center gap-1.5 border border-white/20 cursor-pointer backdrop-blur-xs shadow-sm">
+                        <i class="fas fa-comment-dots text-amber-400 text-xs"></i>
+                        <span>${note && note.trim() ? 'Ubah Catatan' : 'Catatan'}</span>
+                    </button>
+                    ${note && note.trim() ? `
+                        <div class="text-[11px] text-amber-100 bg-black/60 p-2 px-2.5 rounded-lg border border-amber-500/30 truncate flex items-center gap-1.5 cursor-pointer mt-0.5" onclick="event.stopPropagation(); clientApp.openNoteModal('${escapeHTML(p.id_foto)}')">
+                            <i class="fas fa-quote-left text-[9px] text-amber-400 shrink-0"></i>
+                            <span class="truncate italic font-medium drop-shadow-sm">${escapeHTML(note)}</span>
+                        </div>
+                    ` : ''}
+                ` : '';
+
+                return `
+                    <div class="flex items-center justify-center text-xs min-w-0 px-1">
+                        <span class="truncate font-semibold text-white/95 text-xs w-full text-center drop-shadow-md" title="${escapeHTML(p.nama_file)}">${escapeHTML(p.nama_file)}</span>
+                    </div>
+                    ${selectButtonHtml}
+                    ${noteButtonHtml}
+                `;
+            },
+
+            createPhotoCard: function (p, idx) {
+                var gal = this.clientData.gallery;
+                var isFinished = !!(gal && gal.status === 'Selesai');
+                var isSelected = this.clientData.selected.has(p.id_foto);
+                var note = this.clientData.selected.get(p.id_foto) || '';
+                var displayUrl = formatPhotoDisplayUrl(p.url_foto, 'w600');
+                var driveId = p.id_drive || extractDriveId(p.url_foto);
+
+                var selectedOrder = '';
+                if (isSelected) {
+                    var keys = Array.from(this.clientData.selected.keys());
+                    var pos = keys.indexOf(p.id_foto);
+                    selectedOrder = pos !== -1 ? (pos + 1) : '';
+                }
+
+                var badgeHtml = '';
+                if (isSelected) {
+                    badgeHtml = isFinished
+                        ? `<div class="photo-sel-badge bg-emerald-700 text-white"><i class="fas fa-lock text-[10px] mr-1"></i> #${selectedOrder} Terpilih</div>`
+                        : `<div class="photo-sel-badge bg-blue-600 text-white"><i class="fas fa-check text-[10px] mr-1"></i> #${selectedOrder} Dipilih</div>`;
+                }
+
+                var currentCount = this.clientData.selected ? this.clientData.selected.size : 0;
+                var maxLimit = (gal && (parseInt(gal.batas_foto, 10) || 30)) || 30;
+                var isQuotaFull = currentCount >= maxLimit;
+
+                var bottomHtml = this.renderCardBottomHtml(p, isSelected, selectedOrder, isFinished, isQuotaFull, note);
+
+                var div = document.createElement('div');
+                div.className = 'photo-item ' + (isSelected ? 'selected' : '');
+                div.id = 'photo-' + p.id_foto;
+                div.innerHTML = `
+                    <div class="photo-img-wrapper cursor-pointer relative overflow-hidden group rounded-xl bg-gray-100" onclick="clientApp.openLightbox('${escapeHTML(p.id_foto)}')">
+                        ${badgeHtml}
+                        <img src="${escapeHTML(displayUrl)}" alt="${escapeHTML(p.nama_file)}" loading="${idx < 8 ? 'eager' : 'lazy'}" decoding="async" ${idx < 4 ? 'fetchpriority="high"' : ''} class="w-full h-auto block object-cover aspect-[4/5] sm:aspect-auto sm:object-contain transition-transform duration-300 group-hover:scale-[1.02]" onerror="handleImageError(this, '${escapeHTML(driveId)}')">
+                        
+                        <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-10">
+                            <span class="bg-black/70 text-white p-3 rounded-full text-sm shadow-lg"><i class="fas fa-search-plus"></i></span>
+                        </div>
+
+                        <div class="photo-card-bottom absolute bottom-0 left-0 right-0 p-2.5 sm:p-3 pt-12 bg-gradient-to-t from-black/95 via-black/60 to-transparent flex flex-col gap-1.5 sm:gap-2 z-20" onclick="event.stopPropagation();">
+                            ${bottomHtml}
+                        </div>
+                    </div>
+                `;
+                return div;
+            },
+
+            syncPhotoSelectionDOM: function (photoId) {
+                var gal = this.clientData.gallery;
+                var isFinished = !!(gal && gal.status === 'Selesai');
+                var currentCount = this.clientData.selected ? this.clientData.selected.size : 0;
+                var maxLimit = (gal && (parseInt(gal.batas_foto, 10) || 30)) || 30;
+                var isQuotaFull = currentCount >= maxLimit;
+
+                // 1. Update kartu foto yang diklik secara langsung tanpa reload gambar
+                this.updateSingleCardDOM(photoId, isFinished, isQuotaFull);
+
+                // 2. Update nomor urut (#1, #2, dst) pada semua kartu foto lain yang terpilih
+                var self = this;
+                this.clientData.selected.forEach(function (_, pId) {
+                    if (String(pId) !== String(photoId)) {
+                        self.updateSingleCardDOM(pId, isFinished, isQuotaFull);
+                    }
+                });
+
+                // 3. Jika status kuota penuh berubah, perbarui tombol kartu yang belum dipilih tanpa menyentuh <img>
+                var container = document.getElementById('clientPhotoContainer');
+                if (container) {
+                    var unselectedCards = container.querySelectorAll('.photo-item:not(.selected)');
+                    unselectedCards.forEach(function (card) {
+                        var pId = card.id.replace('photo-', '');
+                        var p = (self.clientData.photos || []).find(function (item) { return String(item.id_foto) === String(pId); });
+                        if (p) {
+                            var bottom = card.querySelector('.photo-card-bottom');
+                            if (bottom) {
+                                bottom.innerHTML = self.renderCardBottomHtml(p, false, '', isFinished, isQuotaFull, '');
+                            }
+                        }
+                    });
+                }
+            },
+
+            updateSingleCardDOM: function (photoId, isFinished, isQuotaFull) {
+                var card = document.getElementById('photo-' + photoId);
+                if (!card) return;
+                var p = (this.clientData.photos || []).find(function (item) { return String(item.id_foto) === String(photoId); });
+                if (!p) return;
+
+                if (typeof isFinished === 'undefined') {
+                    var gal = this.clientData.gallery;
+                    isFinished = !!(gal && gal.status === 'Selesai');
+                }
+                if (typeof isQuotaFull === 'undefined') {
+                    var currentCount = this.clientData.selected ? this.clientData.selected.size : 0;
+                    var max = (this.clientData.gallery && (parseInt(this.clientData.gallery.batas_foto, 10) || 30)) || 30;
+                    isQuotaFull = currentCount >= max;
+                }
+
+                var isSelected = this.clientData.selected.has(p.id_foto) || this.clientData.selected.has(String(p.id_foto));
+                var note = this.clientData.selected.get(p.id_foto) || this.clientData.selected.get(String(p.id_foto)) || '';
+
+                var selectedOrder = '';
+                if (isSelected) {
+                    var keys = Array.from(this.clientData.selected.keys());
+                    var pos = keys.indexOf(p.id_foto);
+                    if (pos === -1) pos = keys.indexOf(String(p.id_foto));
+                    selectedOrder = pos !== -1 ? (pos + 1) : '';
+                }
+
+                // Update class aktif pada pembungkus kartu foto
+                card.className = 'photo-item ' + (isSelected ? 'selected' : '');
+
+                var wrapper = card.querySelector('.photo-img-wrapper');
+                if (!wrapper) return;
+
+                // Update badge seleksi di pojok kanan atas
+                var oldBadge = wrapper.querySelector('.photo-sel-badge');
+                if (oldBadge) oldBadge.remove();
+
+                if (isSelected) {
+                    var badgeDiv = document.createElement('div');
+                    badgeDiv.className = isFinished ? 'photo-sel-badge bg-emerald-700 text-white' : 'photo-sel-badge bg-blue-600 text-white';
+                    badgeDiv.innerHTML = isFinished 
+                        ? `<i class="fas fa-lock text-[10px] mr-1"></i> #${selectedOrder} Terpilih`
+                        : `<i class="fas fa-check text-[10px] mr-1"></i> #${selectedOrder} Dipilih`;
+                    wrapper.insertBefore(badgeDiv, wrapper.firstChild);
+                }
+
+                // Update kontrol tombol & catatan di bawah TANPA menyentuh tag <img> sama sekali
+                var bottom = wrapper.querySelector('.photo-card-bottom');
+                if (bottom) {
+                    bottom.innerHTML = this.renderCardBottomHtml(p, isSelected, selectedOrder, isFinished, isQuotaFull, note);
+                }
+            },
+
+            togglePhotoSelection: function (photoId) {
+                var gal = this.clientData.gallery;
+                if (gal && gal.status === 'Selesai') {
+                    this.showToast('Pilihan foto telah dikirim dan terkunci.', true);
+                    return;
+                }
+
+                var isSelected = this.isPhotoSelected(photoId);
+                var currentCount = this.clientData.selected.size;
+                var maxLimit = (gal && (parseInt(gal.batas_foto, 10) || 30)) || 30;
+
+                if (!isSelected && currentCount >= maxLimit) {
+                    this.showToast('Kuota batas foto (' + maxLimit + ' foto) telah terpenuhi. Tombol dikunci agar tidak menambah seleksi.', true);
+                    return;
+                }
+
+                var idStr = String(photoId);
+                if (isSelected) {
+                    this.clientData.selected.delete(idStr);
+                    this.clientData.selected.delete(photoId);
+                    gasRun('deleteSingleClientSelection', gal.id_galeri, idStr);
+                } else {
+                    this.clientData.selected.set(idStr, '');
+                    gasRun('saveSingleClientSelection', gal.id_galeri, idStr, '');
+                }
+
+                this.saveLocalSelections();
+
+                // Jika sedang di filter "Terpilih" dan foto dibatalkan, hilangkan kartu secara halus
+                if (this.clientData.activeFilter === 'selected') {
+                    if (isSelected) {
+                        var cardEl = document.getElementById('photo-' + photoId);
+                        if (cardEl) {
+                            cardEl.remove();
+                            var container = document.getElementById('clientPhotoContainer');
+                            if (container && container.querySelectorAll('.photo-item').length === 0) {
+                                this.renderGallery();
+                                this.updateProgressCounters();
+                                return;
+                            }
+                        }
+                    } else {
+                        this.renderGallery();
+                        this.updateProgressCounters();
+                        return;
+                    }
+                }
+
+                // UPDATE IN-PLACE: Menjaga elemen <img> tetap ada di layar tanpa reload blank putih
+                this.syncPhotoSelectionDOM(photoId);
+                this.updateProgressCounters();
+                var folderMap = this.extractFolderStructure(this.clientData.photos);
+                this.renderFolderNav(folderMap);
+
+                if (typeof lightbox !== 'undefined' && lightbox && lightbox.isOpen) lightbox.updateSelectionUI();
+            },
+
+            promptClearClientSelections: function () {
+                var gal = this.clientData.gallery;
+                if (gal && gal.status === 'Selesai') {
+                    this.showToast('Pilihan foto telah dikunci.', true);
+                    return;
+                }
+                if (this.clientData.selected.size === 0) {
+                    this.showToast('Belum ada foto yang dipilih.', true);
+                    return;
+                }
+                if (confirm('Yakin ingin menghapus seluruh pilihan foto Anda?')) {
+                    this.clientData.selected.clear();
+                    this.saveLocalSelections();
+                    gasRun('clearClientSelections', gal.id_galeri);
+                    this.renderGallery();
+                    this.showToast('Seluruh pilihan foto berhasil dibersihkan.', false);
+                }
+            },
+
+            updateProgressCounters: function () {
+                var count = this.clientData.selected ? this.clientData.selected.size : 0;
+                var gal = this.clientData.gallery;
+                var max = gal ? (parseInt(gal.batas_foto, 10) || 30) : 30;
+                var isFinished = !!(gal && gal.status === 'Selesai');
+                var totalPhotos = (this.clientData.photos || []).length;
+                var isComplete = (count >= max) || (totalPhotos > 0 && count >= totalPhotos);
+
+                // Update Header progress
+                var progEl = document.getElementById('clientSelectionProgress');
+                if (progEl) {
+                    if (isComplete) {
+                        progEl.innerHTML = `<i class="fas fa-check-circle mr-1 text-emerald-600"></i> ${count} / ${max} Foto (Lengkap)`;
+                        progEl.className = 'inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 border border-emerald-300 text-xs px-3 py-1.5 rounded-full font-bold shadow-2xs';
+                    } else {
+                        progEl.textContent = `${count} / ${max} Foto`;
+                        progEl.className = 'inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 text-xs px-3 py-1.5 rounded-full font-bold shadow-2xs';
+                    }
+                }
+
+                // Filter tabs counts
+                var cSel = document.getElementById('clientFilterCountSelected');
+                if (cSel) cSel.textContent = count;
+
+                var noteCount = 0;
+                if (this.clientData.selected) {
+                    this.clientData.selected.forEach(function (n) { if (n && n.trim()) noteCount++; });
+                }
+                var cNote = document.getElementById('clientFilterCountNote');
+                if (cNote) cNote.textContent = noteCount;
+
+                // Sticky Bottom Bar
+                // Kontrol Muncul Tombol / Keterangan Kirim Pilihan di Floating Bottom Bar:
+                // 1. Jika belum selesai memilih (count < max), keterangan & tombol kirim jangan dimunculkan (hidden).
+                // 2. Jika semua sudah selesai memilih (count >= max atau kuota tercapai), munculkan keterangan & tombolnya.
+                // 3. Jika status sudah 'Selesai', sembunyikan bar kirim (hanya melihat foto).
+                var bottomBar = document.getElementById('clientStickyBottomBar');
+                var bottomCount = document.getElementById('clientBottomCountText');
+                var bottomProgress = document.getElementById('clientBottomProgressBar');
+                var bottomBadge = document.getElementById('clientBottomCompleteBadge');
+                var bottomBtn = document.getElementById('btnBottomSubmitSelection');
+                var bottomDesc = document.getElementById('clientBottomNoticeDesc');
+
+                if (bottomBar) {
+                    if (isFinished) {
+                        bottomBar.classList.add('hidden');
+                        bottomBar.style.display = 'none';
+                    } else if (isComplete) {
+                        // Semua sudah selesai memilih: munculkan keterangan & tombol kirim pilihan
+                        bottomBar.classList.remove('hidden');
+                        bottomBar.style.display = 'flex';
+                        if (bottomCount) bottomCount.textContent = `${count} dari ${max} Foto Terpilih`;
+                        if (bottomProgress) bottomProgress.style.width = '100%';
+                        if (bottomBadge) {
+                            bottomBadge.classList.remove('hidden');
+                            bottomBadge.className = 'text-[10px] sm:text-xs px-2.5 py-0.5 rounded-full font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30';
+                            bottomBadge.innerHTML = '<i class="fas fa-check-circle mr-1"></i> Kuota Terpenuhi';
+                        }
+                        if (bottomDesc) {
+                            bottomDesc.classList.remove('hidden');
+                        }
+                        if (bottomBtn) {
+                            bottomBtn.classList.remove('hidden');
+                            bottomBtn.className = 'w-full sm:w-auto px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-95 text-white shadow-lg shadow-blue-500/30 transition-all flex items-center justify-center gap-2 cursor-pointer';
+                            bottomBtn.innerHTML = `<i class="fas fa-paper-plane mr-1.5 animate-pulse"></i> <span>Kirim Pilihan (${count} Foto)</span>`;
+                            bottomBtn.onclick = function () { clientApp.openClientReviewModal(); };
+                        }
+                    } else {
+                        // Belum selesai memilih: jangan munculkan bar / keterangan kirim pilihan
+                        bottomBar.classList.add('hidden');
+                        bottomBar.style.display = 'none';
+                        if (bottomDesc) {
+                            bottomDesc.classList.add('hidden');
+                        }
+                    }
+                }
+
+                // Notifikasi toast saat pertama kali kuota terpenuhi
+                if (isComplete && !this._lastIsComplete && !isFinished && count > 0) {
+                    this.showToast('🎉 Semua kuota foto telah selesai dipilih (' + count + '/' + max + '). Keterangan & tombol Kirim Pilihan telah aktif di bawah.', false);
+                }
+                this._lastIsComplete = isComplete;
+            },
+
+            // --- LIGHTBOX & NOTE MODAL ---
+            openLightbox: function (photoId) {
+                var photos = this.getFilteredPhotos();
+                var idx = photos.findIndex(function (p) { return p.id_foto === photoId; });
+                lightbox.open(photos, idx >= 0 ? idx : 0);
+            },
+
+            openNoteModal: function (photoId) {
+                var gal = this.clientData.gallery;
+                if (gal && gal.status === 'Selesai') {
+                    this.showToast('Pilihan telah dikirim dan terkunci.', true);
+                    return;
+                }
+                var count = this.clientData.selected ? this.clientData.selected.size : 0;
+                var max = (gal && (parseInt(gal.batas_foto, 10) || 30)) || 30;
+                if (!this.clientData.selected.has(photoId) && count >= max) {
+                    this.showToast('Kuota pilih (' + max + ' foto) telah terpenuhi. Tombol catatan dikunci agar tidak menambah seleksi.', true);
+                    return;
+                }
+                this.currentNotePhotoId = photoId;
+                var input = document.getElementById('clientNoteInput');
+                if (input) input.value = this.clientData.selected.get(photoId) || '';
+                this.openModal('modalClientNote');
+            },
+
+            saveClientNote: function () {
+                var pId = this.currentNotePhotoId;
+                var input = document.getElementById('clientNoteInput');
+                var note = input ? input.value.trim() : '';
+
+                if (pId && this.clientData.selected.has(pId)) {
+                    this.clientData.selected.set(pId, note);
+                    this.saveLocalSelections();
+                    gasRun('saveSingleClientSelection', this.clientData.gallery.id_galeri, pId, note);
+                    this.updateSingleCardDOM(pId);
+                    this.updateProgressCounters();
+                    if (lightbox && lightbox.isOpen) lightbox.updateSelectionUI();
+                }
+
+                this.closeModal('modalClientNote');
+                this.showToast('Pilihan catatan tersimpan.', false);
+            },
+
+            // --- CLIENT REVIEW & SUBMIT ---
+            openClientReviewModal: function () {
+                var count = this.clientData.selected ? this.clientData.selected.size : 0;
+                var gal = this.clientData.gallery;
+                var max = gal ? (parseInt(gal.batas_foto, 10) || 30) : 30;
+                var totalPhotos = (this.clientData.photos || []).length;
+                var isComplete = (count >= max) || (totalPhotos > 0 && count >= totalPhotos);
+
+                if (count === 0) {
+                    this.showToast('Pilih minimal 1 foto terlebih dahulu.', true);
+                    return;
+                }
+
+                if (!isComplete && (!gal || gal.status !== 'Selesai')) {
+                    this.showToast('Pilihan belum lengkap. Silakan pilih ' + (max - count) + ' foto lagi hingga total ' + max + ' foto sebelum mengirim pilihan.', true);
+                    return;
+                }
+
+                var notesCount = 0;
+                this.clientData.selected.forEach(function (n) { if (n && n.trim()) notesCount++; });
+
+                document.getElementById('reviewPhotoCount').textContent = count;
+                document.getElementById('reviewMaxCountText').textContent = 'dari kuota ' + max + ' foto';
+                document.getElementById('reviewNoteCount').textContent = notesCount;
+                document.getElementById('reviewPhotoCountBadge').textContent = count + ' Foto';
+                document.getElementById('reviewNotesSectionBadge').textContent = notesCount + ' Catatan';
+
+                // Render per-folder grouping
+                var container = document.getElementById('reviewPhotoListContainer');
+                container.innerHTML = '';
+                var allPhotos = this.clientData.photos || [];
+
+                var grouped = this.getGroupedSelections();
+                grouped.sortedFolders.forEach(function (fName) {
+                    var items = grouped.folderMap[fName] || [];
+                    if (items.length === 0) return;
+
+                    var fWrap = document.createElement('div');
+                    fWrap.className = 'space-y-1.5 mb-3 last:mb-0';
+                    fWrap.innerHTML = `
+                        <div class="flex items-center justify-between bg-blue-50/90 border border-blue-200/80 px-3 py-1.5 rounded-xl sticky top-0 z-10 backdrop-blur-xs">
+                            <span class="text-xs font-bold text-blue-950 truncate">${escapeHTML(fName)}</span>
+                            <span class="text-[10px] font-bold text-blue-700 bg-white px-2 py-0.5 rounded-full border border-blue-200">${items.length} Foto</span>
+                        </div>
+                    `;
+
+                    var itemsWrap = document.createElement('div');
+                    itemsWrap.className = 'space-y-1 pl-1';
+                    items.forEach(function (item, idx) {
+                        var p = item.photo;
+                        var displayUrl = formatPhotoDisplayUrl(p.url_foto);
+                        var driveId = p.id_drive || extractDriveId(p.url_foto);
+                        var row = document.createElement('div');
+                        row.className = 'flex items-center gap-2.5 p-1.5 bg-white rounded-xl border border-gray-200/80 shadow-2xs';
+                        row.innerHTML = `
+                            <img src="${escapeHTML(displayUrl)}" alt="${escapeHTML(p.nama_file)}" class="w-10 h-10 object-cover rounded-lg shrink-0 border border-gray-200" onerror="handleImageError(this, '${escapeHTML(driveId)}')">
+                            <div class="flex-1 min-w-0">
+                                <span class="font-mono text-xs font-bold text-gray-800 truncate block">${escapeHTML(p.nama_file)}</span>
+                                ${item.note ? `<span class="text-[10px] text-amber-800 italic block truncate"><i class="fas fa-comment-dots text-amber-500 mr-1"></i>${escapeHTML(item.note)}</span>` : ''}
+                            </div>
+                        `;
+                        itemsWrap.appendChild(row);
+                    });
+                    fWrap.appendChild(itemsWrap);
+                    container.appendChild(fWrap);
+                });
+
+                // Notes recap list
+                var nContainer = document.getElementById('reviewNotesListContainer');
+                nContainer.innerHTML = '';
+                var noteIdx = 1;
+                grouped.sortedFolders.forEach(function (fName) {
+                    var items = grouped.folderMap[fName] || [];
+                    items.forEach(function (item) {
+                        if (item.note && item.note.trim()) {
+                            var nRow = document.createElement('div');
+                            nRow.className = 'flex items-start gap-2 p-2 bg-white rounded-xl border border-amber-200/80';
+                            nRow.innerHTML = `
+                                <span class="text-xs font-bold text-amber-800 shrink-0">${noteIdx}.</span>
+                                <div class="flex-1 min-w-0">
+                                    <span class="font-mono text-xs font-bold text-gray-900 truncate block">${escapeHTML(item.photo.nama_file)}</span>
+                                    <p class="text-xs text-amber-950 mt-0.5 leading-relaxed">${escapeHTML(item.note)}</p>
+                                </div>
+                            `;
+                            nContainer.appendChild(nRow);
+                            noteIdx++;
+                        }
+                    });
+                });
+                if (noteIdx === 1) {
+                    nContainer.innerHTML = '<p class="text-xs text-amber-800/70 italic p-2">Tidak ada pilihan catatan khusus.</p>';
+                }
+
+                // WhatsApp Vendor input
+                var waInput = document.getElementById('reviewClientWaInput');
+                if (waInput) {
+                    var defaultWa = (gal && (gal.whatsapp_vendor || gal.whatsapp_client)) ? String(gal.whatsapp_vendor || gal.whatsapp_client) : '';
+                    if (!defaultWa) {
+                        try { defaultWa = localStorage.getItem('last_vendor_wa') || ''; } catch (e) { }
+                    }
+                    waInput.value = defaultWa;
+                }
+
+                // Inisialisasi toggle kirim langsung ke WhatsApp tanpa folder Drive
+                var toggleDirectWa = document.getElementById('toggleDirectWaNoDrive');
+                if (toggleDirectWa) {
+                    toggleDirectWa.checked = this.isDirectWaNoDriveActive();
+                    this.onToggleDirectWaNoDrive(toggleDirectWa.checked);
+                }
+
+                this.openModal('modalClientReview');
+            },
+
+            isDirectWaNoDriveActive: function () {
+                var toggle = document.getElementById('toggleDirectWaNoDrive');
+                if (toggle) return toggle.checked;
+                var gal = this.clientData.gallery;
+                if (gal && gal.kirim_tanpa_drive !== undefined) {
+                    return gal.kirim_tanpa_drive === true || gal.kirim_tanpa_drive === 'true' || gal.kirim_tanpa_drive === 1;
+                }
+                try {
+                    var saved = localStorage.getItem('pref_direct_wa_no_drive');
+                    if (saved !== null) return saved === 'true';
+                } catch (e) { }
+                return true; // Default aktif: langsung kirim WA tanpa membuat folder Drive
+            },
+
+            onToggleDirectWaNoDrive: function (checked) {
+                try {
+                    localStorage.setItem('pref_direct_wa_no_drive', checked ? 'true' : 'false');
+                } catch (e) { }
+
+                var badgeText = document.getElementById('directWaSettingBadgeText');
+                if (badgeText) {
+                    if (checked) {
+                        badgeText.textContent = 'Mode Instan Aktif: Pesan WhatsApp langsung dibuka ke vendor tanpa perlu menunggu pembuatan folder Google Drive.';
+                    } else {
+                        badgeText.textContent = 'Mode Lengkap: Sistem akan membuatkan subfolder Google Drive baru untuk foto terpilih & menyertakan linknya di pesan.';
+                    }
+                }
+
+                var inputNote = document.getElementById('reviewClientWaNote');
+                if (inputNote) {
+                    if (checked) {
+                        inputNote.textContent = 'Pesan kata pengantar dan daftar nomor/nama foto terpilih langsung dikirimkan ke nomor WhatsApp ini saat "Kirim Sekarang" diklik.';
+                    } else {
+                        inputNote.textContent = 'Pesan kata pengantar dan link Google Drive folder seleksi otomatis dikirimkan ke nomor ini saat "Kirim Sekarang" diklik.';
+                    }
+                }
+
+                var lockDetail = document.getElementById('reviewLockNoticeDetail');
+                if (lockDetail) {
+                    if (checked) {
+                        lockDetail.innerHTML = 'Setelah dikirim, daftar foto pilihan Anda akan <strong>dikunci permanen</strong> dan pesan WhatsApp langsung dibuka ke vendor.';
+                    } else {
+                        lockDetail.innerHTML = 'Setelah dikirim, daftar foto pilihan Anda akan <strong>dikunci permanen</strong> dan otomatis dibuatkan folder Google Drive baru untuk foto terpilih.';
+                    }
+                }
+            },
+
+            getGroupedSelections: function () {
+                var allPhotos = this.clientData.photos || [];
+                var folderMap = {};
+                var self = this;
+
+                this.clientData.selected.forEach(function (note, photoId) {
+                    var p = allPhotos.find(function (item) { return item.id_foto === photoId; }) || { id_foto: photoId, nama_file: photoId, url_foto: '', nama_folder: 'Folder Utama' };
+                    var rawFolder = (p.nama_folder || 'Folder Utama').trim() || 'Folder Utama';
+                    if (!folderMap[rawFolder]) folderMap[rawFolder] = [];
+                    folderMap[rawFolder].push({ photo: p, note: (note || '').trim() });
+                });
+
+                var sorted = Object.keys(folderMap).sort(function (a, b) {
+                    if (a === 'Folder Utama') return -1;
+                    if (b === 'Folder Utama') return 1;
+                    return a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' });
+                });
+
+                return { folderMap: folderMap, sortedFolders: sorted };
+            },
+
+            buildWhatsAppMessage: function (driveUrl, forceNoDrive) {
+                var gal = this.clientData.gallery || {};
+                var title = gal.judul_acara || 'Acara';
+                var clientName = gal.nama_client || 'Klien';
+                var vendorName = gal.nama_vendor || 'Fotografer';
+                var grouped = this.getGroupedSelections();
+                var count = this.clientData.selected.size;
+
+                var photoLines = [];
+                var noteLines = [];
+                var c = 1;
+                var nc = 1;
+
+                grouped.sortedFolders.forEach(function (fName) {
+                    var items = grouped.folderMap[fName] || [];
+                    photoLines.push('\n📁 *' + fName + '*:');
+                    items.forEach(function (item) {
+                        photoLines.push(c + '. ' + item.photo.nama_file);
+                        if (item.note) {
+                            noteLines.push(nc + '. *' + item.photo.nama_file + '* : ' + item.note);
+                            nc++;
+                        }
+                        c++;
+                    });
+                });
+
+                var notesText = '*Pilihan Catatan:*\n' + (noteLines.length > 0 ? noteLines.join('\n') : '- _(Tidak ada pilihan catatan)_');
+
+                var skipDrive = (forceNoDrive !== undefined) ? forceNoDrive : this.isDirectWaNoDriveActive();
+                var driveSection = '';
+                if (!skipDrive) {
+                    var targetDrive = driveUrl || gal.selected_drive_url || gal.link_drive || '';
+                    if (targetDrive) {
+                        driveSection = `\n🔗 *Link Folder Google Drive Foto Terpilih:*\n${targetDrive}\n`;
+                    }
+                }
+
+                var msg = `Halo *${vendorName}*,\n\n` +
+                    `Saya *${clientName}* telah selesai memilih foto,\n\n` +
+                    `Berikut daftar *${count} foto terpilih*:\n` +
+                    photoLines.join('\n') + `\n\n` +
+                    notesText + `\n` +
+                    (driveSection ? driveSection + `\n` : ``) +
+                    `*Status:* Seleksi Sudah Fix & Dikunci\n\n` +
+                    `Mohon diproses untuk tahapan berikutnya. Terima kasih!`;
+                return msg;
+            },
+
+            copySimpleFileNames: function () {
+                var grouped = this.getGroupedSelections();
+                var lines = [];
+                var c = 1;
+                grouped.sortedFolders.forEach(function (fName) {
+                    var items = grouped.folderMap[fName] || [];
+                    items.forEach(function (item) {
+                        lines.push(c + '. ' + item.photo.nama_file);
+                        c++;
+                    });
+                });
+
+                var text = lines.join('\n');
+                if (!text) {
+                    this.showToast('Belum ada foto yang dipilih.', true);
+                    return;
+                }
+                navigator.clipboard.writeText(text).then(function () {
+                    clientApp.showToast('Daftar nama file berhasil disalin!', false);
+                }).catch(function () {
+                    clientApp.showToast('Gagal menyalin ke clipboard.', true);
+                });
+            },
+
+            copyWhatsAppMessage: function () {
+                var msg = this.buildWhatsAppMessage();
+                if (!msg) {
+                    this.showToast('Belum ada foto yang dipilih.', true);
+                    return;
+                }
+                navigator.clipboard.writeText(msg).then(function () {
+                    clientApp.showToast('Pesan WhatsApp berhasil disalin!', false);
+                }).catch(function () {
+                    clientApp.showToast('Gagal menyalin pesan WhatsApp.', true);
+                });
+            },
+
+            sendWhatsAppDirect: function (phone, msg) {
+                var waUrl = (phone && phone.length >= 9)
+                    ? ('https://api.whatsapp.com/send?phone=' + encodeURIComponent(phone) + '&text=' + encodeURIComponent(msg))
+                    : ('https://api.whatsapp.com/send?text=' + encodeURIComponent(msg));
+
+                var win = null;
+                try {
+                    win = window.open(waUrl, '_blank');
+                } catch (e) {
+                    win = null;
+                }
+
+                if (!win || win.closed || typeof win.closed === 'undefined') {
+                    var a = document.createElement('a');
+                    a.href = waUrl;
+                    a.target = '_blank';
+                    a.rel = 'noopener noreferrer';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                }
+                return waUrl;
+            },
+
+            promptConfirmSubmit: function () {
+                this.executeFinalSubmit();
+            },
+
+            executeFinalSubmit: function () {
+                var self = this;
+                var count = this.clientData.selected ? this.clientData.selected.size : 0;
+                if (count === 0) {
+                    this.showToast('Silakan pilih minimal 1 foto terlebih dahulu.', true);
+                    return;
+                }
+
+                var gal = this.clientData.gallery || {};
+                var waInput = document.getElementById('reviewClientWaInput');
+                var rawPhone = (waInput ? waInput.value.trim() : '') || gal.whatsapp_vendor || gal.whatsapp_client || '';
+                var cleanPhone = rawPhone.replace(/[^0-9]/g, '');
+                if (cleanPhone.startsWith('0')) cleanPhone = '62' + cleanPhone.slice(1);
+                else if (cleanPhone.startsWith('8')) cleanPhone = '62' + cleanPhone;
+
+                if (!cleanPhone || cleanPhone.length < 9) {
+                    this.showToast('Silakan masukkan nomor WhatsApp fotografer / vendor terlebih dahulu.', true);
+                    if (waInput) {
+                        waInput.focus();
+                        waInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                    return;
+                }
+
+                if (cleanPhone) {
+                    try { localStorage.setItem('last_vendor_wa', cleanPhone); } catch (e) { }
+                }
+
+                var skipDrive = this.isDirectWaNoDriveActive();
+
+                // Format pesan WhatsApp seketika
+                var updatedWaMsg = this.buildWhatsAppMessage('', skipDrive);
+                var waUrl = (cleanPhone && cleanPhone.length >= 9)
+                    ? ('https://api.whatsapp.com/send?phone=' + encodeURIComponent(cleanPhone) + '&text=' + encodeURIComponent(updatedWaMsg))
+                    : ('https://api.whatsapp.com/send?text=' + encodeURIComponent(updatedWaMsg));
+
+                // Tutup modal review langsung tanpa memunculkan modal perantara
+                this.closeModal('modalClientReview');
+
+                // Kunci galeri di tampilan klien seketika
+                if (this.clientData.gallery) {
+                    this.clientData.gallery.status = 'Selesai';
+                }
+                this.renderGallery();
+
+                // Simpan data seleksi ke server di latar belakang (background)
+                var selections = [];
+                this.clientData.selected.forEach(function (note, id) {
+                    selections.push({ id_foto: id, pesan: note });
+                });
+
+                var galId = this.clientData.gallery ? this.clientData.gallery.id_galeri : '';
+                gasRun('submitClientSelection', galId, selections, { skipDriveFolder: skipDrive }).catch(function (err) {
+                    console.error('Error submitting selection:', err);
+                });
+
+                // Otomatis langsung arahkan ke WhatsApp vendor seketika
+                var win = null;
+                try {
+                    win = window.open(waUrl, '_blank');
+                } catch (e) {
+                    win = null;
+                }
+                if (!win || win.closed || typeof win.closed === 'undefined') {
+                    window.location.href = waUrl;
+                }
+            },
+
+            closeSuccessAndBackToPhotos: function () {
+                this.closeModal('modalClientSuccess');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            },
+
+            // --- UI HELPERS ---
+            openModal: function (modalId) {
+                var el = document.getElementById(modalId);
+                if (el) el.classList.remove('hidden');
+            },
+
+            closeModal: function (modalId) {
+                var el = document.getElementById(modalId);
+                if (el) el.classList.add('hidden');
+            },
+
+            showToast: function (msg, isError) {
+                var toast = document.getElementById('toast');
+                var text = document.getElementById('toastMsg');
+                var icon = document.getElementById('toastIcon');
+                if (!toast || !text) return;
+
+                text.textContent = msg;
+                if (isError) {
+                    icon.className = 'fas fa-exclamation-circle text-rose-400 text-base shrink-0';
+                } else {
+                    icon.className = 'fas fa-check-circle text-emerald-400 text-base shrink-0';
+                }
+
+                toast.classList.add('show');
+                clearTimeout(this._toastTimeout);
+                this._toastTimeout = setTimeout(function () {
+                    toast.classList.remove('show');
+                }, 3500);
+            },
+
+            showFullLoading: function (title, subtitle) {
+                var ov = document.getElementById('fullPageLoading');
+                var t = document.getElementById('loadingTitle');
+                var s = document.getElementById('loadingSubtitle');
+                if (t && title) t.textContent = title;
+                if (s && subtitle) s.textContent = subtitle;
+                if (ov) {
+                    ov.style.display = 'flex';
+                    ov.classList.remove('hidden');
+                }
+            },
+
+            hideFullLoading: function () {
+                var ov = document.getElementById('fullPageLoading');
+                if (ov) {
+                    ov.style.display = 'none';
+                    ov.classList.add('hidden');
+                }
+            }
+        };
+
+        // --- LIGHTBOX CONTROLLER ---
+        var lightbox = {
+            isOpen: false,
+            photos: [],
+            currentIndex: 0,
+            zoom: 1,
+
+            open: function (photos, idx) {
+                this.photos = photos || [];
+                this.currentIndex = idx || 0;
+                this.zoom = 1;
+                this.isOpen = true;
+
+                document.getElementById('modalLightbox').classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+                this.updateView();
+                this.initTouch();
+
+                window.addEventListener('keydown', this.handleKeyDown);
+            },
+
+            close: function () {
+                this.isOpen = false;
+                document.getElementById('modalLightbox').classList.add('hidden');
+                document.body.style.overflow = '';
+                this.cancelNote();
+                window.removeEventListener('keydown', this.handleKeyDown);
+            },
+
+            initTouch: function () {
+                var stage = document.getElementById('lbImageStage');
+                if (!stage || stage._touchBound) return;
+                stage._touchBound = true;
+                var self = this;
+                var touchStartX = 0;
+                var touchStartY = 0;
+                stage.addEventListener('touchstart', function (e) {
+                    if (e.touches && e.touches.length === 1) {
+                        touchStartX = e.touches[0].clientX;
+                        touchStartY = e.touches[0].clientY;
+                    }
+                }, { passive: true });
+                stage.addEventListener('touchend', function (e) {
+                    if (self.zoom > 1) return;
+                    if (e.changedTouches && e.changedTouches.length === 1) {
+                        var diffX = e.changedTouches[0].clientX - touchStartX;
+                        var diffY = e.changedTouches[0].clientY - touchStartY;
+                        if (Math.abs(diffX) > 50 && Math.abs(diffX) > Math.abs(diffY)) {
+                            if (diffX < 0) {
+                                self.next();
+                            } else {
+                                self.prev();
+                            }
+                        }
+                    }
+                }, { passive: true });
+            },
+
+            handleKeyDown: function (e) {
+                if (!lightbox.isOpen) return;
+                if (e.key === 'Escape') lightbox.close();
+                else if (e.key === 'ArrowRight') lightbox.next();
+                else if (e.key === 'ArrowLeft') lightbox.prev();
+            },
+
+            prev: function () {
+                if (this.photos.length <= 1) return;
+                this.currentIndex = (this.currentIndex - 1 + this.photos.length) % this.photos.length;
+                this.zoom = 1;
+                this.updateView();
+            },
+
+            next: function () {
+                if (this.photos.length <= 1) return;
+                this.currentIndex = (this.currentIndex + 1) % this.photos.length;
+                this.zoom = 1;
+                this.updateView();
+            },
+
+            updateView: function () {
+                var p = this.photos[this.currentIndex];
+                if (!p) return;
+
+                var img = document.getElementById('lbImage');
+                var driveId = p.id_drive || extractDriveId(p.url_foto);
+                var isMobile = (window.innerWidth < 768);
+                var targetSize = isMobile ? 'w1000' : 'w1600';
+                var fullUrl = formatPhotoDisplayUrl(p.url_foto, targetSize);
+                var thumbUrl = formatPhotoDisplayUrl(p.url_foto, 'w600');
+
+                if (img) {
+                    img.onerror = function () {
+                        handleImageError(img, driveId);
+                    };
+
+                    // INSTANT THUMBNAIL BRIDGE: Tampilkan thumbnail seketika (0 ms) dari cache grid galeri
+                    var curSrc = img.getAttribute('src') || img.src;
+                    if (curSrc !== fullUrl) {
+                        img.src = thumbUrl;
+                    }
+                    img.style.transform = 'scale(' + this.zoom + ')';
+
+                    // Latar belakang: Muat versi resolusi tinggi secara asinkron tanpa blocking / blank layar
+                    var curIdx = this.currentIndex;
+                    var highRes = new Image();
+                    highRes.onload = function () {
+                        if (lightbox.isOpen && lightbox.currentIndex === curIdx && img) {
+                            img.src = fullUrl;
+                        }
+                    };
+                    highRes.onerror = function () {
+                        if (driveId && !highRes._triedCdn) {
+                            highRes._triedCdn = true;
+                            highRes.src = 'https://lh3.googleusercontent.com/d/' + driveId + '=' + targetSize;
+                        }
+                    };
+                    highRes.src = fullUrl;
+                }
+
+                // Preload foto berikutnya dan sebelumnya agar saat navigasi tampil instan
+                if (this.photos[this.currentIndex + 1]) {
+                    var nextImg = new Image();
+                    nextImg.src = formatPhotoDisplayUrl(this.photos[this.currentIndex + 1].url_foto, targetSize);
+                }
+                if (this.photos[this.currentIndex - 1]) {
+                    var prevImg = new Image();
+                    prevImg.src = formatPhotoDisplayUrl(this.photos[this.currentIndex - 1].url_foto, targetSize);
+                }
+
+                // Counter
+                var counter = document.getElementById('lbCounterFloatingText');
+                if (counter) counter.textContent = (this.currentIndex + 1) + ' / ' + this.photos.length;
+
+                // File name
+                var nameEl = document.getElementById('lbFileNameBottom');
+                if (nameEl) nameEl.textContent = p.nama_file;
+
+                // Zoom label
+                var zoomEl = document.getElementById('lbZoomLevel');
+                if (zoomEl) zoomEl.textContent = Math.round(this.zoom * 100) + '%';
+
+                // Download button visibility check (muncul jika izin_download aktif di dashboard fotografi)
+                var gal = clientApp.clientData.gallery;
+                var canDownload = !!(gal && (gal.izin_download === true || gal.izin_download === 'true' || gal.izin_download === 'TRUE' || gal.izin_download === 1 || gal.izin_download === '1'));
+                var floatDownload = document.getElementById('lbBtnDownloadFloating');
+                if (floatDownload) {
+                    if (canDownload) {
+                        floatDownload.classList.remove('hidden');
+                    } else {
+                        floatDownload.classList.add('hidden');
+                    }
+                }
+
+                // Update UI tombol & catatan (tanpa menyentuh gambar)
+                this.updateSelectionUI();
+            },
+
+            updateSelectionUI: function () {
+                var p = this.photos[this.currentIndex];
+                if (!p) return;
+
+                var gal = clientApp.clientData.gallery;
+                var isSelected = clientApp.isPhotoSelected(p.id_foto);
+                var isFinished = !!(gal && gal.status === 'Selesai');
+                var currentCount = clientApp.clientData.selected.size;
+                var maxLimit = (gal && (parseInt(gal.batas_foto, 10) || 30)) || 30;
+                var isQuotaFull = currentCount >= maxLimit;
+
+                var selectedOrder = '';
+                if (isSelected) {
+                    var keys = Array.from(clientApp.clientData.selected.keys());
+                    var pos = keys.indexOf(p.id_foto);
+                    if (pos === -1) pos = keys.indexOf(String(p.id_foto));
+                    selectedOrder = pos !== -1 ? (pos + 1) : '';
+                }
+
+                var btnSel = document.getElementById('lbBtnSelect');
+                var selText = document.getElementById('lbBtnSelectText');
+                var selIcon = document.getElementById('lbBtnSelectIcon');
+
+                if (btnSel) {
+                    if (isFinished) {
+                        btnSel.disabled = true;
+                        btnSel.className = 'w-full px-6 py-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 bg-emerald-800 text-white cursor-default';
+                        if (selText) selText.textContent = isSelected ? ('#' + selectedOrder + ' Pesan Terpilih (Terkunci)') : 'Tidak Terpilih';
+                        if (selIcon) selIcon.className = 'fas fa-lock';
+                    } else if (isSelected) {
+                        btnSel.disabled = false;
+                        btnSel.className = 'w-full px-6 py-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg cursor-pointer';
+                        if (selText) selText.textContent = (selectedOrder ? ('#' + selectedOrder + ' ') : '') + 'Pesan Terpilih';
+                        if (selIcon) selIcon.className = 'fas fa-check-circle';
+                    } else if (isQuotaFull) {
+                        btnSel.disabled = true;
+                        btnSel.className = 'w-full px-6 py-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 bg-gray-800/90 text-amber-300 border border-amber-400/30 cursor-not-allowed';
+                        if (selText) selText.textContent = 'Kuota Penuh (' + currentCount + '/' + maxLimit + ') - Terkunci';
+                        if (selIcon) selIcon.className = 'fas fa-lock text-amber-400';
+                    } else {
+                        btnSel.disabled = false;
+                        btnSel.className = 'w-full px-6 py-3 rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-lg cursor-pointer';
+                        if (selText) selText.textContent = 'Pilih Foto';
+                        if (selIcon) selIcon.className = 'fas fa-plus';
+                    }
+                }
+
+                // Note button state: Muncul jika foto dipilih, sembunyikan jika tidak dipilih
+                var btnNote = document.getElementById('lbBtnNote');
+                var noteText = document.getElementById('lbBtnNoteText');
+                var noteIcon = document.getElementById('lbBtnNoteIcon');
+                var note = clientApp.getPhotoNote(p.id_foto);
+
+                if (btnNote) {
+                    if (!isSelected) {
+                        btnNote.classList.add('hidden');
+                        btnNote.style.display = 'none';
+                    } else {
+                        btnNote.classList.remove('hidden');
+                        btnNote.style.display = 'flex';
+                        if (isFinished) {
+                            btnNote.disabled = true;
+                            btnNote.className = 'w-full px-5 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-semibold bg-gray-800/80 text-gray-400 border border-gray-700 cursor-not-allowed flex items-center justify-center gap-2';
+                            if (noteText) noteText.textContent = 'Catatan Terkunci';
+                            if (noteIcon) noteIcon.className = 'fas fa-lock text-gray-400';
+                        } else {
+                            btnNote.disabled = false;
+                            btnNote.className = 'w-full px-5 py-2.5 sm:py-3 rounded-xl text-xs sm:text-sm font-semibold bg-white/10 hover:bg-white/20 text-white transition-all flex items-center justify-center gap-2 border border-white/10 cursor-pointer';
+                            if (noteText) noteText.textContent = note ? 'Ubah Catatan' : 'Catatan';
+                            if (noteIcon) noteIcon.className = 'fas fa-comment-dots text-amber-400';
+                        }
+                    }
+                }
+
+                // Note preview
+                var notePrev = document.getElementById('lbNotePreview');
+                if (notePrev) {
+                    if (isSelected && note && note.trim()) {
+                        notePrev.textContent = 'Catatan: ' + note;
+                        notePrev.classList.remove('hidden');
+                        notePrev.style.display = 'block';
+                    } else {
+                        notePrev.classList.add('hidden');
+                        notePrev.style.display = 'none';
+                    }
+                }
+            },
+
+            downloadCurrent: function () {
+                var gal = clientApp.clientData.gallery;
+                var canDownload = !!(gal && (gal.izin_download === true || gal.izin_download === 'true' || gal.izin_download === 'TRUE' || gal.izin_download === 1 || gal.izin_download === '1'));
+                if (!canDownload) {
+                    clientApp.showToast('Fitur unduh foto dinonaktifkan oleh fotografer.', true);
+                    return;
+                }
+                var p = this.photos[this.currentIndex];
+                if (!p) return;
+                var name = p.nama_file || ('Foto_' + (this.currentIndex + 1) + '.jpg');
+                var driveId = p.id_drive || extractDriveId(p.url_foto);
+                if (driveId) {
+                    window.open('https://drive.google.com/uc?export=download&id=' + driveId, '_blank');
+                    clientApp.showToast('Memulai unduh: ' + name, false);
+                    return;
+                }
+                var a = document.createElement('a');
+                a.href = p.url_foto;
+                a.download = name;
+                a.target = '_blank';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                clientApp.showToast('Memulai unduh: ' + name, false);
+            },
+
+            toggleSelect: function () {
+                var p = this.photos[this.currentIndex];
+                if (!p) return;
+                clientApp.togglePhotoSelection(p.id_foto);
+                this.updateSelectionUI();
+            },
+
+            showNoteToolbar: function () {
+                var p = this.photos[this.currentIndex];
+                if (!p) return;
+                var gal = clientApp.clientData.gallery;
+                if (gal && gal.status === 'Selesai') {
+                    clientApp.showToast('Galeri telah terkunci.', true);
+                    return;
+                }
+
+                var isSelected = clientApp.clientData.selected.has(p.id_foto);
+                var currentCount = clientApp.clientData.selected.size;
+                var maxLimit = (gal && (parseInt(gal.batas_foto, 10) || 30)) || 30;
+
+                // Kunci tombol catatan jika foto belum terpilih dan kuota sudah penuh agar tidak menambah seleksi
+                if (!isSelected && currentCount >= maxLimit) {
+                    clientApp.showToast('Kuota pilih (' + maxLimit + ' foto) telah terpenuhi. Tombol catatan dikunci agar tidak menambah seleksi.', true);
+                    return;
+                }
+
+                // Otomatis pilih foto jika belum terpilih sebelum memberi catatan
+                if (!isSelected) {
+                    clientApp.togglePhotoSelection(p.id_foto);
+                }
+
+                var tb = document.getElementById('lbNoteToolbar');
+                var acts = document.getElementById('lbActionButtons');
+                var input = document.getElementById('lbQuickNoteInput');
+                if (tb && acts && input) {
+                    input.value = clientApp.clientData.selected.get(p.id_foto) || '';
+                    tb.classList.remove('hidden');
+                    acts.classList.add('hidden');
+                    input.focus();
+                }
+            },
+
+            cancelNote: function () {
+                var tb = document.getElementById('lbNoteToolbar');
+                var acts = document.getElementById('lbActionButtons');
+                if (tb && acts) {
+                    tb.classList.add('hidden');
+                    acts.classList.remove('hidden');
+                }
+            },
+
+            saveNote: function () {
+                var p = this.photos[this.currentIndex];
+                var input = document.getElementById('lbQuickNoteInput');
+                if (!p || !input) return;
+
+                var note = input.value.trim();
+                clientApp.clientData.selected.set(p.id_foto, note);
+                clientApp.saveLocalSelections();
+                gasRun('saveSingleClientSelection', clientApp.clientData.gallery.id_galeri, p.id_foto, note);
+
+                clientApp.updateSingleCardDOM(p.id_foto);
+                clientApp.updateProgressCounters();
+                this.cancelNote();
+                this.updateSelectionUI();
+                clientApp.showToast('Pilihan catatan tersimpan.', false);
+            },
+
+            zoomIn: function () {
+                this.zoom = Math.min(3, this.zoom + 0.25);
+                this.applyZoom();
+            },
+
+            zoomOut: function () {
+                this.zoom = Math.max(0.75, this.zoom - 0.25);
+                this.applyZoom();
+            },
+
+            resetZoom: function () {
+                this.zoom = 1;
+                this.applyZoom();
+            },
+
+            toggleZoomClick: function () {
+                this.zoom = (this.zoom > 1) ? 1 : 1.75;
+                this.applyZoom();
+            },
+
+            applyZoom: function () {
+                var img = document.getElementById('lbImage');
+                var zoomEl = document.getElementById('lbZoomLevel');
+                if (img) img.style.transform = 'scale(' + this.zoom + ')';
+                if (zoomEl) zoomEl.textContent = Math.round(this.zoom * 100) + '%';
+            }
+        };
+
+        // Listen for postMessage from parent window (e.g. Google Sites container)
+        window.addEventListener('message', function (event) {
+            try {
+                var data = event.data;
+                if (!data) return;
+                var incomingGal = '';
+                if (typeof data === 'string') {
+                    var m = data.match(/[?&#](?:galeri|client_galeri|g|id)=([A-Z0-9_\-]+)/i) || data.match(/\bGAL[A-Z0-9_\-]+\b/i);
+                    if (m) {
+                        incomingGal = m[1] || m[0];
+                    } else if (data.indexOf('galeri=') !== -1 || data.indexOf('g=') !== -1) {
+                        var p = new URLSearchParams(data);
+                        incomingGal = p.get('galeri') || p.get('client_galeri') || p.get('g') || p.get('id') || '';
+                    } else if (data.trim().toUpperCase().startsWith('GAL')) {
+                        incomingGal = data.trim();
+                    }
+                } else if (typeof data === 'object') {
+                    incomingGal = data.galeri || data.galleryId || data.client_galeri || data.id || data.g || '';
+                    if (!incomingGal && data.hash) {
+                        var mH = String(data.hash).match(/[?&#](?:galeri|client_galeri|g|id)=([A-Z0-9_\-]+)/i) || String(data.hash).match(/\bGAL[A-Z0-9_\-]+\b/i);
+                        if (mH) incomingGal = mH[1] || mH[0];
+                    }
+                    if (!incomingGal && data.url) {
+                        var mU = String(data.url).match(/[?&#](?:galeri|client_galeri|g|id)=([A-Z0-9_\-]+)/i) || String(data.url).match(/\bGAL[A-Z0-9_\-]+\b/i);
+                        if (mU) incomingGal = mU[1] || mU[0];
+                    }
+                }
+                if (incomingGal) {
+                    var cleanInc = String(incomingGal).trim().toUpperCase();
+                    if (clientApp.clientData.currentLoadingGalId !== cleanInc && (!clientApp.clientData.gallery || String(clientApp.clientData.gallery.id_galeri).toUpperCase() !== cleanInc)) {
+                        clientApp.loadGallery(cleanInc);
+                    }
+                }
+            } catch (e) { }
+        });
+
+        // Listen for URL hash changes (e.g. navigation inside Google Sites container)
+        window.addEventListener('hashchange', function () {
+            try {
+                var h = window.location.hash.replace(/^#/, '').trim();
+                var m = h.match(/[?&#](?:galeri|client_galeri|g|id)=([A-Z0-9_\-]+)/i) || h.match(/\bGAL[A-Z0-9_\-]+\b/i);
+                if (m) {
+                    var code = (m[1] || m[0]).toUpperCase();
+                    if (clientApp.clientData.currentLoadingGalId !== code) {
+                        clientApp.loadGallery(code);
+                    }
+                }
+            } catch (e) { }
+        });
+
+        // Listener sinkronisasi perubahan galeri otomatis dari Dashboard Fotografer (link Google Drive, izin unduh, dll)
+        try {
+            window.addEventListener('storage', function (e) {
+                if (e.key && e.key.indexOf('gallery_updated_') === 0) {
+                    var updatedGalId = e.key.replace('gallery_updated_', '');
+                    var curGalId = clientApp.clientData.gallery ? String(clientApp.clientData.gallery.id_galeri).toUpperCase() : '';
+                    if (curGalId && curGalId === updatedGalId.toUpperCase()) {
+                        try { sessionStorage.removeItem('cached_client_gal_' + updatedGalId); } catch (err) { }
+                        clientApp.loadGallery(updatedGalId);
+                    }
+                }
+            });
+
+            if (window.BroadcastChannel) {
+                var clientBc = new BroadcastChannel('ttwins_gallery_sync');
+                clientBc.onmessage = function (event) {
+                    var data = event.data;
+                    if (data && data.type === 'GALLERY_UPDATED' && data.id_galeri) {
+                        var curGalId = clientApp.clientData.gallery ? String(clientApp.clientData.gallery.id_galeri).toUpperCase() : '';
+                        if (curGalId && curGalId === String(data.id_galeri).toUpperCase()) {
+                            try { sessionStorage.removeItem('cached_client_gal_' + data.id_galeri); } catch (err) { }
+                            clientApp.loadGallery(data.id_galeri);
+                        }
+                    }
+                };
+            }
+        } catch (e) { }
+
+        // Expose to window
+        window.clientApp = clientApp;
+        window.lightbox = lightbox;
+
+        // RUN ON LOAD
+        document.addEventListener('DOMContentLoaded', function () {
+            clientApp.init();
+        });
+    </script>
+</body>
+
+</html>
