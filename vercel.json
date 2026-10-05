@@ -1,0 +1,25 @@
+{
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/Index.html"
+    },
+    {
+      "source": "/client",
+      "destination": "/Client.html"
+    },
+    {
+      "source": "/klien",
+      "destination": "/Client.html"
+    },
+    {
+      "source": "/autoselect",
+      "destination": "/AutoSelect.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/Index.html"
+    }
+  ]
+}
