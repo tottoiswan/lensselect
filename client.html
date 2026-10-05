@@ -7,6 +7,61 @@
     <title>
         <?= (typeof pageTitle !== 'undefined' && pageTitle) ? pageTitle : 'Seleksi Foto Klien - Ttwins Selection' ?>
     </title>
+    <!-- Vercel Seamless Fullscreen Gateway (Menjaga agar URL selalu tetap di domain Vercel tanpa redirect ke Apps Script) -->
+    <script>
+        (function () {
+            var isGas = false;
+            try {
+                if (window.google && window.google.script && window.google.script.run) isGas = true;
+            } catch (e) { }
+
+            var host = (window.location && window.location.hostname) ? window.location.hostname : '';
+            if (host.indexOf('script.google.com') !== -1 || host.indexOf('googleusercontent.com') !== -1) {
+                isGas = true;
+            }
+
+            // Jika dibuka di luar Google Apps Script (misalnya langsung di domain Vercel / domain kustom)
+            if (!isGas && window.location.protocol !== 'file:') {
+                try { localStorage.setItem('custom_vercel_domain', window.location.origin); } catch (e) { }
+
+                document.addEventListener('DOMContentLoaded', function () {
+                    var defaultGasUrl = "https://script.google.com/macros/s/AKfycby-2Fa7q5ZObc7D8_bRs7aJH-gYCzDXq-Ms2njEXtV7Zuj4LYekorYJnGxR67B-Qofs/exec";
+                    var query = window.location.search || '';
+                    var params = new URLSearchParams(query);
+                    params.set('page', 'client'); // Pastikan membuka halaman Client
+                    var targetSrc = defaultGasUrl + '?' + params.toString();
+
+                    document.body.innerHTML = `
+                        <div id="portalLoader" style="position:fixed;inset:0;background:#f8fafc;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999999;font-family:'Inter',sans-serif;transition:opacity 0.3s ease;">
+                            <div style="width:44px;height:44px;border:4px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:portalSpin 0.8s linear infinite;"></div>
+                            <p style="margin-top:16px;font-size:15px;font-weight:700;color:#0f172a;">Menghubungkan ke Galeri...</p>
+                            <p style="margin-top:4px;font-size:12px;color:#64748b;">Memuat foto dan basis data seleksi</p>
+                        </div>
+                        <iframe id="portalFrame" src="${targetSrc}" style="position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;margin:0;padding:0;z-index:999999;display:block;" allow="clipboard-write; clipboard-read; fullscreen"></iframe>
+                        <style>
+                            @keyframes portalSpin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                            html, body { overflow: hidden !important; width: 100vw; height: 100vh; margin: 0; padding: 0; }
+                        </style>
+                    `;
+
+                    window.addEventListener('message', function (ev) {
+                        if (ev.data && ev.data.type === 'SET_TITLE' && ev.data.title) {
+                            document.title = ev.data.title;
+                        }
+                    });
+
+                    var frame = document.getElementById('portalFrame');
+                    var loader = document.getElementById('portalLoader');
+                    if (frame && loader) {
+                        frame.onload = function () {
+                            loader.style.opacity = '0';
+                            setTimeout(function () { loader.style.display = 'none'; }, 300);
+                        };
+                    }
+                });
+            }
+        })();
+    </script>
     <!-- Preconnect to CDNs for fastest page rendering -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1158,7 +1213,11 @@
 
     <!-- CLIENT LOGIC & SCRIPTS -->
     <script>
-        window.WEB_APP_URL = "<?= (typeof webAppUrl !== 'undefined' && webAppUrl) ? webAppUrl : '' ?>";
+        var DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycby-2Fa7q5ZObc7D8_bRs7aJH-gYCzDXq-Ms2njEXtV7Zuj4LYekorYJnGxR67B-Qofs/exec";
+        window.WEB_APP_URL = "<?= (typeof webAppUrl !== 'undefined' && webAppUrl) ? webAppUrl : '' ?>" || DEFAULT_GAS_URL;
+        if (!window.WEB_APP_URL || window.WEB_APP_URL.indexOf('script.google.com') === -1) {
+            window.WEB_APP_URL = DEFAULT_GAS_URL;
+        }
         var rawClientSitesUrl = "<?= (typeof googleSitesUrl !== 'undefined' && googleSitesUrl) ? googleSitesUrl : '' ?>" || "https://sites.google.com/view/ttwinselect/client";
         if (rawClientSitesUrl.indexOf('ttwinselect/beranda') !== -1) {
             rawClientSitesUrl = rawClientSitesUrl.replace(/ttwinselect\/beranda/gi, 'ttwinselect/client');
@@ -1985,6 +2044,11 @@
                 document.getElementById('clientGalleryTitle').textContent = decodeHTMLEntities(g.judul_acara || 'Galeri Acara');
                 document.getElementById('clientNameHeader').textContent = decodeHTMLEntities(g.nama_client || 'Klien');
                 document.title = (g.judul_acara || g.nama_client || 'Galeri') + ' - Seleksi Foto Klien';
+                try {
+                    if (window.parent && window.parent !== window) {
+                        window.parent.postMessage({ type: 'SET_TITLE', title: document.title }, '*');
+                    }
+                } catch (e) { }
 
                 // Update Link Google Drive di header klien
                 var driveBtn = document.getElementById('clientDriveLinkBtn');
