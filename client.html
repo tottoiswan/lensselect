@@ -35,9 +35,22 @@
                     var targetSrc = defaultGasUrl + '?' + params.toString();
 
                     document.body.innerHTML = `
-                        <iframe id="portalFrame" src="${targetSrc}" style="position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;margin:0;padding:0;z-index:999999;display:block;background:#f8fafc;" allow="clipboard-write; clipboard-read; fullscreen"></iframe>
+                        <!-- Loading Indicator yang langsung tampil saat membuka link (Mencegah Layar Blank Putih) -->
+                        <div id="portalGatewayLoader" style="position:fixed;inset:0;z-index:999998;background:#f8fafc;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;padding:1.5rem;text-align:center;">
+                            <div style="width:64px;height:64px;border-radius:1.25rem;background:linear-gradient(135deg, #2563eb, #4f46e5);color:white;display:flex;align-items:center;justify-content:center;font-size:1.75rem;box-shadow:0 12px 24px -6px rgba(37,99,235,0.35);margin-bottom:1.25rem;">
+                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                            </div>
+                            <h3 style="font-size:1.15rem;font-weight:700;color:#0f172a;margin:0 0 0.35rem 0;">Sedang Masuk ke Galeri Foto...</h3>
+                            <p style="font-size:0.8rem;color:#64748b;margin:0 0 1.25rem 0;max-width:280px;line-height:1.4;">Menghubungkan ke galeri foto Anda, mohon tunggu sebentar...</p>
+                            <div style="display:inline-flex;align-items:center;gap:0.5rem;background:#eff6ff;padding:0.4rem 0.9rem;border-radius:9999px;border:1px solid #bfdbfe;font-size:0.75rem;font-weight:600;color:#2563eb;">
+                                <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#2563eb;animation:pulseGateway 1.5s infinite;"></span>
+                                <span>Menyiapkan galeri...</span>
+                            </div>
+                        </div>
+                        <iframe id="portalFrame" src="${targetSrc}" style="position:fixed;top:0;left:0;width:100vw;height:100vh;border:none;margin:0;padding:0;z-index:999999;display:block;background:transparent;" allow="clipboard-write; clipboard-read; fullscreen"></iframe>
                         <style>
                             html, body { overflow: hidden !important; width: 100vw; height: 100vh; margin: 0; padding: 0; background: #f8fafc; }
+                            @keyframes pulseGateway { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.35; transform: scale(0.8); } }
                         </style>
                     `;
 
@@ -51,6 +64,12 @@
                     if (frame) {
                         frame.onload = function () {
                             try {
+                                var loader = document.getElementById('portalGatewayLoader');
+                                if (loader) {
+                                    loader.style.transition = 'opacity 0.25s ease';
+                                    loader.style.opacity = '0';
+                                    setTimeout(function () { if (loader.parentNode) loader.parentNode.removeChild(loader); }, 250);
+                                }
                                 frame.contentWindow.postMessage({ type: 'SET_DOMAIN', domain: window.location.origin }, '*');
                             } catch (e) { }
                         };
@@ -173,15 +192,15 @@
             }
         }
 
-        /* --- Tampilan Layar HP (< 640px): 4 Kolom Kesamping Cerdas --- */
+        /* --- Tampilan Layar HP (< 640px): 2 Kolom Proporsional (Potret 1 Kolom, Landscape 2 Kolom Penuh) --- */
         @media (max-width: 640px) {
             .photo-grid {
                 display: grid !important;
-                grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
                 grid-auto-flow: dense !important;
                 column-count: auto !important;
-                column-gap: 0.375rem !important;
-                row-gap: 0.5rem !important;
+                column-gap: 0.625rem !important;
+                row-gap: 0.75rem !important;
                 width: 100% !important;
             }
 
@@ -189,118 +208,88 @@
                 break-inside: avoid;
                 margin-bottom: 0 !important;
                 width: 100% !important;
-                border-radius: 0.5rem !important;
+                border-radius: 0.75rem !important;
                 border-width: 1.5px !important;
-                grid-column: span 1; /* Default potret: 1 dari 4 kolom (4 foto per baris) */
+                grid-column: span 1; /* Default potret: 1 dari 2 kolom (2 foto berdampingan) */
                 content-visibility: auto;
-                contain-intrinsic-size: auto 160px;
+                contain-intrinsic-size: auto 260px;
+                display: flex !important;
+                flex-direction: column !important;
+                overflow: hidden !important;
+                background-color: #ffffff !important;
             }
 
-            /* Jika foto Potret: tampil 4 kolom kesamping (masing-masing 1 kolom dari 4) */
+            /* Jika foto Potret: tampil 1 dari 2 kolom (2 foto per baris) */
             .photo-item.photo-portrait {
                 grid-column: span 1 !important;
             }
 
-            /* Jika foto Landscape: tampil 2 kolom kesamping (masing-masing 2 kolom dari 4) */
+            /* Jika foto Landscape: tampil 2 kolom penuh (lebar penuh layar HP agar proporsional dan jelas) */
             .photo-item.photo-landscape {
                 grid-column: span 2 !important;
             }
 
             /* Rasio gambar agar pas dan proporsional di layar HP */
-            .photo-item.photo-portrait img {
+            .photo-item.photo-portrait .photo-img-wrapper img {
                 aspect-ratio: 3 / 4 !important;
+                width: 100% !important;
                 height: auto !important;
                 object-fit: cover !important;
             }
 
-            .photo-item.photo-landscape img {
+            .photo-item.photo-landscape .photo-img-wrapper img {
                 aspect-ratio: 3 / 2 !important;
+                width: 100% !important;
                 height: auto !important;
                 object-fit: cover !important;
             }
 
-            .photo-item:not(.photo-landscape):not(.photo-portrait) img {
+            .photo-item:not(.photo-landscape):not(.photo-portrait) .photo-img-wrapper img {
                 aspect-ratio: 3 / 4 !important;
+                width: 100% !important;
                 height: auto !important;
                 object-fit: cover !important;
             }
 
-            /* Penataan overlay dan tombol bawah pada HP */
+            /* Area tombol & nama file di bawah gambar (SAMA SEKALI TIDAK MENUTUPI FOTO) */
             .photo-item .photo-card-bottom {
-                padding: 0.35rem !important;
-                padding-top: 1.5rem !important;
-                gap: 0.25rem !important;
+                padding: 0.5rem !important;
+                gap: 0.35rem !important;
+                background-color: #ffffff !important;
             }
 
-            /* Penyesuaian khusus foto potret di HP (lebar ~85px) agar estetis dan tidak menutupi foto */
-            .photo-item.photo-portrait .photo-card-bottom {
-                padding: 0.2rem !important;
-                padding-top: 1.1rem !important;
-                gap: 0.15rem !important;
+            .photo-item .photo-filename {
+                font-size: 0.72rem !important;
+                font-weight: 600 !important;
+                color: #334155 !important;
+                line-height: 1.25 !important;
             }
 
-            .photo-item.photo-portrait .photo-filename {
-                font-size: 0.56rem !important;
-                line-height: 1 !important;
+            .photo-item .btn-card-select {
+                padding: 0.45rem 0.5rem !important;
+                font-size: 0.75rem !important;
+                border-radius: 0.5rem !important;
+                min-height: 34px !important;
+                font-weight: 700 !important;
             }
 
-            .photo-item.photo-portrait .btn-card-select {
-                padding: 0.25rem 0.2rem !important;
-                font-size: 0.58rem !important;
-                border-radius: 0.375rem !important;
-                gap: 0.15rem !important;
-            }
-
-            .photo-item.photo-portrait .btn-card-select i {
-                font-size: 0.55rem !important;
-            }
-
-            .photo-item.photo-portrait .btn-card-note {
-                padding: 0.2rem 0.15rem !important;
-                font-size: 0.55rem !important;
-                border-radius: 0.375rem !important;
-                gap: 0.15rem !important;
-            }
-
-            .photo-item.photo-portrait .note-preview-box {
-                display: none !important;
-            }
-
-            .photo-item.photo-portrait .photo-sel-badge {
-                top: 0.25rem !important;
-                right: 0.25rem !important;
-                padding: 0.1rem 0.3rem !important;
-                font-size: 0.55rem !important;
-                border-radius: 0.3rem !important;
-            }
-
-            /* Penyesuaian khusus foto landscape di HP (lebar 2 kolom ~180px) */
-            .photo-item.photo-landscape .photo-filename {
-                font-size: 0.68rem !important;
-            }
-
-            .photo-item.photo-landscape .btn-card-select {
+            .photo-item .btn-card-note {
                 padding: 0.35rem 0.5rem !important;
+                font-size: 0.7rem !important;
+                border-radius: 0.5rem !important;
+            }
+
+            .photo-item .note-preview-box {
+                padding: 0.25rem 0.45rem !important;
                 font-size: 0.68rem !important;
-                border-radius: 0.5rem !important;
+                border-radius: 0.375rem !important;
             }
 
-            .photo-item.photo-landscape .btn-card-note {
-                padding: 0.25rem 0.4rem !important;
-                font-size: 0.65rem !important;
-                border-radius: 0.5rem !important;
-            }
-
-            .photo-item.photo-landscape .note-preview-box {
-                padding: 0.2rem 0.4rem !important;
-                font-size: 0.6rem !important;
-            }
-
-            .photo-item.photo-landscape .photo-sel-badge {
-                top: 0.35rem !important;
-                right: 0.35rem !important;
-                padding: 0.15rem 0.4rem !important;
-                font-size: 0.62rem !important;
+            .photo-item .photo-sel-badge {
+                top: 0.4rem !important;
+                right: 0.4rem !important;
+                padding: 0.15rem 0.45rem !important;
+                font-size: 0.68rem !important;
                 border-radius: 0.375rem !important;
             }
         }
@@ -450,8 +439,8 @@
     <!-- FULL PAGE LOADING OVERLAY -->
     <div id="fullPageLoading">
         <div class="spinner mb-4"></div>
-        <h3 class="text-base font-bold text-gray-800" id="loadingTitle">Memuat Galeri Foto...</h3>
-        <p class="text-xs text-gray-500 mt-1" id="loadingSubtitle">Menyiapkan foto-foto terbaik Anda</p>
+        <h3 class="text-base font-bold text-gray-800" id="loadingTitle">Sedang Masuk ke Galeri Foto...</h3>
+        <p class="text-xs text-gray-500 mt-1" id="loadingSubtitle">Menyiapkan dan memuat foto-foto terbaik Anda, mohon tunggu sebentar...</p>
     </div>
 
     <!-- 1. CLIENT PORTAL / INPUT KODE (Tampil jika dibuka tanpa parameter kode galeri) -->
@@ -756,7 +745,22 @@
 
                 <!-- Photos Container (Masonry Grid) -->
                 <div id="clientPhotoContainer" class="photo-grid">
-                    <!-- Populated dynamically -->
+                    <div id="clientInitialEnteringState" class="col-span-full py-16 sm:py-24 text-center flex flex-col items-center justify-center p-6 animate-in fade-in duration-300">
+                        <div class="relative mb-4">
+                            <div class="w-16 h-16 rounded-3xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-2xl shadow-xl shadow-blue-500/25">
+                                <i class="fas fa-images"></i>
+                            </div>
+                            <div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-md">
+                                <i class="fas fa-circle-notch fa-spin text-blue-600 text-xs"></i>
+                            </div>
+                        </div>
+                        <h3 class="text-base sm:text-lg font-bold text-gray-900 tracking-tight" id="initialEnteringTitle">Sedang Masuk ke Galeri Foto...</h3>
+                        <p class="text-xs sm:text-sm text-gray-500 mt-1 max-w-xs">Menyiapkan dan memuat foto-foto pilihan Anda, mohon tunggu sebentar...</p>
+                        <div class="mt-4 flex items-center gap-2 text-xs font-semibold text-blue-700 bg-blue-50 px-3.5 py-1.5 rounded-full border border-blue-200/80">
+                            <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                            <span id="initialEnteringBadge">Menghubungkan ke server...</span>
+                        </div>
+                    </div>
                 </div>
             </main>
 
@@ -2176,15 +2180,28 @@
                 }
 
                 // 3. Fallback request ke server jika belum ada cache (tanpa modal blocking agar halaman langsung terbuka)
+                var badge = document.getElementById('initialEnteringBadge');
+                if (badge) {
+                    badge.textContent = 'Kode: ' + cleanId + ' • Mengambil foto...';
+                }
                 var container = document.getElementById('clientPhotoContainer');
-                if (container && (!this.clientData.photos || this.clientData.photos.length === 0)) {
+                if (container && (!this.clientData.photos || this.clientData.photos.length === 0) && !document.getElementById('clientInitialEnteringState')) {
                     container.innerHTML = `
-                        <div class="col-span-full py-20 text-center flex flex-col items-center justify-center">
-                            <div class="w-12 h-12 rounded-2xl bg-blue-50 border border-blue-200 text-blue-600 flex items-center justify-center text-xl mb-3 shadow-inner">
-                                <i class="fas fa-spinner fa-spin"></i>
+                        <div id="clientInitialEnteringState" class="col-span-full py-16 sm:py-24 text-center flex flex-col items-center justify-center p-6 animate-in fade-in duration-300">
+                            <div class="relative mb-4">
+                                <div class="w-16 h-16 rounded-3xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-2xl shadow-xl shadow-blue-500/25">
+                                    <i class="fas fa-images"></i>
+                                </div>
+                                <div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-md">
+                                    <i class="fas fa-circle-notch fa-spin text-blue-600 text-xs"></i>
+                                </div>
                             </div>
-                            <h4 class="text-sm font-bold text-gray-800">Menyiapkan Foto Galeri...</h4>
-                            <p class="text-xs text-gray-400 mt-1">Foto pilihan Anda akan segera tampil</p>
+                            <h3 class="text-base sm:text-lg font-bold text-gray-900 tracking-tight" id="initialEnteringTitle">Sedang Masuk ke Galeri Foto...</h3>
+                            <p class="text-xs sm:text-sm text-gray-500 mt-1 max-w-xs">Menyiapkan dan memuat foto-foto pilihan Anda, mohon tunggu sebentar...</p>
+                            <div class="mt-4 flex items-center gap-2 text-xs font-semibold text-blue-700 bg-blue-50 px-3.5 py-1.5 rounded-full border border-blue-200/80">
+                                <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                                <span id="initialEnteringBadge">Kode: ${escapeHTML(cleanId)} • Mengambil foto...</span>
+                            </div>
                         </div>
                     `;
                 }
@@ -2689,28 +2706,28 @@
                 var selectButtonHtml = '';
                 if (isFinished) {
                     selectButtonHtml = isSelected
-                        ? `<button type="button" disabled class="btn-card-select w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-emerald-700/90 text-white cursor-default shadow-xs"><i class="fas fa-lock text-emerald-300"></i> #${selectedOrder} Terpilih (Terkunci)</button>`
-                        : `<button type="button" disabled class="btn-card-select w-full py-2 px-3 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 bg-gray-800/80 text-gray-300 cursor-default border border-white/10">Tidak Terpilih</button>`;
+                        ? `<button type="button" disabled class="btn-card-select w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-emerald-700 text-white cursor-default shadow-xs"><i class="fas fa-lock text-emerald-300"></i> #${selectedOrder} Terpilih (Terkunci)</button>`
+                        : `<button type="button" disabled class="btn-card-select w-full py-2 px-3 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 bg-gray-100 text-gray-400 cursor-default border border-gray-200">Tidak Terpilih</button>`;
                 } else if (isSelected) {
                     selectButtonHtml = `
                         <button type="button" onclick="event.stopPropagation(); clientApp.togglePhotoSelection('${escapeHTML(p.id_foto)}')"
-                            class="btn-card-select w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/30">
-                            <i class="fas fa-check-circle text-[11px]"></i>
-                            <span>${selectedOrder ? ('#' + selectedOrder + ' ') : ''}Pesan Terpilih</span>
+                            class="btn-card-select w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white shadow-md shadow-emerald-600/25">
+                            <i class="fas fa-check-circle text-[12px]"></i>
+                            <span>${selectedOrder ? ('#' + selectedOrder + ' ') : ''}Foto Terpilih</span>
                         </button>
                     `;
                 } else if (isQuotaFull) {
                     selectButtonHtml = `
                         <button type="button" disabled
-                            class="btn-card-select w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 bg-gray-800/80 text-amber-300/90 border border-amber-500/30 cursor-not-allowed">
-                            <i class="fas fa-lock text-[11px] text-amber-400"></i>
-                            <span>Kuota Penuh (Terkunci)</span>
+                            class="btn-card-select w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 bg-gray-100 text-amber-700 border border-amber-200 cursor-not-allowed">
+                            <i class="fas fa-lock text-[11px] text-amber-600"></i>
+                            <span>Kuota Penuh</span>
                         </button>
                     `;
                 } else {
                     selectButtonHtml = `
                         <button type="button" onclick="event.stopPropagation(); clientApp.togglePhotoSelection('${escapeHTML(p.id_foto)}')"
-                            class="btn-card-select w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer bg-black/60 text-white hover:bg-black/80 border border-white/20">
+                            class="btn-card-select w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 border border-blue-200 hover:border-blue-600 active:scale-95 shadow-2xs">
                             <i class="fas fa-plus text-[11px]"></i>
                             <span>Pilih Foto</span>
                         </button>
@@ -2719,21 +2736,21 @@
 
                 var noteButtonHtml = isSelected ? `
                     <button type="button" onclick="event.stopPropagation(); clientApp.openNoteModal('${escapeHTML(p.id_foto)}')"
-                        class="btn-card-note w-full py-1.5 px-3 rounded-xl text-xs font-semibold bg-white/20 hover:bg-white/30 text-white transition-all flex items-center justify-center gap-1.5 border border-white/20 cursor-pointer shadow-sm">
-                        <i class="fas fa-comment-dots text-amber-400 text-xs"></i>
-                        <span>${note && note.trim() ? 'Ubah Catatan' : 'Catatan'}</span>
+                        class="btn-card-note w-full py-1.5 px-3 rounded-xl text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-800 transition-all flex items-center justify-center gap-1.5 border border-amber-200 cursor-pointer active:scale-95">
+                        <i class="fas fa-comment-dots text-amber-600 text-xs"></i>
+                        <span>${note && note.trim() ? 'Ubah Catatan' : 'Tambah Catatan'}</span>
                     </button>
                     ${note && note.trim() ? `
-                        <div class="note-preview-box text-[11px] text-amber-100 bg-black/60 p-2 px-2.5 rounded-lg border border-amber-500/30 truncate flex items-center gap-1.5 cursor-pointer mt-0.5" onclick="event.stopPropagation(); clientApp.openNoteModal('${escapeHTML(p.id_foto)}')">
-                            <i class="fas fa-quote-left text-[9px] text-amber-400 shrink-0"></i>
-                            <span class="truncate italic font-medium drop-shadow-sm">${escapeHTML(note)}</span>
+                        <div class="note-preview-box text-[11px] text-amber-900 bg-amber-50/90 p-1.5 px-2 rounded-lg border border-amber-200 truncate flex items-center gap-1.5 cursor-pointer mt-0.5" onclick="event.stopPropagation(); clientApp.openNoteModal('${escapeHTML(p.id_foto)}')">
+                            <i class="fas fa-quote-left text-[9px] text-amber-600 shrink-0"></i>
+                            <span class="truncate italic font-medium">${escapeHTML(note)}</span>
                         </div>
                     ` : ''}
                 ` : '';
 
                 return `
-                    <div class="flex items-center justify-center text-xs min-w-0 px-1">
-                        <span class="photo-filename truncate font-semibold text-white/95 text-xs w-full text-center drop-shadow-md" title="${escapeHTML(p.nama_file)}">${escapeHTML(p.nama_file)}</span>
+                    <div class="flex items-center justify-center text-xs min-w-0 px-0.5">
+                        <span class="photo-filename truncate font-semibold text-gray-700 text-xs w-full text-center" title="${escapeHTML(p.nama_file)}">${escapeHTML(p.nama_file)}</span>
                     </div>
                     ${selectButtonHtml}
                     ${noteButtonHtml}
@@ -2761,7 +2778,7 @@
                 if (isSelected) {
                     badgeHtml = isFinished
                         ? `<div class="photo-sel-badge bg-emerald-700 text-white"><i class="fas fa-lock text-[10px] mr-1"></i> #${selectedOrder} Terpilih</div>`
-                        : `<div class="photo-sel-badge bg-blue-600 text-white"><i class="fas fa-check text-[10px] mr-1"></i> #${selectedOrder} Dipilih</div>`;
+                        : `<div class="photo-sel-badge bg-emerald-600 text-white"><i class="fas fa-check text-[10px] mr-1"></i> #${selectedOrder} Dipilih</div>`;
                 }
 
                 var currentCount = this.clientData.selected ? this.clientData.selected.size : 0;
@@ -2774,17 +2791,19 @@
                 div.className = 'photo-item ' + (isSelected ? 'selected' : '');
                 div.id = 'photo-' + p.id_foto;
                 div.innerHTML = `
-                    <div class="photo-img-wrapper cursor-pointer relative overflow-hidden group rounded-xl bg-gray-100" onclick="clientApp.openLightbox('${escapeHTML(p.id_foto)}')">
+                    <!-- Bagian Foto (Bebas dari tombol yang menutupi gambar) -->
+                    <div class="photo-img-wrapper cursor-pointer relative overflow-hidden group bg-gray-100" onclick="clientApp.openLightbox('${escapeHTML(p.id_foto)}')">
                         ${badgeHtml}
                         <img src="${escapeHTML(displayUrl)}" alt="${escapeHTML(p.nama_file)}" loading="${idx < 8 ? 'eager' : 'lazy'}" decoding="async" ${idx < 4 ? 'fetchpriority="high"' : ''} onload="clientApp.handlePhotoOrient(this, 'photo-${escapeHTML(p.id_foto)}')" class="w-full h-auto block object-cover sm:aspect-auto sm:object-contain transition-transform duration-300 group-hover:scale-[1.02]" onerror="handleImageError(this, '${escapeHTML(driveId)}')">
                         
-                        <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-10">
-                            <span class="bg-black/70 text-white p-3 rounded-full text-sm shadow-lg"><i class="fas fa-search-plus"></i></span>
+                        <div class="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-10">
+                            <span class="bg-black/60 text-white p-2.5 rounded-full text-xs shadow-md"><i class="fas fa-search-plus"></i></span>
                         </div>
+                    </div>
 
-                        <div class="photo-card-bottom absolute bottom-0 left-0 right-0 p-2.5 sm:p-3 pt-12 bg-gradient-to-t from-black/95 via-black/60 to-transparent flex flex-col gap-1.5 sm:gap-2 z-20" onclick="event.stopPropagation();">
-                            ${bottomHtml}
-                        </div>
+                    <!-- Bagian Tombol & Nama File di Bawah Foto (Sama sekali TIDAK menutupi foto) -->
+                    <div class="photo-card-bottom p-2.5 sm:p-3 bg-white flex flex-col gap-1.5 sm:gap-2 border-t border-gray-100" onclick="event.stopPropagation();">
+                        ${bottomHtml}
                     </div>
                 `;
                 return div;
@@ -2876,7 +2895,7 @@
                 }
 
                 // Update kontrol tombol & catatan di bawah TANPA menyentuh tag <img> sama sekali
-                var bottom = wrapper.querySelector('.photo-card-bottom');
+                var bottom = card.querySelector('.photo-card-bottom');
                 if (bottom) {
                     bottom.innerHTML = this.renderCardBottomHtml(p, isSelected, selectedOrder, isFinished, isQuotaFull, note);
                 }
