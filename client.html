@@ -942,7 +942,7 @@
 
     <!-- MODAL: CLIENT REVIEW & REKAP SELEKSI -->
     <div id="modalClientReview"
-        class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4">
+        class="hidden fixed inset-0 bg-black/75 backdrop-blur-xs z-[10005] flex items-center justify-center p-3 sm:p-4">
         <div
             class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-gray-100 animate-in fade-in zoom-in-95 duration-200">
             <!-- Modal Header -->
@@ -1107,9 +1107,9 @@
                     <i class="fas fa-arrow-left mr-1.5"></i> Periksa Lagi
                 </button>
                 <button type="button" onclick="clientApp.executeFinalSubmit()" id="btnConfirmSubmitClient"
-                    class="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 cursor-pointer">
-                    <i class="fas fa-paper-plane"></i>
-                    <span>Kirim Sekarang</span>
+                    class="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 cursor-pointer">
+                    <i class="fab fa-whatsapp text-base sm:text-lg"></i>
+                    <span>Kirim ke WhatsApp Vendor</span>
                 </button>
             </div>
         </div>
@@ -1422,6 +1422,44 @@
             var txt = document.createElement('textarea');
             txt.innerHTML = String(text);
             return txt.value;
+        }
+
+        // Langsung membuka aplikasi WhatsApp native (Android, iPhone, Windows/Mac app) tanpa melalui WhatsApp Web
+        function openWhatsAppDirect(phone, message) {
+            var cleanPhone = '';
+            if (phone) {
+                cleanPhone = String(phone).replace(/[^0-9]/g, '');
+                if (cleanPhone.startsWith('0')) cleanPhone = '62' + cleanPhone.slice(1);
+                else if (cleanPhone.startsWith('8')) cleanPhone = '62' + cleanPhone;
+            }
+
+            var nativeUrl = (cleanPhone && cleanPhone.length >= 9)
+                ? ('whatsapp://send?phone=' + encodeURIComponent(cleanPhone) + '&text=' + encodeURIComponent(message))
+                : ('whatsapp://send?text=' + encodeURIComponent(message));
+
+            // Salin pesan ke clipboard secara otomatis (backup aman)
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                try { navigator.clipboard.writeText(message); } catch (e) { }
+            }
+
+            // Picu peluncuran aplikasi WhatsApp native via link klik
+            var a = document.createElement('a');
+            a.href = nativeUrl;
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function () {
+                try { document.body.removeChild(a); } catch (e) { }
+            }, 1000);
+
+            // Fallback trigger langsung (sangat handal di browser smartphone Android & iOS)
+            setTimeout(function () {
+                try {
+                    window.location.href = nativeUrl;
+                } catch (e) { }
+            }, 150);
+
+            return nativeUrl;
         }
 
         function extractDriveId(url) {
@@ -3094,115 +3132,148 @@
 
             // --- CLIENT REVIEW & SUBMIT ---
             openClientReviewModal: function () {
-                var count = this.clientData.selected ? this.clientData.selected.size : 0;
-                var gal = this.clientData.gallery;
-                var max = gal ? (parseInt(gal.batas_foto, 10) || 30) : 30;
-                var totalPhotos = (this.clientData.photos || []).length;
-                var isComplete = (count >= max) || (totalPhotos > 0 && count >= totalPhotos);
+                try {
+                    var count = this.clientData.selected ? this.clientData.selected.size : 0;
+                    var gal = this.clientData.gallery;
+                    var max = gal ? (parseInt(gal.batas_foto, 10) || 30) : 30;
+                    var totalPhotos = (this.clientData.photos || []).length;
+                    var isComplete = (count >= max) || (totalPhotos > 0 && count >= totalPhotos) || (max <= 0 && count > 0);
 
-                if (count === 0) {
-                    this.showToast('Pilih minimal 1 foto terlebih dahulu.', true);
-                    return;
-                }
+                    if (count === 0) {
+                        this.showToast('Pilih minimal 1 foto terlebih dahulu.', true);
+                        return;
+                    }
 
-                if (!isComplete && (!gal || gal.status !== 'Selesai')) {
-                    this.showToast('Pilihan belum lengkap. Silakan pilih ' + (max - count) + ' foto lagi hingga total ' + max + ' foto sebelum mengirim pilihan.', true);
-                    return;
-                }
+                    if (!isComplete && (!gal || gal.status !== 'Selesai')) {
+                        this.showToast('Pilihan belum lengkap. Silakan pilih ' + (max - count) + ' foto lagi hingga total ' + max + ' foto sebelum mengirim pilihan.', true);
+                        return;
+                    }
 
-                var notesCount = 0;
-                this.clientData.selected.forEach(function (n) { if (n && n.trim()) notesCount++; });
+                    var notesCount = 0;
+                    if (this.clientData.selected) {
+                        this.clientData.selected.forEach(function (n) { if (n && n.trim()) notesCount++; });
+                    }
 
-                document.getElementById('reviewPhotoCount').textContent = count;
-                document.getElementById('reviewMaxCountText').textContent = 'dari kuota ' + max + ' foto';
-                document.getElementById('reviewNoteCount').textContent = notesCount;
-                document.getElementById('reviewPhotoCountBadge').textContent = count + ' Foto';
-                document.getElementById('reviewNotesSectionBadge').textContent = notesCount + ' Catatan';
+                    var elRpc = document.getElementById('reviewPhotoCount');
+                    if (elRpc) elRpc.textContent = count;
+                    var elRmc = document.getElementById('reviewMaxCountText');
+                    if (elRmc) elRmc.textContent = 'dari kuota ' + max + ' foto';
+                    var elRnc = document.getElementById('reviewNoteCount');
+                    if (elRnc) elRnc.textContent = notesCount;
+                    var elRpb = document.getElementById('reviewPhotoCountBadge');
+                    if (elRpb) elRpb.textContent = count + ' Foto';
+                    var elRnb = document.getElementById('reviewNotesSectionBadge');
+                    if (elRnb) elRnb.textContent = notesCount + ' Catatan';
 
-                // Render per-folder grouping
-                var container = document.getElementById('reviewPhotoListContainer');
-                container.innerHTML = '';
-                var allPhotos = this.clientData.photos || [];
+                    // Render per-folder grouping
+                    var container = document.getElementById('reviewPhotoListContainer');
+                    if (container) {
+                        container.innerHTML = '';
+                        var grouped = this.getGroupedSelections();
+                        grouped.sortedFolders.forEach(function (fName) {
+                            var items = grouped.folderMap[fName] || [];
+                            if (items.length === 0) return;
 
-                var grouped = this.getGroupedSelections();
-                grouped.sortedFolders.forEach(function (fName) {
-                    var items = grouped.folderMap[fName] || [];
-                    if (items.length === 0) return;
-
-                    var fWrap = document.createElement('div');
-                    fWrap.className = 'space-y-1.5 mb-3 last:mb-0';
-                    fWrap.innerHTML = `
-                        <div class="flex items-center justify-between bg-blue-50/90 border border-blue-200/80 px-3 py-1.5 rounded-xl sticky top-0 z-10 backdrop-blur-xs">
-                            <span class="text-xs font-bold text-blue-950 truncate">${escapeHTML(fName)}</span>
-                            <span class="text-[10px] font-bold text-blue-700 bg-white px-2 py-0.5 rounded-full border border-blue-200">${items.length} Foto</span>
-                        </div>
-                    `;
-
-                    var itemsWrap = document.createElement('div');
-                    itemsWrap.className = 'space-y-1 pl-1';
-                    items.forEach(function (item, idx) {
-                        var p = item.photo;
-                        var displayUrl = formatPhotoDisplayUrl(p.url_foto);
-                        var driveId = p.id_drive || extractDriveId(p.url_foto);
-                        var row = document.createElement('div');
-                        row.className = 'flex items-center gap-2.5 p-1.5 bg-white rounded-xl border border-gray-200/80 shadow-2xs';
-                        row.innerHTML = `
-                            <img src="${escapeHTML(displayUrl)}" alt="${escapeHTML(p.nama_file)}" class="w-10 h-10 object-cover rounded-lg shrink-0 border border-gray-200" onerror="handleImageError(this, '${escapeHTML(driveId)}')">
-                            <div class="flex-1 min-w-0">
-                                <span class="font-mono text-xs font-bold text-gray-800 truncate block">${escapeHTML(p.nama_file)}</span>
-                                ${item.note ? `<span class="text-[10px] text-amber-800 italic block truncate"><i class="fas fa-comment-dots text-amber-500 mr-1"></i>${escapeHTML(item.note)}</span>` : ''}
-                            </div>
-                        `;
-                        itemsWrap.appendChild(row);
-                    });
-                    fWrap.appendChild(itemsWrap);
-                    container.appendChild(fWrap);
-                });
-
-                // Notes recap list
-                var nContainer = document.getElementById('reviewNotesListContainer');
-                nContainer.innerHTML = '';
-                var noteIdx = 1;
-                grouped.sortedFolders.forEach(function (fName) {
-                    var items = grouped.folderMap[fName] || [];
-                    items.forEach(function (item) {
-                        if (item.note && item.note.trim()) {
-                            var nRow = document.createElement('div');
-                            nRow.className = 'flex items-start gap-2 p-2 bg-white rounded-xl border border-amber-200/80';
-                            nRow.innerHTML = `
-                                <span class="text-xs font-bold text-amber-800 shrink-0">${noteIdx}.</span>
-                                <div class="flex-1 min-w-0">
-                                    <span class="font-mono text-xs font-bold text-gray-900 truncate block">${escapeHTML(item.photo.nama_file)}</span>
-                                    <p class="text-xs text-amber-950 mt-0.5 leading-relaxed">${escapeHTML(item.note)}</p>
+                            var fWrap = document.createElement('div');
+                            fWrap.className = 'space-y-1.5 mb-3 last:mb-0';
+                            fWrap.innerHTML = `
+                                <div class="flex items-center justify-between bg-blue-50/90 border border-blue-200/80 px-3 py-1.5 rounded-xl sticky top-0 z-10 backdrop-blur-xs">
+                                    <span class="text-xs font-bold text-blue-950 truncate">${escapeHTML(fName)}</span>
+                                    <span class="text-[10px] font-bold text-blue-700 bg-white px-2 py-0.5 rounded-full border border-blue-200">${items.length} Foto</span>
                                 </div>
                             `;
-                            nContainer.appendChild(nRow);
-                            noteIdx++;
-                        }
-                    });
-                });
-                if (noteIdx === 1) {
-                    nContainer.innerHTML = '<p class="text-xs text-amber-800/70 italic p-2">Tidak ada pilihan catatan khusus.</p>';
-                }
 
-                // WhatsApp Vendor input
-                var waInput = document.getElementById('reviewClientWaInput');
-                if (waInput) {
-                    var defaultWa = (gal && (gal.whatsapp_vendor || gal.whatsapp_client)) ? String(gal.whatsapp_vendor || gal.whatsapp_client) : '';
-                    if (!defaultWa) {
-                        try { defaultWa = localStorage.getItem('last_vendor_wa') || ''; } catch (e) { }
+                            var itemsWrap = document.createElement('div');
+                            itemsWrap.className = 'space-y-1 pl-1';
+                            items.forEach(function (item, idx) {
+                                var p = item.photo || {};
+                                var fileName = p.nama_file || ('Foto ' + (idx + 1));
+                                var displayUrl = formatPhotoDisplayUrl(p.url_foto);
+                                var driveId = p.id_drive || extractDriveId(p.url_foto);
+                                var row = document.createElement('div');
+                                row.className = 'flex items-center gap-2.5 p-1.5 bg-white rounded-xl border border-gray-200/80 shadow-2xs';
+                                row.innerHTML = `
+                                    <img src="${escapeHTML(displayUrl)}" alt="${escapeHTML(fileName)}" class="w-10 h-10 object-cover rounded-lg shrink-0 border border-gray-200" onerror="handleImageError(this, '${escapeHTML(driveId)}')">
+                                    <div class="flex-1 min-w-0">
+                                        <span class="font-mono text-xs font-bold text-gray-800 truncate block">${escapeHTML(fileName)}</span>
+                                        ${item.note ? `<span class="text-[10px] text-amber-800 italic block truncate"><i class="fas fa-comment-dots text-amber-500 mr-1"></i>${escapeHTML(item.note)}</span>` : ''}
+                                    </div>
+                                `;
+                                itemsWrap.appendChild(row);
+                            });
+                            fWrap.appendChild(itemsWrap);
+                            container.appendChild(fWrap);
+                        });
                     }
-                    waInput.value = defaultWa;
-                }
 
-                // Inisialisasi toggle kirim langsung ke WhatsApp tanpa folder Drive
-                var toggleDirectWa = document.getElementById('toggleDirectWaNoDrive');
-                if (toggleDirectWa) {
-                    toggleDirectWa.checked = this.isDirectWaNoDriveActive();
-                    this.onToggleDirectWaNoDrive(toggleDirectWa.checked);
-                }
+                    // Notes recap list
+                    var nContainer = document.getElementById('reviewNotesListContainer');
+                    if (nContainer) {
+                        nContainer.innerHTML = '';
+                        var noteIdx = 1;
+                        var groupedNotes = this.getGroupedSelections();
+                        groupedNotes.sortedFolders.forEach(function (fName) {
+                            var items = groupedNotes.folderMap[fName] || [];
+                            items.forEach(function (item) {
+                                if (item.note && item.note.trim()) {
+                                    var nRow = document.createElement('div');
+                                    nRow.className = 'flex items-start gap-2 p-2 bg-white rounded-xl border border-amber-200/80';
+                                    nRow.innerHTML = `
+                                        <span class="text-xs font-bold text-amber-800 shrink-0">${noteIdx}.</span>
+                                        <div class="flex-1 min-w-0">
+                                            <span class="font-mono text-xs font-bold text-gray-900 truncate block">${escapeHTML((item.photo && item.photo.nama_file) || '')}</span>
+                                            <p class="text-xs text-amber-950 mt-0.5 leading-relaxed">${escapeHTML(item.note)}</p>
+                                        </div>
+                                    `;
+                                    nContainer.appendChild(nRow);
+                                    noteIdx++;
+                                }
+                            });
+                        });
+                        if (noteIdx === 1) {
+                            nContainer.innerHTML = '<p class="text-xs text-amber-800/70 italic p-2">Tidak ada pilihan catatan khusus.</p>';
+                        }
+                    }
 
-                this.openModal('modalClientReview');
+                    // WhatsApp Vendor input (Ambil nomor vendor otomatis)
+                    var waInput = document.getElementById('reviewClientWaInput');
+                    if (waInput) {
+                        var defaultWa = (gal && (gal.whatsapp_vendor || gal.whatsapp_studio || gal.no_wa_vendor || gal.wa_vendor)) ? String(gal.whatsapp_vendor || gal.whatsapp_studio || gal.no_wa_vendor || gal.wa_vendor) : '';
+                        if (!defaultWa) {
+                            try { defaultWa = localStorage.getItem('last_vendor_wa') || ''; } catch (e) { }
+                        }
+                        if (!defaultWa && gal && gal.whatsapp_client) {
+                            defaultWa = String(gal.whatsapp_client);
+                        }
+                        waInput.value = defaultWa;
+                    }
+
+                    // Inisialisasi toggle kirim langsung ke WhatsApp tanpa folder Drive
+                    var toggleDirectWa = document.getElementById('toggleDirectWaNoDrive');
+                    if (toggleDirectWa) {
+                        toggleDirectWa.checked = this.isDirectWaNoDriveActive();
+                        this.onToggleDirectWaNoDrive(toggleDirectWa.checked);
+                    }
+
+                    // Atur tombol konfirmasi kirim di modal review
+                    var btnConfirm = document.getElementById('btnConfirmSubmitClient');
+                    if (btnConfirm) {
+                        if (gal && gal.status === 'Selesai') {
+                            btnConfirm.disabled = true;
+                            btnConfirm.className = 'w-full sm:w-auto px-6 py-2.5 bg-gray-400 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 cursor-not-allowed';
+                            btnConfirm.innerHTML = '<i class="fas fa-lock"></i> <span>Pilihan Sudah Terkunci (Selesai)</span>';
+                        } else {
+                            btnConfirm.disabled = false;
+                            btnConfirm.className = 'w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 cursor-pointer';
+                            btnConfirm.innerHTML = '<i class="fab fa-whatsapp text-base sm:text-lg"></i> <span>Kirim ke WhatsApp Vendor</span>';
+                        }
+                    }
+
+                    this.openModal('modalClientReview');
+                } catch (err) {
+                    console.error('Error opening client review modal:', err);
+                    this.showToast('Gagal membuka rekap foto: ' + (err.message || err), true);
+                }
             },
 
             isDirectWaNoDriveActive: function () {
@@ -3258,7 +3329,7 @@
                 var self = this;
 
                 this.clientData.selected.forEach(function (note, photoId) {
-                    var p = allPhotos.find(function (item) { return item.id_foto === photoId; }) || { id_foto: photoId, nama_file: photoId, url_foto: '', nama_folder: 'Folder Utama' };
+                    var p = allPhotos.find(function (item) { return String(item.id_foto) === String(photoId); }) || { id_foto: photoId, nama_file: photoId, url_foto: '', nama_folder: 'Folder Utama' };
                     var rawFolder = (p.nama_folder || 'Folder Utama').trim() || 'Folder Utama';
                     if (!folderMap[rawFolder]) folderMap[rawFolder] = [];
                     folderMap[rawFolder].push({ photo: p, note: (note || '').trim() });
@@ -3359,27 +3430,7 @@
             },
 
             sendWhatsAppDirect: function (phone, msg) {
-                var waUrl = (phone && phone.length >= 9)
-                    ? ('https://api.whatsapp.com/send?phone=' + encodeURIComponent(phone) + '&text=' + encodeURIComponent(msg))
-                    : ('https://api.whatsapp.com/send?text=' + encodeURIComponent(msg));
-
-                var win = null;
-                try {
-                    win = window.open(waUrl, '_blank');
-                } catch (e) {
-                    win = null;
-                }
-
-                if (!win || win.closed || typeof win.closed === 'undefined') {
-                    var a = document.createElement('a');
-                    a.href = waUrl;
-                    a.target = '_blank';
-                    a.rel = 'noopener noreferrer';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                }
-                return waUrl;
+                return openWhatsAppDirect(phone, msg);
             },
 
             promptConfirmSubmit: function () {
@@ -3396,21 +3447,12 @@
 
                 var gal = this.clientData.gallery || {};
                 var waInput = document.getElementById('reviewClientWaInput');
-                var rawPhone = (waInput ? waInput.value.trim() : '') || gal.whatsapp_vendor || gal.whatsapp_client || '';
+                var rawPhone = (waInput ? waInput.value.trim() : '') || gal.whatsapp_vendor || gal.whatsapp_studio || gal.no_wa_vendor || gal.wa_vendor || gal.whatsapp_client || '';
                 var cleanPhone = rawPhone.replace(/[^0-9]/g, '');
                 if (cleanPhone.startsWith('0')) cleanPhone = '62' + cleanPhone.slice(1);
                 else if (cleanPhone.startsWith('8')) cleanPhone = '62' + cleanPhone;
 
-                if (!cleanPhone || cleanPhone.length < 9) {
-                    this.showToast('Silakan masukkan nomor WhatsApp fotografer / vendor terlebih dahulu.', true);
-                    if (waInput) {
-                        waInput.focus();
-                        waInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                    return;
-                }
-
-                if (cleanPhone) {
+                if (cleanPhone && cleanPhone.length >= 9) {
                     try { localStorage.setItem('last_vendor_wa', cleanPhone); } catch (e) { }
                 }
 
@@ -3418,11 +3460,8 @@
 
                 // Format pesan WhatsApp seketika
                 var updatedWaMsg = this.buildWhatsAppMessage('', skipDrive);
-                var waUrl = (cleanPhone && cleanPhone.length >= 9)
-                    ? ('https://api.whatsapp.com/send?phone=' + encodeURIComponent(cleanPhone) + '&text=' + encodeURIComponent(updatedWaMsg))
-                    : ('https://api.whatsapp.com/send?text=' + encodeURIComponent(updatedWaMsg));
 
-                // Tutup modal review langsung tanpa memunculkan modal perantara
+                // Tutup modal review langsung
                 this.closeModal('modalClientReview');
 
                 // Kunci galeri di tampilan klien seketika
@@ -3430,6 +3469,7 @@
                     this.clientData.gallery.status = 'Selesai';
                 }
                 this.renderGallery();
+                this.updateProgressCounters();
 
                 // Simpan data seleksi ke server di latar belakang (background)
                 var selections = [];
@@ -3442,16 +3482,10 @@
                     console.error('Error submitting selection:', err);
                 });
 
-                // Otomatis langsung arahkan ke WhatsApp vendor seketika
-                var win = null;
-                try {
-                    win = window.open(waUrl, '_blank');
-                } catch (e) {
-                    win = null;
-                }
-                if (!win || win.closed || typeof win.closed === 'undefined') {
-                    window.location.href = waUrl;
-                }
+                // Otomatis langsung buka aplikasi WhatsApp native tanpa lewat WA Web
+                openWhatsAppDirect(cleanPhone, updatedWaMsg);
+
+                this.showToast('🎉 Membuka aplikasi WhatsApp vendor... Pilihan foto berhasil dikirim!', false);
             },
 
             closeSuccessAndBackToPhotos: function () {
