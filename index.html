@@ -242,31 +242,26 @@
             background: #94a3b8;
         }
 
-        /* Image Grid & Photo Card Aesthetics (Natural Aspect Ratio Masonry) */
+        /* Image Grid & Photo Card Aesthetics: 2 Kolom Seragam (Desktop & HP) */
         .photo-grid {
-            column-count: 4;
-            column-gap: 1rem;
+            display: grid !important;
+            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+            column-gap: 0.875rem !important;
+            row-gap: 1.125rem !important;
+            width: 100% !important;
+            max-width: 860px !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
         }
 
-        @media (max-width: 1024px) {
-            .photo-grid {
-                column-count: 3;
-                column-gap: 0.875rem;
-            }
-        }
-
-        @media (max-width: 640px) {
-            .photo-grid {
-                column-count: 2 !important;
-                column-gap: 0.5rem !important;
-            }
-        }
-
-        .photo-item {
-            break-inside: avoid;
-            margin-bottom: 1rem;
-            display: inline-block;
-            width: 100%;
+        .photo-item,
+        .photo-item.photo-portrait,
+        .photo-item.photo-landscape {
+            grid-column: span 1 !important;
+            margin-bottom: 0 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            width: 100% !important;
             position: relative;
             border-radius: 0.85rem;
             overflow: hidden;
@@ -277,7 +272,27 @@
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
             content-visibility: auto;
-            contain-intrinsic-size: auto 240px;
+            contain-intrinsic-size: auto 260px;
+        }
+
+        .photo-item .photo-img-wrapper {
+            position: relative !important;
+            width: 100% !important;
+            aspect-ratio: 1 / 1 !important;
+            overflow: hidden !important;
+            background-color: #f8fafc !important;
+            flex-shrink: 0 !important;
+        }
+
+        .photo-item .photo-img-wrapper img,
+        .photo-item.photo-portrait .photo-img-wrapper img,
+        .photo-item.photo-landscape .photo-img-wrapper img {
+            width: 100% !important;
+            height: 100% !important;
+            aspect-ratio: 1 / 1 !important;
+            object-fit: cover !important;
+            object-position: center !important;
+            display: block !important;
         }
 
         .photo-item:hover {
@@ -299,8 +314,10 @@
 
         .photo-item img {
             width: 100%;
-            height: auto !important;
-            object-fit: contain !important;
+            height: 100%;
+            aspect-ratio: 1 / 1 !important;
+            object-fit: cover !important;
+            object-position: center;
             display: block;
             background-color: #f1f5f9;
             transition: transform 0.25s ease;
@@ -448,66 +465,22 @@
         /* --- MOBILE PHONE OPTIMIZATION (Layar HP < 640px): 2 Kolom Proporsional (Potret 1 Kolom, Landscape 2 Kolom Penuh) --- */
         @media (max-width: 640px) {
             .photo-grid {
-                display: grid !important;
                 grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-                grid-auto-flow: dense !important;
-                column-count: auto !important;
-                column-gap: 0.625rem !important;
-                row-gap: 0.75rem !important;
-                width: 100% !important;
+                column-gap: 0.5rem !important;
+                row-gap: 0.65rem !important;
+                max-width: 100% !important;
             }
 
             .photo-item {
-                break-inside: avoid;
-                margin-bottom: 0 !important;
-                width: 100% !important;
                 border-radius: 0.75rem !important;
                 border-width: 1.5px !important;
-                grid-column: span 1; /* Default potret: 1 dari 2 kolom (2 foto berdampingan) */
-                content-visibility: auto;
-                contain-intrinsic-size: auto 260px;
-                display: flex !important;
-                flex-direction: column !important;
-                overflow: hidden !important;
-                background-color: #ffffff !important;
-            }
-
-            /* Jika foto Potret: tampil 1 dari 2 kolom (2 foto per baris) */
-            .photo-item.photo-portrait {
                 grid-column: span 1 !important;
-            }
-
-            /* Jika foto Landscape: tampil 2 kolom penuh (lebar penuh layar HP agar proporsional dan jelas) */
-            .photo-item.photo-landscape {
-                grid-column: span 2 !important;
-            }
-
-            /* Rasio gambar agar pas dan proporsional di layar HP */
-            .photo-item.photo-portrait .photo-img-wrapper img {
-                aspect-ratio: 3 / 4 !important;
-                width: 100% !important;
-                height: auto !important;
-                object-fit: cover !important;
-            }
-
-            .photo-item.photo-landscape .photo-img-wrapper img {
-                aspect-ratio: 3 / 2 !important;
-                width: 100% !important;
-                height: auto !important;
-                object-fit: cover !important;
-            }
-
-            .photo-item:not(.photo-landscape):not(.photo-portrait) .photo-img-wrapper img {
-                aspect-ratio: 3 / 4 !important;
-                width: 100% !important;
-                height: auto !important;
-                object-fit: cover !important;
             }
 
             /* Area tombol & nama file di bawah gambar (SAMA SEKALI TIDAK MENUTUPI FOTO) */
             .photo-item .photo-card-bottom {
-                padding: 0.5rem !important;
-                gap: 0.35rem !important;
+                padding: 0.45rem 0.4rem !important;
+                gap: 0.3rem !important;
                 background-color: #ffffff !important;
             }
 
@@ -8405,7 +8378,7 @@
                         <div class="photo-img-wrapper cursor-pointer relative overflow-hidden group bg-gray-100" onclick="appState.openPhotoInLightbox('${escapeHTML(p.id_foto)}')">
                             ${badgeHtml}
                             
-                            <img src="${escapeHTML(displayUrl)}" alt="${escapeHTML(p.nama_file)}" loading="${idx < 8 ? 'eager' : 'lazy'}" decoding="async" ${idx < 4 ? 'fetchpriority="high"' : ''} onload="appState.handlePhotoOrient(this, 'photo-${escapeHTML(p.id_foto)}')" class="w-full h-auto block object-cover sm:aspect-auto sm:object-contain transition-transform duration-300 group-hover:scale-[1.02]" onerror="handleImageError(this, '${escapeHTML(driveId)}')">
+                            <img src="${escapeHTML(displayUrl)}" alt="${escapeHTML(p.nama_file)}" loading="${idx < 8 ? 'eager' : 'lazy'}" decoding="async" ${idx < 4 ? 'fetchpriority="high"' : ''} onload="appState.handlePhotoOrient(this, 'photo-${escapeHTML(p.id_foto)}')" class="w-full h-full block object-cover transition-transform duration-300 group-hover:scale-[1.02]" onerror="handleImageError(this, '${escapeHTML(driveId)}')">
                             
                             <!-- Overlay icon perbesar saat hover (Tengah) -->
                             <div class="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-10">
