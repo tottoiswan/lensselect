@@ -1197,8 +1197,11 @@
                     <i class="fas fa-images w-5"></i> Galeri
                 </button>
                 <button onclick="appState.openAutoSelectPage()" id="nav-autoselect"
-                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">
-                    <i class="fas fa-external-link-alt w-5 text-blue-500"></i> AutoSelect File
+                    class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-magic w-5 text-indigo-500"></i> AutoSelect File
+                    </div>
+                    <span id="sidebar-autoselect-credit-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">5x</span>
                 </button>
                 <button onclick="appState.navigate('jobs')" id="nav-jobs"
                     class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">
@@ -2926,6 +2929,125 @@
         </div>
     </div>
 
+    <!-- Modal Top-Up / Beli Credit AutoSelect -->
+    <div id="modalTopUpCredit"
+        class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[99] flex items-center justify-center p-3 sm:p-4">
+        <div
+            class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-amber-300 animate-in fade-in zoom-in-95 duration-200">
+            <!-- Modal Header -->
+            <div
+                class="p-5 sm:p-6 border-b border-amber-100 flex items-center justify-between bg-gradient-to-r from-amber-50 via-yellow-50/70 to-amber-50">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 text-white flex items-center justify-center shadow-md shadow-amber-500/30 text-2xl shrink-0">
+                        🪙
+                    </div>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-amber-950 leading-tight">Top-Up Credit AutoSelect</h3>
+                        <p class="text-xs text-amber-800 mt-0.5">Tambah kuota untuk sortir & salin foto otomatis</p>
+                    </div>
+                </div>
+                <button type="button" onclick="appState.closeTopUpCreditModal()"
+                    class="text-amber-800 hover:text-amber-950 p-2 rounded-xl hover:bg-amber-100/80 transition-colors cursor-pointer"
+                    title="Tutup">
+                    <i class="fas fa-times text-base"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-5 sm:p-6 space-y-4 bg-white max-h-[75vh] overflow-y-auto custom-scroll-y">
+                <!-- Status Saldo Saat Ini -->
+                <div class="p-4 bg-amber-50/80 rounded-2xl border border-amber-200 flex items-center justify-between gap-3">
+                    <div>
+                        <span class="text-[11px] font-semibold text-amber-800 block uppercase tracking-wider">Saldo Credit Anda</span>
+                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                            <span id="modal-topup-spa-current-credit" class="text-2xl font-extrabold text-amber-950 font-mono">0</span>
+                            <span class="text-xs font-semibold text-amber-900">Sesi Sortir Tersisa</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="px-2.5 py-1 bg-white text-amber-900 border border-amber-300 rounded-full text-[11px] font-bold inline-flex items-center gap-1 shadow-2xs">
+                            <i class="fas fa-check-circle text-amber-600"></i> 1 Credit = 1x Sortir
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Info Ketentuan -->
+                <p class="text-xs text-gray-600 leading-relaxed">
+                    Setiap proses sortir & salin foto lokal membutuhkan <strong>1 Credit</strong>. Pilih paket kuota credit di bawah ini dan konfirmasi langsung ke WhatsApp Admin:
+                </p>
+
+                <!-- Pilihan Paket Kuota -->
+                <div class="space-y-2.5" id="credit-package-list-spa">
+                    <!-- Paket 1 -->
+                    <label class="credit-pkg-card-spa relative flex items-center justify-between p-3.5 rounded-2xl border-2 border-gray-200 hover:border-amber-400 bg-white hover:bg-amber-50/40 cursor-pointer transition-all">
+                        <div class="flex items-center gap-3">
+                            <input type="radio" name="credit_pkg_spa" value="5" data-price="Rp 25.000" data-label="Paket 5x Sortir" class="w-4 h-4 text-amber-600 focus:ring-amber-500" onchange="appState.selectCreditPackage(5, 'Rp 25.000', 'Paket 5x Sortir')">
+                            <div>
+                                <div class="font-bold text-gray-900 text-sm">Paket Hemat: 5x Sortir</div>
+                                <div class="text-[11px] text-gray-500">Rp 5.000 / sesi sortir</div>
+                            </div>
+                        </div>
+                        <span class="text-sm font-extrabold text-gray-900 font-mono">Rp 25.000</span>
+                    </label>
+
+                    <!-- Paket 2 (Recommended) -->
+                    <label class="credit-pkg-card-spa relative flex items-center justify-between p-3.5 rounded-2xl border-2 border-amber-500 bg-amber-50/60 cursor-pointer transition-all shadow-xs">
+                        <span class="absolute -top-2.5 right-4 px-2 py-0.5 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-full text-[10px] font-extrabold uppercase tracking-wider shadow-2xs">PALING LARIS 🔥</span>
+                        <div class="flex items-center gap-3">
+                            <input type="radio" name="credit_pkg_spa" value="15" data-price="Rp 60.000" data-label="Paket 15x Sortir" checked class="w-4 h-4 text-amber-600 focus:ring-amber-500" onchange="appState.selectCreditPackage(15, 'Rp 60.000', 'Paket 15x Sortir')">
+                            <div>
+                                <div class="font-bold text-amber-950 text-sm">Paket Populer: 15x Sortir</div>
+                                <div class="text-[11px] text-amber-800">Hemat 20% (Rp 4.000 / sesi)</div>
+                            </div>
+                        </div>
+                        <span class="text-sm font-extrabold text-amber-950 font-mono">Rp 60.000</span>
+                    </label>
+
+                    <!-- Paket 3 -->
+                    <label class="credit-pkg-card-spa relative flex items-center justify-between p-3.5 rounded-2xl border-2 border-gray-200 hover:border-amber-400 bg-white hover:bg-amber-50/40 cursor-pointer transition-all">
+                        <span class="absolute -top-2.5 right-4 px-2 py-0.5 bg-indigo-600 text-white rounded-full text-[10px] font-extrabold uppercase tracking-wider shadow-2xs">STUDIO HEMAT ⚡</span>
+                        <div class="flex items-center gap-3">
+                            <input type="radio" name="credit_pkg_spa" value="50" data-price="Rp 150.000" data-label="Paket 50x Sortir" class="w-4 h-4 text-amber-600 focus:ring-amber-500" onchange="appState.selectCreditPackage(50, 'Rp 150.000', 'Paket 50x Sortir')">
+                            <div>
+                                <div class="font-bold text-gray-900 text-sm">Paket Studio: 50x Sortir</div>
+                                <div class="text-[11px] text-gray-500">Hemat 40% (Rp 3.000 / sesi)</div>
+                            </div>
+                        </div>
+                        <span class="text-sm font-extrabold text-gray-900 font-mono">Rp 150.000</span>
+                    </label>
+                </div>
+
+                <!-- Box Detail Pilihan -->
+                <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-1.5">
+                    <div class="flex items-center justify-between text-gray-600">
+                        <span>Paket Dipilih:</span>
+                        <strong id="modal-topup-spa-pkg-label" class="text-gray-900">Paket 15x Sortir (Rp 60.000)</strong>
+                    </div>
+                </div>
+
+                <div class="text-[11px] text-gray-500 leading-relaxed flex items-center gap-1.5">
+                    <i class="fas fa-shield-alt text-emerald-600"></i>
+                    <span>Setelah konfirmasi pembayaran, Admin akan langsung menambahkan saldo credit ke akun Anda via Menu Pengaturan Admin.</span>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div
+                class="p-4 sm:p-5 px-6 border-t border-gray-100 flex flex-col-reverse sm:flex-row items-center justify-between gap-2.5 bg-gray-50/80">
+                <button type="button" onclick="appState.closeTopUpCreditModal()"
+                    class="w-full sm:w-auto px-4 py-2.5 text-xs sm:text-sm font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer text-center">
+                    Batal
+                </button>
+                <button type="button" onclick="appState.submitTopUpViaWa()"
+                    class="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md shadow-emerald-600/25 flex items-center justify-center gap-2 cursor-pointer">
+                    <i class="fab fa-whatsapp text-base"></i>
+                    <span>Kirim Pesan Top-Up ke Admin</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script type="application/json" id="initialGalleryDataJson">
         <?!= (typeof initialGalleryData !== 'undefined' && initialGalleryData) ? JSON.stringify(initialGalleryData).replace(new RegExp('<' + '/script', 'gi'), '<\\/script') : 'null' ?>
     </script>
@@ -3187,7 +3309,7 @@
 
             // --- MOCK DATABASE (Canvas Mode) ---
             var mockDB = {
-                users: [{ id_user: 'U1', nama: 'For Photographers', email: 'totto.isw@gmail.com', role: 'Fotografer', paket: 'PRO', username: 'admin', passwordHash: 'bismillah_hash' }],
+                users: [{ id_user: 'U1', nama: 'For Photographers', email: 'totto.isw@gmail.com', role: 'Fotografer', paket: 'PRO', username: 'admin', passwordHash: 'bismillah_hash', autoselect_credits: 5, autoselect_price: 'Rp 5.000', autoselect_admin_wa: '081234567890' }],
                 galeri: [
                     { id_galeri: 'GAL001', id_fotografer: 'U1', nama_vendor: 'Studio Foto Bahagia', nama_client: 'Anike', judul_acara: 'Wedding Special', link_drive: 'https://drive.google.com/drive/folders/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs', batas_foto: 30, deadline: '2026-10-15', tanggal_acara: '2026-09-20', highlight: 'Your Story in Frames', email_client: 'klien@email.com', whatsapp_client: '082149315005', whatsapp_vendor: '081234567890', izin_download: true, kirim_tanpa_drive: true, status: 'Sedang memilih' }
                 ],
@@ -3530,6 +3652,11 @@
                             }
                             else if (funcName === 'getUserSettings') {
                                 var user = mockDB.users[0];
+                                var storedCreds = localStorage.getItem('autoselect_credits');
+                                if (storedCreds !== null && !isNaN(Number(storedCreds))) user.autoselect_credits = Number(storedCreds);
+                                else if (user.autoselect_credits === undefined) user.autoselect_credits = 5;
+                                user.autoselect_price = localStorage.getItem('autoselect_price') || user.autoselect_price || 'Rp 5.000';
+                                user.autoselect_admin_wa = localStorage.getItem('autoselect_admin_wa') || user.autoselect_admin_wa || user.wa || '081234567890';
                                 resolve({ success: true, data: user });
                             }
                             else if (funcName === 'updateUserSettings') {
@@ -3540,12 +3667,60 @@
                                 if (payload.email) user.email = payload.email;
                                 if (payload.custom_domain !== undefined) user.custom_domain = payload.custom_domain;
                                 if (payload.password) user.passwordHash = payload.password + '_hash';
+                                if (payload.autoselect_credits !== undefined) {
+                                    var cVal = Math.max(0, parseInt(payload.autoselect_credits, 10) || 0);
+                                    user.autoselect_credits = cVal;
+                                    localStorage.setItem('autoselect_credits', cVal);
+                                }
+                                if (payload.autoselect_price !== undefined) {
+                                    user.autoselect_price = payload.autoselect_price;
+                                    localStorage.setItem('autoselect_price', payload.autoselect_price);
+                                }
+                                if (payload.autoselect_admin_wa !== undefined) {
+                                    user.autoselect_admin_wa = payload.autoselect_admin_wa;
+                                    localStorage.setItem('autoselect_admin_wa', payload.autoselect_admin_wa);
+                                }
                                 var logoUrl = null;
                                 if (payload.logoData) {
                                     logoUrl = 'data:' + payload.logoMime + ';base64,' + payload.logoData;
                                     user.logo = logoUrl;
                                 }
                                 resolve({ success: true, logoUrl: logoUrl, customDomain: payload.custom_domain, user: user });
+                            }
+                            else if (funcName === 'getAutoSelectCredits') {
+                                var user = mockDB.users[0];
+                                var storedCreds = localStorage.getItem('autoselect_credits');
+                                if (storedCreds !== null && !isNaN(Number(storedCreds))) user.autoselect_credits = Number(storedCreds);
+                                else if (user.autoselect_credits === undefined) user.autoselect_credits = 5;
+                                var storedPrice = localStorage.getItem('autoselect_price') || user.autoselect_price || 'Rp 5.000';
+                                var storedWa = localStorage.getItem('autoselect_admin_wa') || user.autoselect_admin_wa || user.wa || '081234567890';
+                                resolve({ success: true, credits: user.autoselect_credits, price: storedPrice, adminWa: storedWa });
+                            }
+                            else if (funcName === 'deductAutoSelectCredit') {
+                                var user = mockDB.users[0];
+                                var storedCreds = localStorage.getItem('autoselect_credits');
+                                var cur = (storedCreds !== null && !isNaN(Number(storedCreds))) ? Number(storedCreds) : (user.autoselect_credits || 5);
+                                if (cur <= 0) {
+                                    resolve({ success: false, message: 'Credit AutoSelect habis (0 Credit). Silakan beli credit terlebih dahulu.', credits: 0, outOfCredits: true });
+                                } else {
+                                    cur = cur - 1;
+                                    user.autoselect_credits = cur;
+                                    localStorage.setItem('autoselect_credits', cur);
+                                    var uObj = Auth.getUser();
+                                    if (uObj) { uObj.autoselect_credits = cur; Auth.set(Auth.getToken(), uObj); }
+                                    resolve({ success: true, credits: cur, message: '1 Credit berhasil digunakan. Sisa credit: ' + cur + 'x sesi.' });
+                                }
+                            }
+                            else if (funcName === 'updateAutoSelectCredits') {
+                                var newCreds = Math.max(0, parseInt(args[2], 10) || 0);
+                                var user = mockDB.users[0];
+                                user.autoselect_credits = newCreds;
+                                localStorage.setItem('autoselect_credits', newCreds);
+                                if (args[3]) { user.autoselect_price = args[3]; localStorage.setItem('autoselect_price', args[3]); }
+                                if (args[4]) { user.autoselect_admin_wa = args[4]; localStorage.setItem('autoselect_admin_wa', args[4]); }
+                                var uObj = Auth.getUser();
+                                if (uObj) { uObj.autoselect_credits = newCreds; Auth.set(Auth.getToken(), uObj); }
+                                resolve({ success: true, credits: newCreds, message: 'Credit AutoSelect berhasil disimpan.' });
                             }
                             else {
                                 resolve({ success: true, data: [] }); // Default fallback
@@ -4914,6 +5089,7 @@
                     document.getElementById('profileEmail').textContent = escapeHTML(user.email);
                     document.getElementById('profileInitials').textContent = (user.nama || 'A').charAt(0).toUpperCase();
                     document.getElementById('profileBadge').textContent = escapeHTML(user.paket || 'FREE');
+                    this.updateCreditBadges();
                 },
 
                 toggleMobileSidebar: function (open) {
@@ -5362,6 +5538,64 @@
                                         </div>
                                     </div>
 
+                                    <!-- Manajemen Credit AutoSelect & Sortir Foto (Menu Admin) -->
+                                    <div class="space-y-4 pt-4 border-t border-gray-100">
+                                        <div class="flex items-center justify-between flex-wrap gap-2">
+                                            <div class="flex items-center gap-2.5">
+                                                <span class="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-lg shadow-2xs">🪙</span>
+                                                <div>
+                                                    <h3 class="text-lg font-bold text-gray-900">Manajemen Credit AutoSelect</h3>
+                                                    <p class="text-xs text-gray-500">Atur saldo credit fotografer, tarif pembelian, dan nomor konfirmasi top-up</p>
+                                                </div>
+                                            </div>
+                                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-900 border border-amber-200 shadow-2xs">
+                                                <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                                                <span id="setCreditSummaryBadge">Saldo: ${user.autoselect_credits !== undefined ? user.autoselect_credits : 5} Credit</span>
+                                            </span>
+                                        </div>
+
+                                        <div class="p-5 bg-gradient-to-br from-amber-50/90 via-yellow-50/60 to-amber-50/80 rounded-2xl border border-amber-200/90 shadow-2xs">
+                                            <div class="flex items-center justify-between flex-wrap gap-4 mb-4">
+                                                <div>
+                                                    <span class="text-[11px] text-amber-800 font-bold uppercase tracking-wider block">Saldo Credit AutoSelect Saat Ini</span>
+                                                    <div class="flex items-baseline gap-2 mt-0.5">
+                                                        <span class="text-4xl font-extrabold text-amber-950 font-mono" id="setCreditValue">${user.autoselect_credits !== undefined ? user.autoselect_credits : 5}</span>
+                                                        <span class="text-xs text-amber-800 font-semibold">x Sesi Sortir & Salin Foto</span>
+                                                    </div>
+                                                </div>
+                                                <div class="flex items-center gap-1.5 flex-wrap">
+                                                    <span class="text-xs text-amber-900 font-bold mr-1">Tambah Credit:</span>
+                                                    <button type="button" onclick="appState.quickAddCredit(1)" class="px-3 py-1.5 bg-white hover:bg-amber-100 border border-amber-300 rounded-xl text-xs font-bold text-amber-950 transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95">+1</button>
+                                                    <button type="button" onclick="appState.quickAddCredit(5)" class="px-3 py-1.5 bg-white hover:bg-amber-100 border border-amber-300 rounded-xl text-xs font-bold text-amber-950 transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95">+5</button>
+                                                    <button type="button" onclick="appState.quickAddCredit(10)" class="px-3 py-1.5 bg-white hover:bg-amber-100 border border-amber-300 rounded-xl text-xs font-bold text-amber-950 transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95">+10</button>
+                                                    <button type="button" onclick="appState.quickAddCredit(25)" class="px-3 py-1.5 bg-white hover:bg-amber-100 border border-amber-300 rounded-xl text-xs font-bold text-amber-950 transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95">+25</button>
+                                                </div>
+                                            </div>
+
+                                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-3.5 border-t border-amber-200/70">
+                                                <div>
+                                                    <label class="block text-xs font-bold text-amber-950 mb-1">Set Total Credit Manual</label>
+                                                    <input type="number" id="setCreditInput" min="0" value="${user.autoselect_credits !== undefined ? user.autoselect_credits : 5}" class="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl font-mono font-bold text-sm text-amber-950 focus:ring-2 focus:ring-amber-500 outline-none" oninput="document.getElementById('setCreditValue').textContent = this.value || '0'; document.getElementById('setCreditSummaryBadge').textContent = 'Saldo: ' + (this.value || '0') + ' Credit';">
+                                                    <p class="text-[10px] text-amber-800 mt-1">Ubah langsung jumlah credit user.</p>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-bold text-amber-950 mb-1">Tarif per 1 Credit</label>
+                                                    <input type="text" id="setCreditPrice" value="${escapeHTML(user.autoselect_price || 'Rp 5.000')}" class="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl font-bold text-sm text-gray-800 focus:ring-2 focus:ring-amber-500 outline-none" placeholder="Rp 5.000">
+                                                    <p class="text-[10px] text-amber-800 mt-1">Ditampilkan saat fotografer beli credit.</p>
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-bold text-amber-950 mb-1">WhatsApp Admin Top-Up</label>
+                                                    <input type="text" id="setCreditAdminWa" value="${escapeHTML(user.autoselect_admin_wa || user.wa || '081234567890')}" class="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl font-bold text-sm text-gray-800 focus:ring-2 focus:ring-amber-500 outline-none" placeholder="081234567890">
+                                                    <p class="text-[10px] text-amber-800 mt-1">Nomor tujuan pesanan credit.</p>
+                                                </div>
+                                            </div>
+                                            <p class="text-[11px] text-amber-900 mt-2.5 flex items-center gap-1.5 font-medium">
+                                                <i class="fas fa-info-circle text-amber-600"></i>
+                                                <span>1 Credit dipakai untuk 1x sortir & salin foto. Jika credit habis (0), tombol sortir terkunci dan fotografer diarahkan membayar/top-up ke WhatsApp Admin.</span>
+                                            </p>
+                                        </div>
+                                    </div>
+
                                     <div class="pt-6 border-t border-gray-100 flex justify-end">
                                         <button type="submit" id="btnSaveSettings" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold rounded-xl shadow-md shadow-blue-500/25 transition-all flex items-center gap-2 cursor-pointer">
                                             <i class="fas fa-save"></i> Simpan Pengaturan
@@ -5480,12 +5714,19 @@
                         window.CUSTOM_VERCEL_DOMAIN = dVal;
                     }
 
+                    var creditInput = document.getElementById('setCreditInput');
+                    var priceInput = document.getElementById('setCreditPrice');
+                    var adminWaInput = document.getElementById('setCreditAdminWa');
+
                     var payload = {
                         nama: document.getElementById('setVendorName').value.trim(),
                         wa: document.getElementById('setVendorWa').value.trim(),
                         email: document.getElementById('setVendorEmail').value.trim(),
                         password: pass1,
-                        custom_domain: dVal
+                        custom_domain: dVal,
+                        autoselect_credits: creditInput ? parseInt(creditInput.value, 10) || 0 : undefined,
+                        autoselect_price: priceInput ? priceInput.value.trim() : undefined,
+                        autoselect_admin_wa: adminWaInput ? adminWaInput.value.trim() : undefined
                     };
 
                     var logoFile = document.getElementById('setLogoInput').files[0];
@@ -5508,7 +5749,7 @@
                             btn.disabled = false;
                             if (res.sessionExpired) return appState.handleSessionExpired();
                             if (res.success) {
-                                ui.showToast('Pengaturan & domain berhasil disimpan ke database!', false);
+                                ui.showToast('Pengaturan, credit & domain berhasil disimpan ke database!', false);
                                 // Update local state user cache
                                 var u = Auth.getUser() || {};
                                 u.nama = data.nama;
@@ -5516,7 +5757,15 @@
                                 if (data.email) u.email = data.email;
                                 if (res.logoUrl) u.logo = res.logoUrl;
                                 u.custom_domain = data.custom_domain || '';
+                                if (data.autoselect_credits !== undefined) u.autoselect_credits = Number(data.autoselect_credits);
+                                if (data.autoselect_price !== undefined) u.autoselect_price = data.autoselect_price;
+                                if (data.autoselect_admin_wa !== undefined) u.autoselect_admin_wa = data.autoselect_admin_wa;
                                 Auth.set(Auth.getToken(), u);
+                                try {
+                                    if (data.autoselect_credits !== undefined) localStorage.setItem('autoselect_credits', data.autoselect_credits);
+                                    if (data.autoselect_price !== undefined) localStorage.setItem('autoselect_price', data.autoselect_price);
+                                    if (data.autoselect_admin_wa !== undefined) localStorage.setItem('autoselect_admin_wa', data.autoselect_admin_wa);
+                                } catch (e) { }
                                 if (data.custom_domain) {
                                     try { localStorage.setItem('custom_vercel_domain', data.custom_domain); } catch (e) { }
                                     window.CUSTOM_VERCEL_DOMAIN = data.custom_domain;
@@ -5525,6 +5774,7 @@
                                     window.CUSTOM_VERCEL_DOMAIN = '';
                                 }
                                 appState.setupProfile();
+                                appState.updateCreditBadges();
                                 document.getElementById('setNewPassword').value = '';
                                 document.getElementById('setConfirmPassword').value = '';
                             } else {
@@ -5536,6 +5786,114 @@
                             ui.showToast('Terjadi kesalahan jaringan.', true);
                         });
                     }
+                },
+
+                quickAddCredit: function (amount) {
+                    var input = document.getElementById('setCreditInput');
+                    var badge = document.getElementById('setCreditValue');
+                    var summary = document.getElementById('setCreditSummaryBadge');
+                    if (input) {
+                        var current = parseInt(input.value, 10) || 0;
+                        var next = Math.max(0, current + amount);
+                        input.value = next;
+                        if (badge) badge.textContent = next;
+                        if (summary) summary.textContent = 'Saldo: ' + next + ' Credit';
+                    }
+                },
+
+                getAutoSelectCreditsCount: function () {
+                    var stored = localStorage.getItem('autoselect_credits');
+                    if (stored !== null && !isNaN(Number(stored))) return Number(stored);
+                    var u = Auth.getUser() || {};
+                    if (u.autoselect_credits !== undefined && !isNaN(Number(u.autoselect_credits))) return Number(u.autoselect_credits);
+                    return 5;
+                },
+
+                updateCreditBadges: function () {
+                    var creds = this.getAutoSelectCreditsCount();
+                    var navBadge = document.getElementById('sidebar-autoselect-credit-badge');
+                    if (navBadge) {
+                        navBadge.textContent = creds + 'x';
+                        if (creds <= 0) {
+                            navBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300';
+                        } else {
+                            navBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200';
+                        }
+                    }
+                    var spaBadge = document.getElementById('as-spa-credit-count');
+                    var spaContainer = document.getElementById('as-spa-credit-badge-container');
+                    if (spaBadge) spaBadge.textContent = creds;
+                    if (spaContainer) {
+                        if (creds <= 0) {
+                            spaContainer.className = 'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-800 border border-rose-300 shadow-2xs';
+                        } else {
+                            spaContainer.className = 'flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-900 border border-amber-200 shadow-2xs';
+                        }
+                    }
+                    var modalCreditCount = document.getElementById('modal-topup-spa-current-credit');
+                    if (modalCreditCount) modalCreditCount.textContent = creds;
+                },
+
+                deductAutoSelectCredit: async function () {
+                    var cur = this.getAutoSelectCreditsCount();
+                    if (cur <= 0) return false;
+                    var next = cur - 1;
+                    localStorage.setItem('autoselect_credits', next);
+                    var u = Auth.getUser() || {};
+                    u.autoselect_credits = next;
+                    Auth.set(Auth.getToken(), u);
+                    this.updateCreditBadges();
+
+                    if (Auth.getToken()) {
+                        try {
+                            await gasRun('deductAutoSelectCredit', Auth.getToken());
+                        } catch (e) { }
+                    }
+                    return true;
+                },
+
+                openTopUpCreditModal: function () {
+                    this.updateCreditBadges();
+                    var modal = document.getElementById('modalTopUpCredit');
+                    if (modal) modal.classList.remove('hidden');
+                },
+
+                closeTopUpCreditModal: function () {
+                    var modal = document.getElementById('modalTopUpCredit');
+                    if (modal) modal.classList.add('hidden');
+                },
+
+                selectCreditPackage: function (qty, price, label) {
+                    this._selectedCreditPkg = { qty: qty, price: price, label: label };
+                    var labelEl = document.getElementById('modal-topup-spa-pkg-label');
+                    if (labelEl) labelEl.textContent = label + ' (' + price + ')';
+
+                    document.querySelectorAll('.credit-pkg-card-spa').forEach(function (card) {
+                        var radio = card.querySelector('input[type="radio"]');
+                        if (radio && radio.checked) {
+                            card.className = 'credit-pkg-card-spa relative flex items-center justify-between p-3.5 rounded-2xl border-2 border-amber-500 bg-amber-50/60 cursor-pointer transition-all shadow-xs';
+                        } else {
+                            card.className = 'credit-pkg-card-spa relative flex items-center justify-between p-3.5 rounded-2xl border-2 border-gray-200 hover:border-amber-400 bg-white hover:bg-amber-50/40 cursor-pointer transition-all';
+                        }
+                    });
+                },
+
+                submitTopUpViaWa: function () {
+                    var u = Auth.getUser() || {};
+                    var adminWa = localStorage.getItem('autoselect_admin_wa') || u.autoselect_admin_wa || u.wa || '081234567890';
+                    var cleanWa = adminWa.replace(/[^\d]/g, '');
+                    if (cleanWa.startsWith('0')) cleanWa = '62' + cleanWa.substring(1);
+                    if (!cleanWa.startsWith('62')) cleanWa = '62' + cleanWa;
+
+                    var pkg = this._selectedCreditPkg || { qty: 15, price: 'Rp 60.000', label: 'Paket 15x Sortir' };
+                    var cur = this.getAutoSelectCreditsCount();
+                    var namaUser = u.nama || u.username || 'Fotografer';
+
+                    var msg = 'Halo Admin, saya ' + namaUser + '.\n\nSaya ingin top-up *Credit AutoSelect & Sortir Foto*:\n- Pilihan Paket: *' + pkg.label + '*\n- Jumlah: *' + pkg.qty + ' Credit*\n- Biaya: *' + pkg.price + '*\n- Saldo Saat Ini: *' + cur + ' Credit*\n\nMohon info instruksi/rekening pembayarannya. Terima kasih!';
+
+                    var url = 'https://wa.me/' + cleanWa + '?text=' + encodeURIComponent(msg);
+                    window.open(url, '_blank');
+                    ui.showToast('Membuka WhatsApp Admin untuk konfirmasi pembayaran...', false);
                 },
 
                 buildGalleriesHtml: function (data) {
@@ -7665,9 +8023,21 @@
                                     <h2 class="text-2xl font-bold text-gray-900 mb-1">AutoSelect & Sortir Foto Lokal</h2>
                                     <p class="text-xs text-gray-500">Filter & salin foto pilihan klien (RAW / JPG / PNG) dari folder master langsung ke folder tujuan.</p>
                                 </div>
-                                <span class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5 shadow-2xs">
-                                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Universal Ready
-                                </span>
+                                <div class="flex items-center gap-2.5 flex-wrap">
+                                    <!-- Credit Badge -->
+                                    <div id="as-spa-credit-badge-container" class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 shadow-2xs">
+                                        <span class="text-sm">🪙</span>
+                                        <span class="text-xs font-bold font-mono"><span id="as-spa-credit-count">${this.getAutoSelectCreditsCount()}</span>x Sortir</span>
+                                    </div>
+                                    <!-- Tombol Beli / Top-Up Credit -->
+                                    <button type="button" onclick="appState.openTopUpCreditModal()" class="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 active:scale-95 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer">
+                                        <i class="fas fa-plus-circle"></i>
+                                        <span>Beli Credit</span>
+                                    </button>
+                                    <span class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5 shadow-2xs">
+                                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Universal Ready
+                                    </span>
+                                </div>
                             </div>
 
                             <div class="mb-5 p-4 bg-gradient-to-r from-blue-50 via-indigo-50/50 to-blue-50 border border-blue-200/80 rounded-2xl text-xs sm:text-sm text-blue-950 leading-relaxed flex items-start gap-3 shadow-2xs">
@@ -7695,7 +8065,7 @@
                                                 <span>File Terdeteksi:</span>
                                                 <span id="as-chips-count" class="font-bold text-blue-600">0</span>
                                             </div>
-                                            <div id="as-chips-list" class="max-h-20 overflow-y-auto flex flex-wrap gap-1.5 custom-scroll-y p-1 bg-gray-50 rounded-lg border border-gray-200/70"></div>
+                                            <div id="as-chips-list" class="max-h-60 overflow-y-auto flex flex-wrap gap-1.5 custom-scroll-y p-1.5 bg-gray-50 rounded-xl border border-gray-200/80"></div>
                                         </div>
 
                                         <div class="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-gray-100 text-xs">
@@ -7988,10 +8358,21 @@
                             beforeNote = beforeNote.split(' - ')[0].trim();
                         }
 
-                        // Tangani beberapa file dipisahkan koma atau titik koma
-                        var tokens = (beforeNote.indexOf(',') !== -1 || beforeNote.indexOf(';') !== -1)
-                            ? beforeNote.split(/[,;]+/).map(s => s.trim()).filter(Boolean)
-                            : [beforeNote];
+                        // Tangani jika ada beberapa nama file dalam 1 baris (dipisahkan koma, titik koma, spasi, atau tab)
+                        var tokens = [];
+                        var extLookahead = new RegExp('(?<=\\.(?:' + allExts + '))[\\s,;]+', 'i');
+                        if (extLookahead.test(beforeNote)) {
+                            tokens = beforeNote.split(extLookahead).map(s => s.trim()).filter(Boolean);
+                        } else if (beforeNote.indexOf(',') !== -1 || beforeNote.indexOf(';') !== -1) {
+                            tokens = beforeNote.split(/[,;]+/).map(s => s.trim()).filter(Boolean);
+                        } else {
+                            var spaceParts = beforeNote.split(/\s+/).filter(Boolean);
+                            if (spaceParts.length > 1 && spaceParts.every(p => /\d/.test(p) || /^(?:DSC|_DSC|IMG|_MG|SAM|NIK|CAN)/i.test(p))) {
+                                tokens = spaceParts;
+                            } else {
+                                tokens = [beforeNote];
+                            }
+                        }
 
                         tokens.forEach(function (tok) {
                             var item = tok.replace(/^[\s\*~"'\(\)\[\]]+|[\s\*~"'\(\)\[\]]+$/g, '').trim();
@@ -8035,10 +8416,10 @@
                     if (wrap && list && countEl) {
                         if (this.asState.targets.length > 0) {
                             wrap.classList.remove('hidden');
-                            countEl.textContent = this.asState.targets.length + ' file';
-                            list.innerHTML = this.asState.targets.map(function (t) {
+                            countEl.textContent = 'Menampilkan semua ' + this.asState.targets.length + ' file';
+                            list.innerHTML = this.asState.targets.map(function (t, idx) {
                                 var extBadge = t.originalExt ? `<span class="opacity-60 text-[9px] font-mono">.${t.originalExt}</span>` : '';
-                                return `<span class="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded-md text-[10px] font-mono font-medium text-gray-700 shadow-2xs">${t.baseName}${extBadge}</span>`;
+                                return `<span class="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-gray-200 hover:border-blue-400 rounded-lg text-xs font-mono font-medium text-gray-700 shadow-2xs transition-all"><span class="text-[10px] text-gray-400 font-sans">${idx + 1}.</span> ${t.baseName}${extBadge}</span>`;
                             }).join('');
                         } else {
                             wrap.classList.add('hidden');
@@ -8199,6 +8580,13 @@
                 },
 
                 asStartProcess: async function () {
+                    // Verifikasi Saldo Credit Terlebih Dahulu
+                    if (this.getAutoSelectCreditsCount() <= 0) {
+                        ui.showToast('Saldo credit AutoSelect Anda habis (0 Credit). Silakan beli/top-up credit.', true);
+                        this.openTopUpCreditModal();
+                        return;
+                    }
+
                     var text = document.getElementById('as-filelist').value;
                     this.asParseTargets(text);
 
@@ -8403,6 +8791,15 @@
                             }
                             return;
                         }
+
+                        // Potong 1 Credit untuk 1x Sesi Sortir Ini
+                        var deductOk = await self.deductAutoSelectCredit();
+                        if (!deductOk) {
+                            ui.showToast('Saldo credit tidak mencukupi (0 Credit). Silakan top-up credit.', true);
+                            self.openTopUpCreditModal();
+                            return;
+                        }
+                        self.asLog(`[CREDIT] 1 Credit telah digunakan untuk sortir ini. Sisa credit: ${self.getAutoSelectCreditsCount()}x sortir.`, 'info');
 
                         // 4. Eksekusi
                         if (this.asState.destMode === 'direct' && this.asState.destHandle) {
