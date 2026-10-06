@@ -1283,6 +1283,39 @@ function createGallery(token, payload) {
 }
 
 /**
+ * Mengurutkan foto dari nomor nama file terbaru sampai terlama (descending).
+ * Contoh: IMG_0150.JPG > IMG_0010.JPG > IMG_0001.JPG
+ */
+function sortPhotosNewestFirst(photos) {
+  if (!photos || !Array.isArray(photos)) return photos || [];
+  return photos.sort(function(a, b) {
+    var nameA = String((a && a.nama_file) || '');
+    var nameB = String((b && b.nama_file) || '');
+    var numA = -1;
+    var numB = -1;
+    var matchA = nameA.match(/\d+/g);
+    var matchB = nameB.match(/\d+/g);
+    if (matchA && matchA.length > 0) {
+      numA = parseInt(matchA[matchA.length - 1], 10);
+    }
+    if (matchB && matchB.length > 0) {
+      numB = parseInt(matchB[matchB.length - 1], 10);
+    }
+
+    if (numA !== -1 && numB !== -1 && numA !== numB) {
+      return numB - numA; // Descending: terbaru (nomor terbesar) ke terlama
+    }
+    if (numA !== -1 && numB === -1) return -1;
+    if (numA === -1 && numB !== -1) return 1;
+
+    var cmp = nameB.localeCompare(nameA, undefined, { numeric: true, sensitivity: 'base' });
+    if (cmp !== 0) return cmp;
+
+    return ((b && b.nomor_foto) || 0) - ((a && a.nomor_foto) || 0);
+  });
+}
+
+/**
  * Client Public API (No Token Required)
  */
 function getPublicGallery(galId) {
@@ -1410,8 +1443,8 @@ function getPublicGallery(galId) {
       }
     }
 
-    // Sort photos numerically by nomor_foto
-    photos.sort(function(a, b) { return (a.nomor_foto || 0) - (b.nomor_foto || 0); });
+    // Urutkan foto dari nomor nama file yang terbaru sampai yang terlama (descending)
+    sortPhotosNewestFirst(photos);
 
     // Fetch existing selections if any
     var selections = [];
