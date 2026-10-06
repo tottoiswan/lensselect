@@ -321,17 +321,22 @@
             'RAW',                  // Generic
             '3FR', 'FFF',           // Hasselblad
             'SRW',                  // Samsung
-            'X3F'                   // Sigma
+            'X3F',                  // Sigma
+            'GPR'                   // GoPro
         ];
         var JPG_EXTENSIONS = ['JPG', 'JPEG'];
         var PNG_EXTENSIONS = ['PNG'];
+        var ALL_EXTENSIONS_LIST = RAW_EXTENSIONS.concat(JPG_EXTENSIONS, PNG_EXTENSIONS, ['TIF', 'TIFF', 'HEIC', 'HEIF', 'WEBP']);
+        var ALL_EXTS_REGEX = ALL_EXTENSIONS_LIST.join('|');
 
         // Kata-kata percakapan umum yang bukan nama file foto
         var STOP_WORDS = new Set([
             'HALO', 'HI', 'HAI', 'KAK', 'KAKAK', 'MIN', 'ADMIN', 'INI', 'DAFTAR', 'FOTO', 'FOTONYA',
             'PILIHAN', 'TERIMA', 'KASIH', 'MAKASIH', 'THANKS', 'THANK', 'YOU', 'SELAMAT', 'PAGI',
             'SIANG', 'SORE', 'MALAM', 'TOTAL', 'SEMUA', 'CATATAN', 'NOTE', 'NOTES', 'REQUEST', 'TOLONG',
-            'MOHON', 'DIEDIT', 'EDIT', 'DICROP', 'CROP', 'CETAK', 'ALBUM', 'COVER', 'SELESAI', 'BAGIAN'
+            'MOHON', 'DIEDIT', 'EDIT', 'DICROP', 'CROP', 'CETAK', 'ALBUM', 'COVER', 'SELESAI', 'BAGIAN',
+            'SAYA', 'BERIKUT', 'STATUS', 'LINK', 'HTTPS', 'HTTP', 'DRIVE', 'FOLDER', 'FILE', 'FIX',
+            'DIKUNCI', 'KLIEN', 'CLIENT', 'VENDOR', 'FOTOGRAFER', 'FOTONYA', 'ACARA'
         ]);
 
         // State Global Aplikasi AutoSelect
@@ -344,7 +349,7 @@
             destMode: 'direct', // 'direct' | 'script' | 'zip'
             destSubfolder: '_HASIL_SORTIR',
             formatFilter: 'all', // 'all' | 'raw' | 'jpg' | 'png'
-            targets: [],        // Array of { baseName: string, cleanBase: string, originalExt: string }
+            targets: [],        // Array of { rawName: string, baseName: string, cleanBase: string, originalExt: string }
             isProcessing: false,
             isIframe: false,
             supportsFSA: false
@@ -357,6 +362,94 @@
             asState.isIframe = true;
         }
         asState.supportsFSA = ('showDirectoryPicker' in window) && !asState.isIframe && (window.isSecureContext === true);
+
+        // Generator Match Keys Multi-Varian (Adobe RGB <-> sRGB, underscore, spasi, penomoran)
+        function getMatchKeys(name) {
+            if (!name) return [];
+            var keys = new Set();
+            
+            var lastDot = name.lastIndexOf('.');
+            var base = (lastDot !== -1 ? name.substring(0, lastDot) : name).trim().toUpperCase();
+            if (!base) return [];
+
+            // 1. Base mentah uppercase
+            keys.add(base);
+
+            // 2. Bersihkan underscore di awal/akhir
+            var clean = base.replace(/^_+|_+$/g, '').trim();
+            if (clean) keys.add(clean);
+
+            // 3. Compact: buang semua spasi, underscore, strip, dan titik
+            var compact = base.replace(/[\s_\-\.]+/g, '');
+            if (compact) keys.add(compact);
+
+            // 4. Variasi Lintas Format Kamera (Sony, Nikon, Canon, Fuji):
+            // Sony & Nikon: _DSC <-> DSC_ <-> DSC
+            if (base.startsWith('_DSC')) {
+                var rest = base.substring(4);
+                keys.add('DSC' + rest);
+                keys.add('DSC_' + rest);
+                var restCompact = rest.replace(/[\s_\-\.]+/g, '');
+                if (restCompact) keys.add('DSC' + restCompact);
+            } else if (base.startsWith('DSC_')) {
+                var rest = base.substring(4);
+                keys.add('DSC' + rest);
+                keys.add('_DSC' + rest);
+                var restCompact = rest.replace(/[\s_\-\.]+/g, '');
+                if (restCompact) keys.add('DSC' + restCompact);
+            } else if (base.startsWith('DSC')) {
+                var rest = base.substring(3);
+                keys.add('_DSC' + rest);
+                keys.add('DSC_' + rest);
+                var restCompact = rest.replace(/[\s_\-\.]+/g, '');
+                if (restCompact) keys.add('DSC' + restCompact);
+            }
+
+            // Canon: IMG_ <-> _MG_ <-> MG_ <-> IMG
+            if (base.startsWith('IMG_')) {
+                var rest = base.substring(4);
+                keys.add('_MG_' + rest);
+                keys.add('MG_' + rest);
+                keys.add('IMG' + rest);
+                var restCompact = rest.replace(/[\s_\-\.]+/g, '');
+                if (restCompact) keys.add('IMG' + restCompact);
+            } else if (base.startsWith('_MG_')) {
+                var rest = base.substring(4);
+                keys.add('IMG_' + rest);
+                keys.add('IMG' + rest);
+                keys.add('MG_' + rest);
+                var restCompact = rest.replace(/[\s_\-\.]+/g, '');
+                if (restCompact) keys.add('IMG' + restCompact);
+            } else if (base.startsWith('MG_')) {
+                var rest = base.substring(3);
+                keys.add('IMG_' + rest);
+                keys.add('_MG_' + rest);
+            } else if (base.startsWith('IMG')) {
+                var rest = base.substring(3);
+                keys.add('IMG_' + rest);
+                keys.add('_MG_' + rest);
+            }
+
+            // Fuji: DSCF <-> _DSF <-> DSF
+            if (base.startsWith('DSCF')) {
+                var rest = base.substring(4);
+                keys.add('_DSF' + rest);
+                keys.add('DSF' + rest);
+            } else if (base.startsWith('_DSF')) {
+                var rest = base.substring(4);
+                keys.add('DSCF' + rest);
+            }
+
+            // Ekstrak digit angka kamera utama jika ada (misal DSC01021 -> NUM_01021, NUM_1021)
+            var numMatch = base.match(/\d+$/);
+            if (numMatch) {
+                keys.add('NUM_' + numMatch[0]);
+                var parsedNum = parseInt(numMatch[0], 10);
+                if (!isNaN(parsedNum)) keys.add('NUM_' + parsedNum);
+            }
+
+            return Array.from(keys);
+        }
 
         // Toast Helper
         function showToast(msg, isError) {
@@ -391,7 +484,7 @@
             cnt.scrollTop = cnt.scrollHeight;
         }
 
-        // Parse Target Foto dari Teks Pesan Klien (Mendukung Nomor Urut, WA formatting, dan Catatan)
+        // Parse Target Foto dari Teks Pesan Klien (Mendukung Format WA Lengkap, Nomor Urut, dan Catatan)
         function parseTargets(text) {
             if (!text || !text.trim()) {
                 asState.targets = [];
@@ -401,74 +494,70 @@
             }
 
             var targetsMap = new Map();
-            var allExts = 'jpg|jpeg|png|cr2|cr3|arw|nef|nrw|dng|raw|tif|tiff|raf|rw2|orf|pef|3fr|fff';
-            var extPattern = new RegExp('\\b([A-Za-z0-9_-]+)\\.(' + allExts + ')\\b', 'gi');
-
             var lines = text.split('\n');
 
             lines.forEach(function (rawLine) {
                 var line = rawLine.trim();
                 if (!line) return;
 
-                // 1. Cek apakah ada nama file dengan ekstensi eksplisit di baris ini
-                var matchedWithExt = false;
-                var match;
-                extPattern.lastIndex = 0;
-                while ((match = extPattern.exec(line)) !== null) {
-                    var baseWithExt = match[1].toUpperCase();
-                    var ext = match[2].toUpperCase();
-                    if (baseWithExt.length >= 2 && !STOP_WORDS.has(baseWithExt)) {
-                        var clean = baseWithExt.replace(/^_+/, '');
-                        targetsMap.set(baseWithExt, {
-                            baseName: baseWithExt,
-                            cleanBase: clean,
-                            originalExt: ext
-                        });
-                        matchedWithExt = true;
-                    }
+                // 1. Saring baris percakapan non-foto dari pesan WA
+                if (/^(?:https?:\/\/|drive\.google\.com)/i.test(line)) return;
+                if (/^(?:halo|hai|hi|dear|assalamu|selamat|terima\s*kasih|makasih|thanks|thank\s*you)/i.test(line)) return;
+                if (/^(?:saya\s|berikut\s*daftar|daftar\s*foto|status\s*:|mohon\s*diproses)/i.test(line)) return;
+                if (/^[📁\uD83C-\uDBFF\uDC00-\uDFFF\s\*~_-]*(?:folder|album|sesi|kategori|hari|day|link\s*folder)/i.test(line)) return;
+                if (/^(?:\*|_|~)?\s*(?:pilihan\s*catatan|catatan\s*khusus|catatan\s*foto|notes?)\s*[:\*~_-]*$/i.test(line)) return;
+                if (/^[\s\-\*_~]*\(tidak ada pilihan catatan\)/i.test(line)) return;
+
+                // 2. Bersihkan nomor urut di awal baris: misal "1. ", "2) ", "#3 ", "Foto 4. ", "* 5. *", "6 - "
+                var cleaned = line.replace(/^(?:(?:\*|_|~)?\s*(?:no\.?|foto|photo|pilihan|pic|#)?\s*\d+\s*[\.\)\:\-\]]*\s*|[\*\->]\s*)+/i, '').trim();
+                if (!cleaned) return;
+
+                // Potong catatan klien di belakang nama file (setelah ':', '(', '[', '{', atau ' - ')
+                var beforeNote = cleaned.split(/[\:\(\[\{]/)[0].trim();
+                if (beforeNote.indexOf(' - ') !== -1) {
+                    beforeNote = beforeNote.split(' - ')[0].trim();
                 }
 
-                if (matchedWithExt) return;
+                // Tangani jika ada beberapa nama file dipisahkan koma atau titik koma
+                var tokens = (beforeNote.indexOf(',') !== -1 || beforeNote.indexOf(';') !== -1)
+                    ? beforeNote.split(/[,;]+/).map(s => s.trim()).filter(Boolean)
+                    : [beforeNote];
 
-                // 2. Jika tidak ada ekstensi eksplisit (misal: "1. DSC01021", "2) IMG_9921 : diedit", "#3 _DSC8820")
-                // Bersihkan nomor urut di awal: misal "1. ", "2) ", "3 - ", "No. 4: ", "Foto 5. ", "* 6. ", "#7 "
-                var cleanedLine = line.replace(/^(?:(?:\*|_|~)?\s*(?:no\.?|foto|photo|pilihan|pic|#)?\s*\d+\s*[\.\)\:\-\]]*\s*|[\*\->]\s*)+/i, '').trim();
-                // Buang format bintang atau tilde WhatsApp di awal & akhir
-                cleanedLine = cleanedLine.replace(/^[*~"']+|[*~"']+$/g, '').trim();
-
-                if (!cleanedLine) return;
-
-                // Tangani jika ada beberapa nama file dipisahkan tanda koma atau titik koma
-                var parts = cleanedLine.split(/[,;]+/);
-                parts.forEach(function (part) {
-                    var item = part.trim();
+                tokens.forEach(function (tok) {
+                    // Buang simbol formatting WA (*, ~, _, ", ') dan kurung di sekeliling nama
+                    var item = tok.replace(/^[\s\*~"'\(\)\[\]]+|[\s\*~"'\(\)\[\]]+$/g, '').trim();
                     if (!item) return;
 
-                    // Bersihkan tanda kurung siku di awal misal "[DSC_7777]"
-                    item = item.replace(/^\[([A-Za-z0-9_-]+)\].*$/, '$1');
+                    // Cek apakah item memiliki ekstensi foto valid
+                    var extMatch = item.match(new RegExp('\\.(' + ALL_EXTS_REGEX + ')$', 'i'));
+                    var baseName = '';
+                    var ext = '';
 
-                    // Potong catatan di belakang nama file (misal dipotong sebelum ':', '(', '[', '{', atau ' - ')
-                    item = item.split(/[\:\(\[\{]/)[0].trim();
-                    if (item.indexOf(' - ') !== -1) {
-                        item = item.split(' - ')[0].trim();
+                    if (extMatch) {
+                        ext = extMatch[1].toUpperCase();
+                        baseName = item.substring(0, item.length - (ext.length + 1)).trim().toUpperCase();
+                    } else {
+                        // Jika tanpa ekstensi: cek apakah berkarakter nama foto (ada angka atau prefix kamera standar)
+                        var isPhotoName = item.length >= 2 && item.length <= 60 && (
+                            /\d/.test(item) ||
+                            /^(?:DSC|_DSC|IMG|_MG|DJI|SAM|NIK|CAN|FOTO|PIC|PHOTO|WEDDING)/i.test(item)
+                        ) && !STOP_WORDS.has(item.toUpperCase());
+
+                        if (isPhotoName) {
+                            baseName = item.toUpperCase();
+                        }
                     }
 
-                    // Ambil kata/token pertama
-                    var token = item.split(/\s+/)[0].trim().replace(/[,;:]+$/, '');
-                    if (!token) return;
-
-                    // Buang ekstensi jika ada di token
-                    token = token.replace(new RegExp('\\.(' + allExts + ')$', 'i'), '');
-                    var upper = token.toUpperCase();
-
-                    // Validasi: panjang minimal 2 karakter dan bukan kata percakapan
-                    if (upper.length >= 2 && !STOP_WORDS.has(upper)) {
-                        var cleanToken = upper.replace(/^_+/, '');
-                        targetsMap.set(upper, {
-                            baseName: upper,
-                            cleanBase: cleanToken,
-                            originalExt: ''
-                        });
+                    if (baseName && !STOP_WORDS.has(baseName)) {
+                        var cleanBase = baseName.replace(/^_+|_+$/g, '').trim();
+                        if (!targetsMap.has(baseName)) {
+                            targetsMap.set(baseName, {
+                                rawName: item,
+                                baseName: baseName,
+                                cleanBase: cleanBase,
+                                originalExt: ext
+                            });
+                        }
                     }
                 });
             });
@@ -477,6 +566,7 @@
             updateTargetCount(asState.targets.length);
             renderChips(asState.targets);
         }
+
 
         function updateTargetCount(count) {
             var badge = document.getElementById('as-count-badge');
@@ -503,6 +593,29 @@
                 var extBadge = t.originalExt ? `<span class="opacity-60 text-[9px] font-mono">.${t.originalExt}</span>` : '';
                 return `<span class="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded-md text-[10px] font-mono font-medium text-gray-700 shadow-2xs">${t.baseName}${extBadge}</span>`;
             }).join('');
+        }
+
+        // Helper Rekursif untuk Membaca Semua File Termasuk di Dalam Subfolder (File System Access API)
+        async function readDirEntriesRecursive(dirHandle, fileList, currentRelPath) {
+            currentRelPath = currentRelPath || '';
+            for await (const entry of dirHandle.values()) {
+                if (entry.kind === 'file') {
+                    try {
+                        var f = await entry.getFile();
+                        f._relPath = currentRelPath ? (currentRelPath + '/' + f.name) : f.name;
+                        fileList.push(f);
+                    } catch (e) {
+                        console.warn('Gagal membaca file:', entry.name, e);
+                    }
+                } else if (entry.kind === 'directory') {
+                    try {
+                        var nextRelPath = currentRelPath ? (currentRelPath + '/' + entry.name) : entry.name;
+                        await readDirEntriesRecursive(entry, fileList, nextRelPath);
+                    } catch (e) {
+                        console.warn('Gagal membaca subdirektori:', entry.name, e);
+                    }
+                }
+            }
         }
 
         // Helper Download Blob
@@ -749,19 +862,42 @@
                 if (asState.destMode === 'direct' && !asState.destHandle) {
                     if (asState.supportsFSA && window.showDirectoryPicker) {
                         try {
+                            showToast('Silakan pilih Folder Tujuan di komputer Anda...', false);
                             var dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
                             asState.destHandle = dirHandle;
                             asState.destName = dirHandle.name;
                             updateDestUI(dirHandle.name);
                         } catch (err) {
-                            if (err.name === 'AbortError') return;
-                            // Jika user membatalkan, arahkan ke script mode
+                            if (err.name === 'AbortError') {
+                                showToast('Pemilihan folder tujuan dibatalkan.', true);
+                                return;
+                            }
                             setDestMode('script');
                         }
                     } else {
-                        // Fallback ke script mode jika browser tidak mendukung FSA
                         setDestMode('script');
                     }
+                }
+
+                // Verifikasi / Minta izin akses folder bila didukung
+                if (asState.srcHandle && asState.srcHandle.requestPermission) {
+                    try {
+                        var perm = await asState.srcHandle.requestPermission({ mode: 'read' });
+                        if (perm !== 'granted') {
+                            showToast('Izin akses Folder Master tidak diberikan.', true);
+                            return;
+                        }
+                    } catch (e) { }
+                }
+
+                if (asState.destMode === 'direct' && asState.destHandle && asState.destHandle.requestPermission) {
+                    try {
+                        var dPerm = await asState.destHandle.requestPermission({ mode: 'readwrite' });
+                        if (dPerm !== 'granted') {
+                            showToast('Izin tulis ke Folder Tujuan tidak diberikan.', true);
+                            return;
+                        }
+                    } catch (e) { }
                 }
 
                 asState.isProcessing = true;
@@ -793,51 +929,68 @@
                 asLog('================================================================', 'info');
 
                 try {
-                    // 1. Kumpulkan file dari Folder Master
+                    // 1. Kumpulkan seluruh file dari Folder Master (termasuk seluruh subfolder)
                     var allSrcFiles = [];
                     if (asState.srcHandle) {
-                        asLog(`[SCAN] Membaca isi folder master: ${asState.srcName}...`, 'sub');
-                        for await (const entry of asState.srcHandle.values()) {
-                            if (entry.kind === 'file') {
-                                try {
-                                    var f = await entry.getFile();
-                                    allSrcFiles.push(f);
-                                } catch (e) { }
-                            }
-                        }
+                        asLog(`[SCAN] Membaca Folder Master dan seluruh subfolder: ${asState.srcName}...`, 'sub');
+                        await readDirEntriesRecursive(asState.srcHandle, allSrcFiles, '');
                     } else if (asState.srcFiles && asState.srcFiles.length > 0) {
                         allSrcFiles = asState.srcFiles;
                     }
 
-                    asLog(`[SCAN SELESAI] Total ${allSrcFiles.length} file terdeteksi di folder master.`, 'info');
+                    asLog(`[SCAN SELESAI] Total ${allSrcFiles.length} file terdeteksi di Folder Master.`, 'info');
 
-                    // 2. Buat Index Pencarian Cepat O(1)
-                    // Map key: UPPERCASE BASE NAME -> Array of { file, name, ext }
+                    if (allSrcFiles.length === 0) {
+                        asLog('[ERROR] Folder Master kosong atau tidak ada file foto yang terbaca.', 'err');
+                        showToast('Folder Master kosong atau tidak ada file terbaca. Harap pilih kembali folder yang benar.', true);
+                        return;
+                    }
+
+                    // 2. Buat Multi-Key Index O(1) untuk pencarian cepat & variasi penamaan kamera
                     var fileIndex = new Map();
+                    var masterExts = new Set();
+
                     allSrcFiles.forEach(function (f) {
                         var lastDot = f.name.lastIndexOf('.');
                         var ext = (lastDot !== -1 ? f.name.substring(lastDot + 1) : '').toUpperCase();
-                        var base = (lastDot !== -1 ? f.name.substring(0, lastDot) : f.name).toUpperCase();
-                        var cleanBase = base.replace(/^_+/, '');
+                        if (ext) masterExts.add(ext);
 
-                        var item = { file: f, name: f.name, ext: ext };
+                        var item = {
+                            file: f,
+                            name: f.name,
+                            ext: ext,
+                            relPath: f._relPath || f.webkitRelativePath || f.name
+                        };
 
-                        if (!fileIndex.has(base)) fileIndex.set(base, []);
-                        fileIndex.get(base).push(item);
-
-                        if (cleanBase !== base) {
-                            if (!fileIndex.has(cleanBase)) fileIndex.set(cleanBase, []);
-                            fileIndex.get(cleanBase).push(item);
-                        }
+                        var keys = getMatchKeys(f.name);
+                        keys.forEach(function (k) {
+                            if (!fileIndex.has(k)) fileIndex.set(k, []);
+                            fileIndex.get(k).push(item);
+                        });
                     });
 
                     // 3. Pencocokan Sesuai Target Klien & Filter Format
                     var matchedFiles = [];
                     var matchedSet = new Set();
                     var missing = [];
+                    var formatMismatchCount = 0;
 
                     asState.targets.forEach(function (target) {
-                        var candidates = fileIndex.get(target.baseName) || fileIndex.get(target.cleanBase) || [];
+                        var targetKeys = getMatchKeys(target.baseName);
+                        var candidateMap = new Map();
+
+                        targetKeys.forEach(function (k) {
+                            var items = fileIndex.get(k);
+                            if (items) {
+                                items.forEach(function (it) {
+                                    if (!candidateMap.has(it.name)) {
+                                        candidateMap.set(it.name, it);
+                                    }
+                                });
+                            }
+                        });
+
+                        var candidates = Array.from(candidateMap.values());
 
                         // Terapkan Filter Format File
                         var filtered = candidates.filter(function (c) {
@@ -848,8 +1001,7 @@
                             } else if (asState.formatFilter === 'png') {
                                 return PNG_EXTENSIONS.indexOf(c.ext) !== -1;
                             }
-                            // 'all': semua file cocok
-                            return true;
+                            return true; // 'all'
                         });
 
                         if (filtered.length > 0) {
@@ -862,7 +1014,14 @@
                             asLog(`[COCOK] ${target.baseName} -> ${filtered.map(c => c.name).join(', ')}`, '');
                         } else {
                             missing.push(target.baseName);
-                            var note = (candidates.length > 0) ? `(Ada ${candidates.length} file tapi bukan format ${asState.formatFilter.toUpperCase()})` : '';
+                            var note = '';
+                            if (candidates.length > 0) {
+                                formatMismatchCount++;
+                                var fExts = Array.from(new Set(candidates.map(c => c.ext))).join(', ');
+                                note = `(Ditemukan ${candidates.length} file [${fExts}] tapi disaring filter: ${asState.formatFilter.toUpperCase()})`;
+                            } else {
+                                note = `(Tidak ditemukan di folder master)`;
+                            }
                             asLog(`[TIDAK DITEMUKAN] ${target.baseName} ${note}`, 'warn');
                         }
                     });
@@ -872,7 +1031,12 @@
                     asLog('----------------------------------------------------------------', 'info');
 
                     if (matchedFiles.length === 0) {
-                        showToast('Tidak ada file yang cocok dengan format yang dipilih.', true);
+                        if (formatMismatchCount > 0 && asState.formatFilter === 'raw') {
+                            asLog(`[SARAN] Foto pilihan klien ditemukan di folder master tetapi dalam format JPG/PNG, bukan RAW. Coba ubah Pilihan Format ke 'Semua Foto' atau 'JPG Saja'.`, 'err');
+                            showToast("Foto ditemukan dalam format JPG! Ganti format ke 'Semua Foto' atau 'JPG Saja'.", true);
+                        } else {
+                            showToast('Tidak ada file foto yang cocok di folder master.', true);
+                        }
                         return;
                     }
 
@@ -963,18 +1127,24 @@
                         ];
 
                         matchedFiles.forEach(function (f) {
-                            var rel = f.webkitRelativePath ? f.webkitRelativePath.replace(/\//g, '\\') : f.name;
-                            if (rel.indexOf('\\') !== -1) rel = rel.substring(rel.indexOf('\\') + 1);
+                            var rel = (f._relPath || f.webkitRelativePath || f.name).replace(/\//g, '\\');
                             batLines.push('if exist "%~dp0' + rel + '" (');
                             batLines.push('    copy /y "%~dp0' + rel + '" "%TARGET_DIR%\\" >nul 2>&1 && (echo [OK] ' + f.name + ' & set /a count_ok+=1)');
                             batLines.push(') else (');
-                            batLines.push('    copy /y "' + f.name + '" "%TARGET_DIR%\\" >nul 2>&1 && (echo [OK] ' + f.name + ' & set /a count_ok+=1)');
+                            batLines.push('    set "found="');
+                            batLines.push('    for /r "%~dp0" %%F in ("' + f.name + '") do (');
+                            batLines.push('        if not defined found (');
+                            batLines.push('            set "found=1"');
+                            batLines.push('            copy /y "%%F" "%TARGET_DIR%\\" >nul 2>&1 && (echo [OK] ' + f.name + ' & set /a count_ok+=1)');
+                            batLines.push('        )');
+                            batLines.push('    )');
+                            batLines.push('    if not defined found (echo [GAGAL] ' + f.name + ' tidak ditemukan)');
                             batLines.push(')');
                         });
 
                         batLines.push('echo.');
                         batLines.push('echo ================================================================');
-                        batLines.push('echo [SELESAI] Total berhasil disalin: %count_ok% file.');
+                        batLines.push('echo [SELESAI] Total berhasil disalin: %count_ok% dari ' + matchedFiles.length + ' file.');
                         batLines.push('echo Foto langsung tersimpan di folder: %TARGET_DIR%');
                         batLines.push('echo ================================================================');
                         batLines.push('echo.');
