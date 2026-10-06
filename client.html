@@ -169,7 +169,7 @@
             pointer-events: auto;
         }
 
-        /* Photo Grid Masonry */
+        /* Photo Grid Masonry & Grid System */
         .photo-grid {
             column-count: 4;
             column-gap: 1rem;
@@ -182,10 +182,133 @@
             }
         }
 
+        /* --- Tampilan Layar HP (< 640px): 4 Kolom Kesamping Cerdas --- */
         @media (max-width: 640px) {
             .photo-grid {
-                column-count: 2 !important;
-                column-gap: 0.5rem !important;
+                display: grid !important;
+                grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+                grid-auto-flow: dense !important;
+                column-count: auto !important;
+                column-gap: 0.375rem !important;
+                row-gap: 0.5rem !important;
+                width: 100% !important;
+            }
+
+            .photo-item {
+                break-inside: avoid;
+                margin-bottom: 0 !important;
+                width: 100% !important;
+                border-radius: 0.5rem !important;
+                border-width: 1.5px !important;
+                grid-column: span 1; /* Default potret: 1 dari 4 kolom (4 foto per baris) */
+            }
+
+            /* Jika foto Potret: tampil 4 kolom kesamping (masing-masing 1 kolom dari 4) */
+            .photo-item.photo-portrait {
+                grid-column: span 1 !important;
+            }
+
+            /* Jika foto Landscape: tampil 2 kolom kesamping (masing-masing 2 kolom dari 4) */
+            .photo-item.photo-landscape {
+                grid-column: span 2 !important;
+            }
+
+            /* Rasio gambar agar pas dan proporsional di layar HP */
+            .photo-item.photo-portrait img {
+                aspect-ratio: 3 / 4 !important;
+                height: auto !important;
+                object-fit: cover !important;
+            }
+
+            .photo-item.photo-landscape img {
+                aspect-ratio: 3 / 2 !important;
+                height: auto !important;
+                object-fit: cover !important;
+            }
+
+            .photo-item:not(.photo-landscape):not(.photo-portrait) img {
+                aspect-ratio: 3 / 4 !important;
+                height: auto !important;
+                object-fit: cover !important;
+            }
+
+            /* Penataan overlay dan tombol bawah pada HP */
+            .photo-item .photo-card-bottom {
+                padding: 0.35rem !important;
+                padding-top: 1.5rem !important;
+                gap: 0.25rem !important;
+            }
+
+            /* Penyesuaian khusus foto potret di HP (lebar ~85px) agar estetis dan tidak menutupi foto */
+            .photo-item.photo-portrait .photo-card-bottom {
+                padding: 0.2rem !important;
+                padding-top: 1.1rem !important;
+                gap: 0.15rem !important;
+            }
+
+            .photo-item.photo-portrait .photo-filename {
+                font-size: 0.56rem !important;
+                line-height: 1 !important;
+            }
+
+            .photo-item.photo-portrait .btn-card-select {
+                padding: 0.25rem 0.2rem !important;
+                font-size: 0.58rem !important;
+                border-radius: 0.375rem !important;
+                gap: 0.15rem !important;
+            }
+
+            .photo-item.photo-portrait .btn-card-select i {
+                font-size: 0.55rem !important;
+            }
+
+            .photo-item.photo-portrait .btn-card-note {
+                padding: 0.2rem 0.15rem !important;
+                font-size: 0.55rem !important;
+                border-radius: 0.375rem !important;
+                gap: 0.15rem !important;
+            }
+
+            .photo-item.photo-portrait .note-preview-box {
+                display: none !important;
+            }
+
+            .photo-item.photo-portrait .photo-sel-badge {
+                top: 0.25rem !important;
+                right: 0.25rem !important;
+                padding: 0.1rem 0.3rem !important;
+                font-size: 0.55rem !important;
+                border-radius: 0.3rem !important;
+            }
+
+            /* Penyesuaian khusus foto landscape di HP (lebar 2 kolom ~180px) */
+            .photo-item.photo-landscape .photo-filename {
+                font-size: 0.68rem !important;
+            }
+
+            .photo-item.photo-landscape .btn-card-select {
+                padding: 0.35rem 0.5rem !important;
+                font-size: 0.68rem !important;
+                border-radius: 0.5rem !important;
+            }
+
+            .photo-item.photo-landscape .btn-card-note {
+                padding: 0.25rem 0.4rem !important;
+                font-size: 0.65rem !important;
+                border-radius: 0.5rem !important;
+            }
+
+            .photo-item.photo-landscape .note-preview-box {
+                padding: 0.2rem 0.4rem !important;
+                font-size: 0.6rem !important;
+            }
+
+            .photo-item.photo-landscape .photo-sel-badge {
+                top: 0.35rem !important;
+                right: 0.35rem !important;
+                padding: 0.15rem 0.4rem !important;
+                font-size: 0.62rem !important;
+                border-radius: 0.375rem !important;
             }
         }
 
@@ -203,13 +326,6 @@
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
-        }
-
-        @media (max-width: 640px) {
-            .photo-item {
-                margin-bottom: 0.5rem !important;
-                border-radius: 0.75rem;
-            }
         }
 
         .photo-item:hover {
@@ -1255,6 +1371,41 @@
         }
 
         // --- UTILITIES ---
+        window._photoOrientMap = window._photoOrientMap || {};
+
+        /**
+         * Mengurutkan foto dari nomor nama file terbaru sampai terlama (descending).
+         * Contoh: IMG_0150.JPG > IMG_0010.JPG > IMG_0001.JPG
+         */
+        function sortPhotosNewestFirst(photos) {
+            if (!photos || !Array.isArray(photos)) return photos || [];
+            return photos.sort(function(a, b) {
+                var nameA = String((a && a.nama_file) || '');
+                var nameB = String((b && b.nama_file) || '');
+                var numA = -1;
+                var numB = -1;
+                var matchA = nameA.match(/\d+/g);
+                var matchB = nameB.match(/\d+/g);
+                if (matchA && matchA.length > 0) {
+                    numA = parseInt(matchA[matchA.length - 1], 10);
+                }
+                if (matchB && matchB.length > 0) {
+                    numB = parseInt(matchB[matchB.length - 1], 10);
+                }
+
+                if (numA !== -1 && numB !== -1 && numA !== numB) {
+                    return numB - numA; // Descending: terbaru (nomor terbesar) ke terlama
+                }
+                if (numA !== -1 && numB === -1) return -1;
+                if (numA === -1 && numB !== -1) return 1;
+
+                var cmp = nameB.localeCompare(nameA, undefined, { numeric: true, sensitivity: 'base' });
+                if (cmp !== 0) return cmp;
+
+                return ((b && b.nomor_foto) || 0) - ((a && a.nomor_foto) || 0);
+            });
+        }
+
         function escapeHTML(str) {
             if (str === null || str === undefined) return '';
             return String(str).replace(/[&<>'"]/g, function (tag) {
@@ -2036,7 +2187,7 @@
                 var self = this;
                 var g = data.gallery;
                 this.clientData.gallery = g;
-                this.clientData.photos = data.photos || [];
+                this.clientData.photos = sortPhotosNewestFirst(data.photos || []);
 
                 // Load selections
                 this.clientData.selected = new Map();
@@ -2367,46 +2518,69 @@
                 });
             },
 
+            handlePhotoOrient: function (imgEl, photoId) {
+                if (!imgEl) return;
+                var w = imgEl.naturalWidth || 0;
+                var h = imgEl.naturalHeight || 0;
+                if (w <= 0 || h <= 0) return;
+                var isLandscape = (w > h);
+                var orient = isLandscape ? 'landscape' : 'portrait';
+                if (photoId) {
+                    window._photoOrientMap = window._photoOrientMap || {};
+                    window._photoOrientMap[String(photoId)] = orient;
+                }
+                var card = imgEl.closest('.photo-item');
+                if (card) {
+                    if (isLandscape) {
+                        card.classList.add('photo-landscape');
+                        card.classList.remove('photo-portrait');
+                    } else {
+                        card.classList.add('photo-portrait');
+                        card.classList.remove('photo-landscape');
+                    }
+                }
+            },
+
             renderCardBottomHtml: function (p, isSelected, selectedOrder, isFinished, isQuotaFull, note) {
                 var selectButtonHtml = '';
                 if (isFinished) {
                     selectButtonHtml = isSelected
-                        ? `<button type="button" disabled class="w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-emerald-700/90 text-white cursor-default shadow-xs"><i class="fas fa-lock text-emerald-300"></i> #${selectedOrder} Terpilih (Terkunci)</button>`
-                        : `<button type="button" disabled class="w-full py-2 px-3 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 bg-gray-800/80 text-gray-300 cursor-default border border-white/10">Tidak Terpilih</button>`;
+                        ? `<button type="button" disabled class="btn-card-select w-full py-2 px-3 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-emerald-700/90 text-white cursor-default shadow-xs"><i class="fas fa-lock text-emerald-300"></i> <span class="btn-text">#${selectedOrder} Terpilih</span></button>`
+                        : `<button type="button" disabled class="btn-card-select w-full py-2 px-3 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5 bg-gray-800/80 text-gray-300 cursor-default border border-white/10"><span class="btn-text">Tidak Terpilih</span></button>`;
                 } else if (isSelected) {
                     selectButtonHtml = `
                         <button type="button" onclick="event.stopPropagation(); clientApp.togglePhotoSelection('${escapeHTML(p.id_foto)}')"
-                            class="w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/30">
+                            class="btn-card-select w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/30">
                             <i class="fas fa-check-circle text-[11px]"></i>
-                            <span>${selectedOrder ? ('#' + selectedOrder + ' ') : ''}Pesan Terpilih</span>
+                            <span class="btn-text">${selectedOrder ? ('#' + selectedOrder + ' ') : ''}Terpilih</span>
                         </button>
                     `;
                 } else if (isQuotaFull) {
                     selectButtonHtml = `
                         <button type="button" disabled
-                            class="w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 bg-gray-800/80 text-amber-300/90 border border-amber-500/30 cursor-not-allowed">
+                            class="btn-card-select w-full py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 bg-gray-800/80 text-amber-300/90 border border-amber-500/30 cursor-not-allowed">
                             <i class="fas fa-lock text-[11px] text-amber-400"></i>
-                            <span>Kuota Penuh (Terkunci)</span>
+                            <span class="btn-text">Penuh</span>
                         </button>
                     `;
                 } else {
                     selectButtonHtml = `
                         <button type="button" onclick="event.stopPropagation(); clientApp.togglePhotoSelection('${escapeHTML(p.id_foto)}')"
-                            class="w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer bg-black/50 text-white hover:bg-black/70 border border-white/20 backdrop-blur-xs">
+                            class="btn-card-select w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer bg-black/50 text-white hover:bg-black/70 border border-white/20 backdrop-blur-xs">
                             <i class="fas fa-plus text-[11px]"></i>
-                            <span>Pilih Foto</span>
+                            <span class="btn-text">Pilih Foto</span>
                         </button>
                     `;
                 }
 
                 var noteButtonHtml = isSelected ? `
                     <button type="button" onclick="event.stopPropagation(); clientApp.openNoteModal('${escapeHTML(p.id_foto)}')"
-                        class="w-full py-1.5 px-3 rounded-xl text-xs font-semibold bg-white/20 hover:bg-white/30 text-white transition-all flex items-center justify-center gap-1.5 border border-white/20 cursor-pointer backdrop-blur-xs shadow-sm">
+                        class="btn-card-note w-full py-1.5 px-3 rounded-xl text-xs font-semibold bg-white/20 hover:bg-white/30 text-white transition-all flex items-center justify-center gap-1.5 border border-white/20 cursor-pointer backdrop-blur-xs shadow-sm">
                         <i class="fas fa-comment-dots text-amber-400 text-xs"></i>
-                        <span>${note && note.trim() ? 'Ubah Catatan' : 'Catatan'}</span>
+                        <span class="btn-text">${note && note.trim() ? 'Catatan' : 'Catatan'}</span>
                     </button>
                     ${note && note.trim() ? `
-                        <div class="text-[11px] text-amber-100 bg-black/60 p-2 px-2.5 rounded-lg border border-amber-500/30 truncate flex items-center gap-1.5 cursor-pointer mt-0.5" onclick="event.stopPropagation(); clientApp.openNoteModal('${escapeHTML(p.id_foto)}')">
+                        <div class="note-preview-box text-[11px] text-amber-100 bg-black/60 p-2 px-2.5 rounded-lg border border-amber-500/30 truncate flex items-center gap-1.5 cursor-pointer mt-0.5" onclick="event.stopPropagation(); clientApp.openNoteModal('${escapeHTML(p.id_foto)}')">
                             <i class="fas fa-quote-left text-[9px] text-amber-400 shrink-0"></i>
                             <span class="truncate italic font-medium drop-shadow-sm">${escapeHTML(note)}</span>
                         </div>
@@ -2415,7 +2589,7 @@
 
                 return `
                     <div class="flex items-center justify-center text-xs min-w-0 px-1">
-                        <span class="truncate font-semibold text-white/95 text-xs w-full text-center drop-shadow-md" title="${escapeHTML(p.nama_file)}">${escapeHTML(p.nama_file)}</span>
+                        <span class="photo-filename truncate font-semibold text-white/95 text-xs w-full text-center drop-shadow-md" title="${escapeHTML(p.nama_file)}">${escapeHTML(p.nama_file)}</span>
                     </div>
                     ${selectButtonHtml}
                     ${noteButtonHtml}
@@ -2450,13 +2624,16 @@
 
                 var bottomHtml = this.renderCardBottomHtml(p, isSelected, selectedOrder, isFinished, isQuotaFull, note);
 
+                var orient = (window._photoOrientMap && window._photoOrientMap[String(p.id_foto)]) || '';
+                var orientClass = orient ? ('photo-' + orient) : 'photo-portrait';
+
                 var div = document.createElement('div');
-                div.className = 'photo-item ' + (isSelected ? 'selected' : '');
+                div.className = 'photo-item ' + orientClass + ' ' + (isSelected ? 'selected' : '');
                 div.id = 'photo-' + p.id_foto;
                 div.innerHTML = `
                     <div class="photo-img-wrapper cursor-pointer relative overflow-hidden group rounded-xl bg-gray-100" onclick="clientApp.openLightbox('${escapeHTML(p.id_foto)}')">
                         ${badgeHtml}
-                        <img src="${escapeHTML(displayUrl)}" alt="${escapeHTML(p.nama_file)}" loading="${idx < 8 ? 'eager' : 'lazy'}" decoding="async" ${idx < 4 ? 'fetchpriority="high"' : ''} class="w-full h-auto block object-cover aspect-[4/5] sm:aspect-auto sm:object-contain transition-transform duration-300 group-hover:scale-[1.02]" onerror="handleImageError(this, '${escapeHTML(driveId)}')">
+                        <img src="${escapeHTML(displayUrl)}" alt="${escapeHTML(p.nama_file)}" loading="${idx < 8 ? 'eager' : 'lazy'}" decoding="async" ${idx < 4 ? 'fetchpriority="high"' : ''} class="w-full h-auto block object-cover sm:aspect-auto sm:object-contain transition-transform duration-300 group-hover:scale-[1.02]" onload="clientApp.handlePhotoOrient(this, '${escapeHTML(p.id_foto)}')" onerror="handleImageError(this, '${escapeHTML(driveId)}')">
                         
                         <div class="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-10">
                             <span class="bg-black/70 text-white p-3 rounded-full text-sm shadow-lg"><i class="fas fa-search-plus"></i></span>
@@ -2532,8 +2709,9 @@
                     selectedOrder = pos !== -1 ? (pos + 1) : '';
                 }
 
-                // Update class aktif pada pembungkus kartu foto
-                card.className = 'photo-item ' + (isSelected ? 'selected' : '');
+                // Update class aktif pada pembungkus kartu foto dengan mempertahankan orientasi
+                var orient = (window._photoOrientMap && window._photoOrientMap[String(p.id_foto)]) || (card.classList.contains('photo-landscape') ? 'landscape' : 'portrait');
+                card.className = 'photo-item photo-' + orient + ' ' + (isSelected ? 'selected' : '');
 
                 var wrapper = card.querySelector('.photo-img-wrapper');
                 if (!wrapper) return;
