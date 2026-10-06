@@ -92,7 +92,7 @@
                             <span>Preview File Terdeteksi:</span>
                             <span id="as-chips-count" class="font-bold text-blue-600">0</span>
                         </div>
-                        <div id="as-chips-list" class="max-h-24 overflow-y-auto flex flex-wrap gap-1.5 custom-scroll-y p-1 bg-gray-50 rounded-lg border border-gray-200/70"></div>
+                        <div id="as-chips-list" class="max-h-60 overflow-y-auto flex flex-wrap gap-1.5 custom-scroll-y p-1.5 bg-gray-50 rounded-xl border border-gray-200/80"></div>
                     </div>
 
                     <div class="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-gray-100 text-xs">
@@ -518,10 +518,23 @@
                     beforeNote = beforeNote.split(' - ')[0].trim();
                 }
 
-                // Tangani jika ada beberapa nama file dipisahkan koma atau titik koma
-                var tokens = (beforeNote.indexOf(',') !== -1 || beforeNote.indexOf(';') !== -1)
-                    ? beforeNote.split(/[,;]+/).map(s => s.trim()).filter(Boolean)
-                    : [beforeNote];
+                // Tangani jika ada beberapa nama file dalam 1 baris (dipisahkan koma, titik koma, spasi, atau tab)
+                var tokens = [];
+                // Cek apakah ada beberapa ekstensi foto dalam 1 baris (contoh: DSC_6547.JPG DSC_6546.JPG)
+                var extLookahead = new RegExp('(?<=\\.(?:' + ALL_EXTS_REGEX + '))[\\s,;]+', 'i');
+                if (extLookahead.test(beforeNote)) {
+                    tokens = beforeNote.split(extLookahead).map(s => s.trim()).filter(Boolean);
+                } else if (beforeNote.indexOf(',') !== -1 || beforeNote.indexOf(';') !== -1) {
+                    tokens = beforeNote.split(/[,;]+/).map(s => s.trim()).filter(Boolean);
+                } else {
+                    // Cek jika dipisahkan spasi/tab dan masing-masing berisi karakter nama file kamera
+                    var spaceParts = beforeNote.split(/\s+/).filter(Boolean);
+                    if (spaceParts.length > 1 && spaceParts.every(p => /\d/.test(p) || /^(?:DSC|_DSC|IMG|_MG|SAM|NIK|CAN)/i.test(p))) {
+                        tokens = spaceParts;
+                    } else {
+                        tokens = [beforeNote];
+                    }
+                }
 
                 tokens.forEach(function (tok) {
                     // Buang simbol formatting WA (*, ~, _, ", ') dan kurung di sekeliling nama
@@ -588,10 +601,10 @@
             }
 
             wrap.classList.remove('hidden');
-            countEl.textContent = targets.length + ' file';
-            list.innerHTML = targets.map(function (t) {
+            countEl.textContent = 'Menampilkan semua ' + targets.length + ' file';
+            list.innerHTML = targets.map(function (t, idx) {
                 var extBadge = t.originalExt ? `<span class="opacity-60 text-[9px] font-mono">.${t.originalExt}</span>` : '';
-                return `<span class="inline-flex items-center gap-1 px-2 py-0.5 bg-white border border-gray-200 rounded-md text-[10px] font-mono font-medium text-gray-700 shadow-2xs">${t.baseName}${extBadge}</span>`;
+                return `<span class="inline-flex items-center gap-1 px-2.5 py-1 bg-white border border-gray-200 hover:border-blue-400 rounded-lg text-xs font-mono font-medium text-gray-700 shadow-2xs transition-all"><span class="text-[10px] text-gray-400 font-sans">${idx + 1}.</span> ${t.baseName}${extBadge}</span>`;
             }).join('');
         }
 
