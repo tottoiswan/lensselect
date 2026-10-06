@@ -27,6 +27,10 @@
                     var query = window.location.search || '';
                     var params = new URLSearchParams(query);
 
+                    if (!params.get('v_domain')) {
+                        params.set('v_domain', window.location.origin);
+                    }
+
                     // Jika membawa parameter galeri, pastikan parameter page=client
                     if (params.get('galeri') || params.get('client_galeri') || params.get('g') || params.get('id')) {
                         if (!params.get('page')) params.set('page', 'client');
@@ -56,6 +60,9 @@
                     var loader = document.getElementById('portalLoader');
                     if (frame && loader) {
                         frame.onload = function () {
+                            try {
+                                frame.contentWindow.postMessage({ type: 'SET_DOMAIN', domain: window.location.origin }, '*');
+                            } catch (e) { }
                             loader.style.opacity = '0';
                             setTimeout(function () { loader.style.display = 'none'; }, 300);
                         };
@@ -2786,6 +2793,23 @@
         }
         window.GOOGLE_SITES_URL = rawGoogleSitesUrl;
         window.INITIAL_GALLERY_ID = "<?= (typeof initialGaleri !== 'undefined' && initialGaleri) ? initialGaleri : '' ?>";
+        window.CUSTOM_VERCEL_DOMAIN = "<?= (typeof customDomain !== 'undefined' && customDomain) ? customDomain : '' ?>";
+        try {
+            var _idxParams = new URLSearchParams(window.location.search);
+            if (_idxParams.get('v_domain')) {
+                var _vdIdx = _idxParams.get('v_domain');
+                window.CUSTOM_VERCEL_DOMAIN = _vdIdx;
+                try { localStorage.setItem('custom_vercel_domain', _vdIdx); } catch (e) { }
+            }
+        } catch (e) { }
+        window.addEventListener('message', function (ev) {
+            if (ev.data && ev.data.type === 'SET_DOMAIN' && ev.data.domain) {
+                window.CUSTOM_VERCEL_DOMAIN = ev.data.domain;
+                try { localStorage.setItem('custom_vercel_domain', ev.data.domain); } catch (e) { }
+                var domInput = document.getElementById('setCustomDomain');
+                if (domInput && !domInput.value) domInput.value = ev.data.domain;
+            }
+        });
         try {
             var _initDataEl = document.getElementById('initialGalleryDataJson');
             window.INITIAL_GALLERY_DATA = _initDataEl ? JSON.parse(_initDataEl.textContent.trim()) : null;
@@ -3239,18 +3263,24 @@
                                     message: 'Folder Drive berhasil disiapkan dengan ' + selCount + ' foto JPG.'
                                 });
                             }
+                            else if (funcName === 'getUserSettings') {
+                                var user = mockDB.users[0];
+                                resolve({ success: true, data: user });
+                            }
                             else if (funcName === 'updateUserSettings') {
                                 var payload = args[1];
                                 var user = mockDB.users[0];
                                 if (payload.nama) user.nama = payload.nama;
-                                if (payload.wa) user.wa = payload.wa;
+                                if (payload.wa !== undefined) user.wa = payload.wa;
+                                if (payload.email) user.email = payload.email;
+                                if (payload.custom_domain !== undefined) user.custom_domain = payload.custom_domain;
                                 if (payload.password) user.passwordHash = payload.password + '_hash';
                                 var logoUrl = null;
                                 if (payload.logoData) {
                                     logoUrl = 'data:' + payload.logoMime + ';base64,' + payload.logoData;
                                     user.logo = logoUrl;
                                 }
-                                resolve({ success: true, logoUrl: logoUrl });
+                                resolve({ success: true, logoUrl: logoUrl, customDomain: payload.custom_domain, user: user });
                             }
                             else {
                                 resolve({ success: true, data: [] }); // Default fallback
@@ -4069,6 +4099,20 @@
                                 }
                             }).catch(function () { });
                         }
+
+                        // Sinkronisasi data user & domain dari database di latar belakang
+                        gasRun('getUserSettings', Auth.getToken()).then(function (res) {
+                            if (res && res.success && res.data) {
+                                var u = Auth.getUser() || {};
+                                Object.assign(u, res.data);
+                                Auth.set(Auth.getToken(), u);
+                                if (res.data.custom_domain) {
+                                    try { localStorage.setItem('custom_vercel_domain', res.data.custom_domain); } catch (e) { }
+                                    window.CUSTOM_VERCEL_DOMAIN = res.data.custom_domain;
+                                }
+                                appState.setupProfile();
+                            }
+                        }).catch(function () { });
                     } else {
                         this.showLogin();
                     }
@@ -4935,6 +4979,7 @@
 
                 renderSettings: function (container) {
                     var user = Auth.getUser() || {};
+                    var savedDomain = (user && user.custom_domain) ? user.custom_domain : (localStorage.getItem('custom_vercel_domain') || (window.CUSTOM_VERCEL_DOMAIN || ''));
                     var html = `
                         <div class="max-w-3xl mx-auto">
                             <h2 class="text-2xl font-bold text-gray-900 mb-6">Pengaturan Studio</h2>
@@ -4979,19 +5024,11 @@
                                         </div>
                                     </div>
 
-<!-- Keamanan -->
+                                    <!-- Keamanan -->
                                     <div class="space-y-4 pt-4 border-t border-gray-100">
                                         <h3 class="text-lg font-bold text-gray-800 pb-1">Keamanan</h3>
-                                        
-                                        <div>
-                                            <label class="block text-sm font-medium text-gray-700 mb-1">Username Login</label>
-                                            <div class="relative max-w-md">
-                                                <i class="fas fa-user absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                                                <input type="text" disabled value="${escapeHTML(user.username || 'admin')}" class="w-full pl-10 pr-4 py-2.5 bg-gray-100 border border-gray-300 rounded-xl text-gray-500 cursor-not-allowed font-medium">
-                                            </div>
-                                        </div>
 
-                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mb-4">
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-2xl mb-4">
                                             <div>
                                                 <label class="block text-sm font-medium text-gray-700 mb-1">Username Login</label>
                                                 <div class="relative">
@@ -5033,14 +5070,19 @@
 
                                     <!-- Domain Website & Galeri (Vercel / Custom Domain) -->
                                     <div class="space-y-4 pt-4 border-t border-gray-100">
-                                        <h3 class="text-lg font-bold text-gray-800 pb-1">Domain Website & Galeri (Vercel / Custom Domain)</h3>
+                                        <div class="flex items-center justify-between">
+                                            <h3 class="text-lg font-bold text-gray-800">Domain Website & Galeri (Vercel / Custom Domain)</h3>
+                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                                                <i class="fas fa-database text-[10px]"></i> Tersimpan di Database
+                                            </span>
+                                        </div>
                                         <div>
                                             <label class="block text-sm font-medium text-gray-700 mb-1">Domain Vercel / Domain Kustom Anda</label>
                                             <div class="relative max-w-xl">
                                                 <i class="fas fa-globe absolute left-3.5 top-1/2 -translate-y-1/2 text-blue-500"></i>
-                                                <input type="url" id="setCustomDomain" value="${escapeHTML(localStorage.getItem('custom_vercel_domain') || '')}" class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all" placeholder="https://seleksifoto.vercel.app">
+                                                <input type="url" id="setCustomDomain" value="${escapeHTML(savedDomain || '')}" class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all font-mono text-sm" placeholder="https://seleksifoto.vercel.app">
                                             </div>
-                                            <p class="text-[11px] text-gray-500 mt-1">Masukkan domain Vercel Anda (contoh: <code class="bg-gray-100 px-1 py-0.5 rounded text-blue-600 font-mono">https://seleksifoto.vercel.app</code> atau domain kustom). Semua link galeri yang dibagikan ke WhatsApp, Salin Link, dan AutoSelect akan otomatis memakai domain ini dan tidak dialihkan ke script.google.com.</p>
+                                            <p class="text-[11px] text-gray-500 mt-1">Masukkan domain Vercel Anda (contoh: <code class="bg-gray-100 px-1 py-0.5 rounded text-blue-600 font-mono">https://seleksifoto.vercel.app</code> atau domain kustom). Link ini tersimpan langsung di database sehingga otomatis aktif dan tersinkronisasi di HP maupun laptop. Semua link galeri yang dibagikan ke WhatsApp, Salin Link, dan AutoSelect akan otomatis memakai domain ini.</p>
                                         </div>
                                     </div>
 
@@ -5054,6 +5096,43 @@
                         </div>
                     `;
                     container.innerHTML = html;
+
+                    // Sinkronisasi otomatis pengaturan terbaru dari database (agar link domain di HP & laptop selalu sama)
+                    if (Auth.getToken()) {
+                        gasRun('getUserSettings', Auth.getToken()).then(function (res) {
+                            if (res && res.success && res.data) {
+                                var freshUser = res.data;
+                                var u = Auth.getUser() || {};
+                                Object.assign(u, freshUser);
+                                Auth.set(Auth.getToken(), u);
+
+                                var domainInput = document.getElementById('setCustomDomain');
+                                if (domainInput && !domainInput.matches(':focus') && freshUser.custom_domain) {
+                                    domainInput.value = freshUser.custom_domain;
+                                    try { localStorage.setItem('custom_vercel_domain', freshUser.custom_domain); } catch (e) { }
+                                    window.CUSTOM_VERCEL_DOMAIN = freshUser.custom_domain;
+                                }
+                                var waInput = document.getElementById('setVendorWa');
+                                if (waInput && !waInput.matches(':focus') && freshUser.wa) {
+                                    waInput.value = freshUser.wa;
+                                }
+                                var nameInput = document.getElementById('setVendorName');
+                                if (nameInput && !nameInput.matches(':focus') && freshUser.nama) {
+                                    nameInput.value = freshUser.nama;
+                                }
+                                var emailInput = document.getElementById('setVendorEmail');
+                                if (emailInput && !emailInput.matches(':focus') && freshUser.email) {
+                                    emailInput.value = freshUser.email;
+                                }
+                                if (freshUser.logo) {
+                                    var preview = document.getElementById('logoPreviewContainer');
+                                    if (preview && !preview.querySelector('img')) {
+                                        preview.innerHTML = `<img src="${escapeHTML(freshUser.logo)}" class="w-full h-full object-cover">`;
+                                    }
+                                }
+                            }
+                        }).catch(function () { });
+                    }
                 },
 
                 handleLogoPreview: function (input) {
@@ -5093,7 +5172,7 @@
                     e.preventDefault();
                     var btn = document.getElementById('btnSaveSettings');
                     var originalText = btn.innerHTML;
-                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...';
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan ke Database...';
                     btn.disabled = true;
 
                     var pass1 = document.getElementById('setNewPassword').value;
@@ -5108,21 +5187,10 @@
                         }
                     }
 
-                    var pass1 = document.getElementById('setNewPassword').value;
-                    var pass2 = document.getElementById('setConfirmPassword').value;
-
-                    if (pass1 || pass2) {
-                        if (pass1 !== pass2) {
-                            ui.showToast('Konfirmasi password tidak cocok! Silakan periksa kembali.', true);
-                            btn.innerHTML = originalText;
-                            btn.disabled = false;
-                            return;
-                        }
-                    }
-
                     var domainInput = document.getElementById('setCustomDomain');
+                    var dVal = '';
                     if (domainInput) {
-                        var dVal = domainInput.value.trim().replace(/\/+$/, '');
+                        dVal = domainInput.value.trim().replace(/\/+$/, '');
                         if (dVal && !/^https?:\/\//i.test(dVal)) {
                             dVal = 'https://' + dVal;
                         }
@@ -5133,13 +5201,15 @@
                                 localStorage.removeItem('custom_vercel_domain');
                             }
                         } catch (e) { }
+                        window.CUSTOM_VERCEL_DOMAIN = dVal;
                     }
 
                     var payload = {
                         nama: document.getElementById('setVendorName').value.trim(),
                         wa: document.getElementById('setVendorWa').value.trim(),
                         email: document.getElementById('setVendorEmail').value.trim(),
-                        password: pass1
+                        password: pass1,
+                        custom_domain: dVal
                     };
 
                     var logoFile = document.getElementById('setLogoInput').files[0];
@@ -5162,16 +5232,25 @@
                             btn.disabled = false;
                             if (res.sessionExpired) return appState.handleSessionExpired();
                             if (res.success) {
-                                ui.showToast('Pengaturan berhasil disimpan!', false);
+                                ui.showToast('Pengaturan & domain berhasil disimpan ke database!', false);
                                 // Update local state user cache
-                                var u = Auth.getUser();
+                                var u = Auth.getUser() || {};
                                 u.nama = data.nama;
                                 u.wa = data.wa;
                                 if (data.email) u.email = data.email;
                                 if (res.logoUrl) u.logo = res.logoUrl;
+                                u.custom_domain = data.custom_domain || '';
                                 Auth.set(Auth.getToken(), u);
+                                if (data.custom_domain) {
+                                    try { localStorage.setItem('custom_vercel_domain', data.custom_domain); } catch (e) { }
+                                    window.CUSTOM_VERCEL_DOMAIN = data.custom_domain;
+                                } else {
+                                    try { localStorage.removeItem('custom_vercel_domain'); } catch (e) { }
+                                    window.CUSTOM_VERCEL_DOMAIN = '';
+                                }
                                 appState.setupProfile();
                                 document.getElementById('setNewPassword').value = '';
+                                document.getElementById('setConfirmPassword').value = '';
                             } else {
                                 ui.showToast(res.message || 'Gagal menyimpan pengaturan.', true);
                             }
@@ -6349,10 +6428,19 @@
                 },
 
                 getCustomDomain: function () {
+                    // 1. Cek dari profil user yang sedang aktif (tersimpan dari database)
+                    var user = (typeof Auth !== 'undefined' && Auth.getUser) ? Auth.getUser() : null;
+                    if (user && user.custom_domain) {
+                        var userDom = String(user.custom_domain).trim().replace(/\/+$/, '');
+                        if (userDom) return userDom;
+                    }
+                    // 2. Cek dari localStorage browser
                     var saved = '';
                     try { saved = localStorage.getItem('custom_vercel_domain') || ''; } catch (e) { }
                     if (saved) return saved.trim().replace(/\/+$/, '');
+                    // 3. Cek dari window.CUSTOM_VERCEL_DOMAIN (injected dari ScriptProperties GAS atau Vercel wrapper)
                     if (window.CUSTOM_VERCEL_DOMAIN) return String(window.CUSTOM_VERCEL_DOMAIN).trim().replace(/\/+$/, '');
+                    // 4. Deteksi origin jika dibuka langsung di domain Vercel / domain kustom
                     try {
                         if (window.location && window.location.origin && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
                             var host = window.location.hostname || '';
@@ -6362,6 +6450,7 @@
                             }
                         }
                     } catch (e) { }
+                    // 5. Deteksi referrer
                     try {
                         if (document.referrer) {
                             var refUrl = new URL(document.referrer);
