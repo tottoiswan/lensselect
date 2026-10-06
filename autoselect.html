@@ -7,7 +7,9 @@
     <title>AutoSelect File - Ttwins Selection</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+        rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <style>
         body {
@@ -41,25 +43,54 @@
         <!-- Header -->
         <div class="flex items-center justify-between gap-3 mb-6 pb-4 border-b border-gray-200 flex-wrap">
             <div class="flex items-center gap-3">
-                <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-700 via-indigo-600 to-blue-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+                <div
+                    class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-700 via-indigo-600 to-blue-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
                     <i class="fas fa-layer-group text-xl"></i>
                 </div>
                 <div>
                     <h1 class="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">AutoSelect & Sortir Foto</h1>
-                    <p class="text-xs sm:text-sm text-gray-500">Salin & sortir foto pilihan klien (RAW / JPG / PNG) langsung ke folder tujuan</p>
+                    <p class="text-xs sm:text-sm text-gray-500">Salin & sortir foto pilihan klien (RAW / JPG / PNG)
+                        langsung ke folder tujuan</p>
                 </div>
             </div>
-            <div id="env-badge" class="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 flex items-center gap-1.5 shadow-2xs">
-                <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>Universal Direct Ready</span>
+            <div class="flex items-center gap-2.5 flex-wrap">
+                <!-- Badge Credit -->
+                <div id="as-credit-badge-container"
+                    class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 shadow-2xs">
+                    <span class="text-base">🪙</span>
+                    <div class="text-left leading-tight">
+                        <span class="text-[10px] text-amber-700 block font-semibold uppercase tracking-wider">Credit
+                            AutoSelect</span>
+                        <strong id="as-credit-count" class="text-xs font-bold text-amber-950 font-mono">1x
+                            Sortir</strong>
+                    </div>
+                </div>
+
+                <!-- Tombol Beli / Top-Up Credit -->
+                <button type="button" id="btn-topup-credit" onclick="openCreditTopUpModal()"
+                    class="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white text-xs font-bold rounded-xl shadow-xs transition-all flex items-center gap-1.5 cursor-pointer hover:scale-105 active:scale-95">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>Beli Credit</span>
+                </button>
+
+                <div id="env-badge"
+                    class="hidden sm:flex px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 items-center gap-1.5 shadow-2xs">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Direct Ready</span>
+                </div>
             </div>
         </div>
 
         <!-- Penjelasan Singkat -->
-        <div class="mb-6 p-4 bg-gradient-to-r from-blue-50 via-indigo-50/50 to-blue-50 border border-blue-200/80 rounded-2xl text-xs sm:text-sm text-blue-950 leading-relaxed flex items-start gap-3 shadow-2xs">
+        <div
+            class="mb-6 p-4 bg-gradient-to-r from-blue-50 via-indigo-50/50 to-blue-50 border border-blue-200/80 rounded-2xl text-xs sm:text-sm text-blue-950 leading-relaxed flex items-start gap-3 shadow-2xs">
             <i class="fas fa-magic text-blue-600 text-lg mt-0.5 shrink-0"></i>
             <div>
-                <strong>Cara Kerja Otomatis:</strong> Paste format pesan dari klien (meskipun menggunakan nomor urut, tanda baca, atau catatan tambahan). Pilih <strong>Folder Master</strong> dan <strong>Folder Tujuan</strong> di laptop Anda, lalu tentukan format yang diinginkan (<strong>Semua Foto, RAW, JPG, atau PNG</strong>). Klik <strong>Mulai Sortir & Copy File</strong>, maka foto langsung masuk ke folder tujuan!
+                <strong>Cara Kerja Otomatis:</strong> Paste format pesan dari klien (meskipun menggunakan nomor urut,
+                tanda baca, atau catatan tambahan). Pilih <strong>Folder Master</strong> dan <strong>Folder
+                    Tujuan</strong> di laptop Anda, lalu tentukan format yang diinginkan (<strong>Semua Foto, RAW, JPG,
+                    atau PNG</strong>). Klik <strong>Mulai Sortir & Copy File</strong>, maka foto langsung masuk ke
+                folder tujuan!
             </div>
         </div>
 
@@ -75,12 +106,16 @@
                         <label class="block text-sm font-bold text-gray-800">
                             <i class="fas fa-list-ol text-blue-500 mr-1.5"></i>Daftar File Pilihan Klien
                         </label>
-                        <span id="as-count-badge" class="px-2.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-xs font-bold font-mono">
+                        <span id="as-count-badge"
+                            class="px-2.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-xs font-bold font-mono">
                             0 File Terdeteksi
                         </span>
                     </div>
                     <p class="text-[11px] text-gray-500 mb-3 leading-relaxed">
-                        Paste pesan WhatsApp dari klien. Nomor urut (<code class="text-blue-600 font-mono">1.</code>, <code class="text-blue-600 font-mono">2)</code>, <code class="text-blue-600 font-mono">#3</code>), tanda baca, maupun catatan klien akan otomatis dibersihkan dan nama foto tetap terbaca.
+                        Paste pesan WhatsApp dari klien. Nomor urut (<code class="text-blue-600 font-mono">1.</code>,
+                        <code class="text-blue-600 font-mono">2)</code>, <code
+                            class="text-blue-600 font-mono">#3</code>), tanda baca, maupun catatan klien akan otomatis
+                        dibersihkan dan nama foto tetap terbaca.
                     </p>
                     <textarea id="as-filelist" rows="10"
                         class="w-full flex-1 p-3.5 border border-gray-300 rounded-xl text-xs font-mono focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none bg-gray-50 focus:bg-white"
@@ -92,14 +127,18 @@
                             <span>Preview File Terdeteksi:</span>
                             <span id="as-chips-count" class="font-bold text-blue-600">0</span>
                         </div>
-                        <div id="as-chips-list" class="max-h-60 overflow-y-auto flex flex-wrap gap-1.5 custom-scroll-y p-1.5 bg-gray-50 rounded-xl border border-gray-200/80"></div>
+                        <div id="as-chips-list"
+                            class="max-h-60 overflow-y-auto flex flex-wrap gap-1.5 custom-scroll-y p-1.5 bg-gray-50 rounded-xl border border-gray-200/80">
+                        </div>
                     </div>
 
                     <div class="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-gray-100 text-xs">
-                        <button type="button" id="btn-sample" class="text-blue-600 hover:text-blue-800 font-semibold cursor-pointer flex items-center gap-1 transition-colors">
+                        <button type="button" id="btn-sample"
+                            class="text-blue-600 hover:text-blue-800 font-semibold cursor-pointer flex items-center gap-1 transition-colors">
                             <i class="fas fa-magic"></i> Contoh Pesan WA
                         </button>
-                        <button type="button" id="btn-clear-text" class="text-rose-500 hover:text-rose-700 font-medium cursor-pointer flex items-center gap-1 transition-colors">
+                        <button type="button" id="btn-clear-text"
+                            class="text-rose-500 hover:text-rose-700 font-medium cursor-pointer flex items-center gap-1 transition-colors">
                             <i class="fas fa-trash-alt"></i> Bersihkan
                         </button>
                     </div>
@@ -111,12 +150,14 @@
                         <label class="block text-sm font-bold text-gray-800">
                             <i class="fas fa-sliders-h text-indigo-500 mr-1.5"></i>Pilihan Format File
                         </label>
-                        <span id="as-format-badge" class="px-2.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full text-xs font-bold">
+                        <span id="as-format-badge"
+                            class="px-2.5 py-0.5 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full text-xs font-bold">
                             Semua Foto
                         </span>
                     </div>
                     <p class="text-[11px] text-gray-500 mb-3 leading-relaxed">
-                        Pilih jenis format yang ingin disalin ke folder tujuan (misal klien hanya ingin file RAW kamera saja atau JPG saja):
+                        Pilih jenis format yang ingin disalin ke folder tujuan (misal klien hanya ingin file RAW kamera
+                        saja atau JPG saja):
                     </p>
 
                     <!-- 4 Tombol Pilihan Format -->
@@ -155,9 +196,11 @@
                     </div>
 
                     <!-- Petunjuk format terpilih -->
-                    <div id="as-format-hint" class="mt-2.5 p-2 bg-indigo-50/70 border border-indigo-100 rounded-xl text-[11px] text-indigo-900 flex items-center gap-2">
+                    <div id="as-format-hint"
+                        class="mt-2.5 p-2 bg-indigo-50/70 border border-indigo-100 rounded-xl text-[11px] text-indigo-900 flex items-center gap-2">
                         <i class="fas fa-info-circle text-indigo-600 shrink-0"></i>
-                        <span id="as-format-hint-text">Semua jenis file yang cocok dengan nama pilihan klien akan disalin (RAW, JPG, maupun PNG).</span>
+                        <span id="as-format-hint-text">Semua jenis file yang cocok dengan nama pilihan klien akan
+                            disalin (RAW, JPG, maupun PNG).</span>
                     </div>
                 </div>
 
@@ -170,13 +213,16 @@
                 <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
                     <div class="flex items-center justify-between mb-1">
                         <label class="block text-sm font-bold text-gray-800">
-                            <i class="fas fa-folder-open text-amber-500 mr-1.5"></i>Folder Sumber (Master Foto / RAW Laptop)
+                            <i class="fas fa-folder-open text-amber-500 mr-1.5"></i>Folder Sumber (Master Foto / RAW
+                            Laptop)
                         </label>
-                        <span id="as-source-badge" class="px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded-full text-[11px] font-bold">
+                        <span id="as-source-badge"
+                            class="px-2 py-0.5 bg-amber-50 text-amber-800 border border-amber-200 rounded-full text-[11px] font-bold">
                             Belum Dipilih
                         </span>
                     </div>
-                    <p class="text-[11px] text-gray-500 mb-3">Pilih folder tempat seluruh file asli foto Anda tersimpan di komputer/harddisk.</p>
+                    <p class="text-[11px] text-gray-500 mb-3">Pilih folder tempat seluruh file asli foto Anda tersimpan
+                        di komputer/harddisk.</p>
 
                     <!-- Hidden native file input fallback for universal directory picking -->
                     <input type="file" id="as-source-input" webkitdirectory directory multiple class="hidden">
@@ -184,8 +230,10 @@
                     <button type="button" id="btn-pick-src"
                         class="w-full px-4 py-3.5 bg-amber-50/80 hover:bg-amber-100 text-amber-950 text-sm font-semibold rounded-xl flex items-center justify-between gap-2.5 transition-colors border border-amber-200/90 shadow-2xs cursor-pointer truncate group">
                         <div class="flex items-center gap-2.5 truncate">
-                            <i class="fas fa-mouse-pointer text-amber-600 shrink-0 group-hover:scale-110 transition-transform"></i>
-                            <span id="as-source-label" class="truncate font-bold">Pilih Folder Master di Laptop/PC</span>
+                            <i
+                                class="fas fa-mouse-pointer text-amber-600 shrink-0 group-hover:scale-110 transition-transform"></i>
+                            <span id="as-source-label" class="truncate font-bold">Pilih Folder Master di
+                                Laptop/PC</span>
                         </div>
                         <span class="px-3 py-1 bg-amber-200/90 text-amber-900 rounded-lg text-xs font-bold shrink-0">
                             Pilih Folder
@@ -197,22 +245,27 @@
                 <div class="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm">
                     <div class="flex items-center justify-between mb-1">
                         <label class="block text-sm font-bold text-gray-800">
-                            <i class="fas fa-folder-plus text-emerald-500 mr-1.5"></i>Folder Tujuan (Tempat Foto Disalin)
+                            <i class="fas fa-folder-plus text-emerald-500 mr-1.5"></i>Folder Tujuan (Tempat Foto
+                            Disalin)
                         </label>
-                        <span id="as-dest-badge" class="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[11px] font-bold">
+                        <span id="as-dest-badge"
+                            class="px-2.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[11px] font-bold">
                             Belum Dipilih
                         </span>
                     </div>
-                    <p class="text-[11px] text-gray-500 mb-3">Pilih folder di laptop/PC tempat foto hasil sortir akan langsung dimasukkan.</p>
+                    <p class="text-[11px] text-gray-500 mb-3">Pilih folder di laptop/PC tempat foto hasil sortir akan
+                        langsung dimasukkan.</p>
 
                     <!-- Tombol Pilih Folder Tujuan -->
                     <button type="button" id="btn-pick-dest"
                         class="w-full px-4 py-3.5 bg-emerald-50/80 hover:bg-emerald-100 text-emerald-950 text-sm font-semibold rounded-xl flex items-center justify-between gap-2.5 transition-colors border border-emerald-200/90 shadow-2xs cursor-pointer truncate group mb-3">
                         <div class="flex items-center gap-2.5 truncate">
-                            <i class="fas fa-folder-check text-emerald-600 text-lg shrink-0 group-hover:scale-110 transition-transform"></i>
+                            <i
+                                class="fas fa-folder-check text-emerald-600 text-lg shrink-0 group-hover:scale-110 transition-transform"></i>
                             <span id="as-dest-label" class="truncate font-bold">Pilih Folder Tujuan di Laptop/PC</span>
                         </div>
-                        <span class="px-3 py-1 bg-emerald-200/90 text-emerald-900 rounded-lg text-xs font-bold shrink-0">
+                        <span
+                            class="px-3 py-1 bg-emerald-200/90 text-emerald-900 rounded-lg text-xs font-bold shrink-0">
                             Pilih Folder
                         </span>
                     </button>
@@ -255,19 +308,25 @@
                 </div>
 
                 <!-- 3. Live Progress Box (Tampil otomatis saat proses berjalan) -->
-                <div id="as-progress-box" class="hidden bg-white p-4 rounded-2xl border border-blue-200 shadow-sm space-y-2.5 animate-fadeIn">
+                <div id="as-progress-box"
+                    class="hidden bg-white p-4 rounded-2xl border border-blue-200 shadow-sm space-y-2.5 animate-fadeIn">
                     <div class="flex items-center justify-between text-xs font-bold text-gray-800">
                         <span id="as-progress-status" class="flex items-center gap-2 text-blue-700">
-                            <i class="fas fa-spinner fa-spin text-blue-600"></i> Sedang Menyalin Foto ke Folder Tujuan...
+                            <i class="fas fa-spinner fa-spin text-blue-600"></i> Sedang Menyalin Foto ke Folder
+                            Tujuan...
                         </span>
                         <span id="as-progress-percent" class="font-mono text-blue-700 font-bold">0%</span>
                     </div>
                     <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden p-0.5">
-                        <div id="as-progress-bar" class="bg-gradient-to-r from-blue-600 to-indigo-600 h-2 rounded-full transition-all duration-150 w-0"></div>
+                        <div id="as-progress-bar"
+                            class="bg-gradient-to-r from-blue-600 to-indigo-600 h-2 rounded-full transition-all duration-150 w-0">
+                        </div>
                     </div>
                     <div class="flex items-center justify-between text-[11px] text-gray-500 font-medium">
-                        <span id="as-progress-filename" class="font-mono truncate max-w-[280px]">Menyiapkan file...</span>
-                        <span id="as-progress-count" class="shrink-0 font-mono font-bold text-gray-700">0 / 0 File</span>
+                        <span id="as-progress-filename" class="font-mono truncate max-w-[280px]">Menyiapkan
+                            file...</span>
+                        <span id="as-progress-count" class="shrink-0 font-mono font-bold text-gray-700">0 / 0
+                            File</span>
                     </div>
                 </div>
 
@@ -282,9 +341,12 @@
         </div>
 
         <!-- Terminal Output -->
-        <div id="as-log-container" class="hidden mt-6 bg-[#0f172a] border border-slate-800 rounded-2xl overflow-hidden shadow-xl flex-col animate-fadeIn">
-            <div class="px-4 py-2.5 border-b border-slate-700/80 bg-slate-800 flex items-center justify-between shadow-md">
-                <span class="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2 font-mono">
+        <div id="as-log-container"
+            class="hidden mt-6 bg-[#0f172a] border border-slate-800 rounded-2xl overflow-hidden shadow-xl flex-col animate-fadeIn">
+            <div
+                class="px-4 py-2.5 border-b border-slate-700/80 bg-slate-800 flex items-center justify-between shadow-md">
+                <span
+                    class="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2 font-mono">
                     <i class="fas fa-terminal text-blue-400"></i> Terminal Output Status
                 </span>
                 <button type="button" id="btn-clear-log"
@@ -301,7 +363,8 @@
 
     <!-- Toast Notification -->
     <div id="toast" class="fixed top-4 right-4 z-50 transform transition-transform duration-300 translate-x-full">
-        <div id="toast-box" class="bg-gray-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 border border-gray-700/80 max-w-sm">
+        <div id="toast-box"
+            class="bg-gray-900 text-white px-5 py-3.5 rounded-2xl shadow-2xl flex items-center gap-3 border border-gray-700/80 max-w-sm">
             <i id="toastIcon" class="fas fa-info-circle text-blue-400 text-lg shrink-0"></i>
             <span id="toastMessage" class="text-xs sm:text-sm font-medium leading-snug">Pesan notifikasi</span>
         </div>
@@ -367,7 +430,7 @@
         function getMatchKeys(name) {
             if (!name) return [];
             var keys = new Set();
-            
+
             var lastDot = name.lastIndexOf('.');
             var base = (lastDot !== -1 ? name.substring(0, lastDot) : name).trim().toUpperCase();
             if (!base) return [];
@@ -718,8 +781,165 @@
             }
         }
 
+        // ================================================================
+        // MANAJEMEN CREDIT AUTOSELECT (1 Credit = 1x Sortir)
+        // ================================================================
+        var asCreditState = {
+            credits: 5,
+            price: 'Rp 5.000',
+            adminWa: '081234567890',
+            selectedPkgQty: 15,
+            selectedPkgPrice: 'Rp 60.000',
+            selectedPkgLabel: 'Paket 15x Sortir'
+        };
+
+        function initCreditState() {
+            var stored = localStorage.getItem('autoselect_credits');
+            if (stored !== null && !isNaN(Number(stored))) {
+                asCreditState.credits = Number(stored);
+            } else {
+                try {
+                    var u = JSON.parse(localStorage.getItem('appUser') || '{}');
+                    if (u && typeof u.autoselect_credits !== 'undefined') {
+                        asCreditState.credits = Number(u.autoselect_credits) || 0;
+                    } else {
+                        asCreditState.credits = 5;
+                    }
+                } catch (e) {
+                    asCreditState.credits = 5;
+                }
+            }
+
+            var p = localStorage.getItem('autoselect_price');
+            if (p) asCreditState.price = p;
+
+            var wa = localStorage.getItem('autoselect_admin_wa');
+            if (wa) asCreditState.adminWa = wa;
+
+            updateCreditDisplay();
+
+            // Sinkronisasi dengan Google Apps Script jika token tersedia
+            var token = localStorage.getItem('appToken');
+            if (typeof google !== 'undefined' && google.script && google.script.run && token) {
+                google.script.run
+                    .withSuccessHandler(function (res) {
+                        if (res && res.success) {
+                            if (res.credits !== undefined) asCreditState.credits = Number(res.credits);
+                            if (res.price) asCreditState.price = res.price;
+                            if (res.adminWa) asCreditState.adminWa = res.adminWa;
+                            localStorage.setItem('autoselect_credits', asCreditState.credits);
+                            updateCreditDisplay();
+                        }
+                    })
+                    .getAutoSelectCredits(token);
+            }
+        }
+
+        function updateCreditDisplay() {
+            var countEl = document.getElementById('as-credit-count');
+            var container = document.getElementById('as-credit-badge-container');
+            var modalCount = document.getElementById('modal-topup-current-credit');
+            var modalAdminWa = document.getElementById('modal-topup-admin-wa');
+
+            if (countEl) {
+                countEl.textContent = asCreditState.credits + 'x Sortir';
+            }
+            if (modalCount) {
+                modalCount.textContent = asCreditState.credits;
+            }
+            if (modalAdminWa) {
+                modalAdminWa.textContent = asCreditState.adminWa || '081234567890';
+            }
+            if (container) {
+                if (asCreditState.credits <= 0) {
+                    container.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 shadow-2xs';
+                    if (countEl) countEl.className = 'text-xs font-bold text-rose-700 font-mono';
+                } else {
+                    container.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 shadow-2xs';
+                    if (countEl) countEl.className = 'text-xs font-bold text-amber-950 font-mono';
+                }
+            }
+        }
+
+        async function deductCredit() {
+            if (asCreditState.credits <= 0) return false;
+            asCreditState.credits--;
+            localStorage.setItem('autoselect_credits', asCreditState.credits);
+
+            try {
+                var u = JSON.parse(localStorage.getItem('appUser') || '{}');
+                u.autoselect_credits = asCreditState.credits;
+                localStorage.setItem('appUser', JSON.stringify(u));
+            } catch (e) { }
+
+            updateCreditDisplay();
+
+            // Hubungkan ke backend jika ada
+            var token = localStorage.getItem('appToken');
+            if (typeof google !== 'undefined' && google.script && google.script.run && token) {
+                try {
+                    google.script.run.deductAutoSelectCredit(token);
+                } catch (e) { }
+            }
+            return true;
+        }
+
+        function openCreditTopUpModal() {
+            updateCreditDisplay();
+            var modal = document.getElementById('modalTopUpCredit');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function closeCreditTopUpModal() {
+            var modal = document.getElementById('modalTopUpCredit');
+            if (modal) modal.classList.add('hidden');
+        }
+
+        function onCreditPackageChange(input) {
+            var qty = input.value;
+            var price = input.getAttribute('data-price') || '';
+            var label = input.getAttribute('data-label') || '';
+            asCreditState.selectedPkgQty = qty;
+            asCreditState.selectedPkgPrice = price;
+            asCreditState.selectedPkgLabel = label;
+
+            var labelEl = document.getElementById('modal-topup-pkg-label');
+            if (labelEl) labelEl.textContent = label + ' (' + price + ')';
+
+            // Update styling kartu pilihan
+            document.querySelectorAll('.credit-pkg-card').forEach(function (card) {
+                var radio = card.querySelector('input[type="radio"]');
+                if (radio && radio.checked) {
+                    card.className = 'credit-pkg-card relative flex items-center justify-between p-3.5 rounded-2xl border-2 border-amber-500 bg-amber-50/60 cursor-pointer transition-all shadow-xs';
+                } else {
+                    card.className = 'credit-pkg-card relative flex items-center justify-between p-3.5 rounded-2xl border-2 border-gray-200 hover:border-amber-400 bg-white hover:bg-amber-50/40 cursor-pointer transition-all';
+                }
+            });
+        }
+
+        function executeTopUpViaWa() {
+            var wa = (asCreditState.adminWa || '081234567890').replace(/[^\d]/g, '');
+            if (wa.startsWith('0')) wa = '62' + wa.substring(1);
+            if (!wa.startsWith('62')) wa = '62' + wa;
+
+            var userNama = '';
+            try {
+                var u = JSON.parse(localStorage.getItem('appUser') || '{}');
+                userNama = u.nama || u.username || '';
+            } catch (e) { }
+
+            var greeting = userNama ? ('Halo Admin, saya ' + userNama + '.') : 'Halo Admin,';
+            var msg = greeting + '\n\nSaya ingin top-up *Credit AutoSelect & Sortir Foto*:\n- Pilihan Paket: *' + asCreditState.selectedPkgLabel + '*\n- Jumlah: *' + asCreditState.selectedPkgQty + ' Credit*\n- Biaya: *' + asCreditState.selectedPkgPrice + '*\n- Saldo Saat Ini: *' + asCreditState.credits + ' Credit*\n\nMohon informasi rekening/instruksi pembayarannya. Terima kasih!';
+
+            var url = 'https://wa.me/' + wa + '?text=' + encodeURIComponent(msg);
+            window.open(url, '_blank');
+            showToast('Membuka WhatsApp Admin untuk konfirmasi pembayaran...', false);
+        }
+
         // Inisialisasi saat DOM siap
         document.addEventListener('DOMContentLoaded', function () {
+            // Inisialisasi saldo credit
+            initCreditState();
 
             // 1. Textarea Real-time Parsing
             var textarea = document.getElementById('as-filelist');
@@ -854,6 +1074,13 @@
             // 9. Tombol Eksekusi: "Mulai Sortir & Copy File"
             document.getElementById('as-start-btn').addEventListener('click', async function () {
                 if (asState.isProcessing) return;
+
+                // Verifikasi Saldo Credit Terlebih Dahulu
+                if (asCreditState.credits <= 0) {
+                    showToast('Saldo credit AutoSelect Anda habis (0 Credit). Silakan top-up credit.', true);
+                    openCreditTopUpModal();
+                    return;
+                }
 
                 // Pastikan target ter-parse
                 parseTargets(textarea.value);
@@ -1053,6 +1280,15 @@
                         return;
                     }
 
+                    // Potong 1 Credit untuk 1x Sesi Sortir Ini
+                    var deductSuccess = await deductCredit();
+                    if (!deductSuccess) {
+                        showToast('Saldo credit tidak mencukupi (0 Credit). Silakan top-up credit terlebih dahulu.', true);
+                        openCreditTopUpModal();
+                        return;
+                    }
+                    asLog(`[CREDIT] 1 Credit telah digunakan untuk proses sortir ini. Sisa credit Anda: ${asCreditState.credits}x sortir.`, 'info');
+
                     // 4. Eksekusi Penyalinan
                     if (asState.destMode === 'direct' && asState.destHandle) {
                         // EKSEKUSI LANGSUNG KE FOLDER DISK VIA FILE SYSTEM ACCESS API
@@ -1187,6 +1423,149 @@
 
         });
     </script>
+
+    <!-- Modal Top-Up / Beli Credit AutoSelect -->
+    <div id="modalTopUpCredit"
+        class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[99] flex items-center justify-center p-3 sm:p-4">
+        <div
+            class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-amber-300 animate-in fade-in zoom-in-95 duration-200">
+            <!-- Modal Header -->
+            <div
+                class="p-5 sm:p-6 border-b border-amber-100 flex items-center justify-between bg-gradient-to-r from-amber-50 via-yellow-50/70 to-amber-50">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 text-white flex items-center justify-center shadow-md shadow-amber-500/30 text-2xl shrink-0">
+                        🪙
+                    </div>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-amber-950 leading-tight">Top-Up Credit AutoSelect
+                        </h3>
+                        <p class="text-xs text-amber-800 mt-0.5">Tambah kuota untuk sortir & salin foto otomatis</p>
+                    </div>
+                </div>
+                <button type="button" onclick="closeCreditTopUpModal()"
+                    class="text-amber-800 hover:text-amber-950 p-2 rounded-xl hover:bg-amber-100/80 transition-colors cursor-pointer"
+                    title="Tutup">
+                    <i class="fas fa-times text-base"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-5 sm:p-6 space-y-4 bg-white max-h-[75vh] overflow-y-auto custom-scroll-y">
+                <!-- Status Saldo Saat Ini -->
+                <div
+                    class="p-4 bg-amber-50/80 rounded-2xl border border-amber-200 flex items-center justify-between gap-3">
+                    <div>
+                        <span class="text-[11px] font-semibold text-amber-800 block uppercase tracking-wider">Saldo
+                            Credit Anda</span>
+                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                            <span id="modal-topup-current-credit"
+                                class="text-2xl font-extrabold text-amber-950 font-mono">0</span>
+                            <span class="text-xs font-semibold text-amber-900">Sesi Sortir Tersisa</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span
+                            class="px-2.5 py-1 bg-white text-amber-900 border border-amber-300 rounded-full text-[11px] font-bold inline-flex items-center gap-1 shadow-2xs">
+                            <i class="fas fa-check-circle text-amber-600"></i> 1 Credit = 1x Sortir
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Info Ketentuan -->
+                <p class="text-xs text-gray-600 leading-relaxed">
+                    Setiap proses sortir & salin foto lokal menggunakan <strong>1 Credit</strong>. Pilih paket kuota
+                    credit di bawah ini dan konfirmasi langsung ke WhatsApp Admin:
+                </p>
+
+                <!-- Pilihan Paket Kuota -->
+                <div class="space-y-2.5" id="credit-package-list">
+                    <!-- Paket 1 -->
+                    <label
+                        class="credit-pkg-card relative flex items-center justify-between p-3.5 rounded-2xl border-2 border-gray-200 hover:border-amber-400 bg-white hover:bg-amber-50/40 cursor-pointer transition-all">
+                        <div class="flex items-center gap-3">
+                            <input type="radio" name="credit_pkg" value="5" data-price="Rp 25.000"
+                                data-label="Paket 5x Sortir" class="w-4 h-4 text-amber-600 focus:ring-amber-500"
+                                onchange="onCreditPackageChange(this)">
+                            <div>
+                                <div class="font-bold text-gray-900 text-sm">Paket Hemat: 5x Sortir</div>
+                                <div class="text-[11px] text-gray-500">Rp 5.000 / sesi sortir</div>
+                            </div>
+                        </div>
+                        <span class="text-sm font-extrabold text-gray-900 font-mono">Rp 25.000</span>
+                    </label>
+
+                    <!-- Paket 2 (Recommended) -->
+                    <label
+                        class="credit-pkg-card relative flex items-center justify-between p-3.5 rounded-2xl border-2 border-amber-500 bg-amber-50/60 cursor-pointer transition-all shadow-xs">
+                        <span
+                            class="absolute -top-2.5 right-4 px-2 py-0.5 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-full text-[10px] font-extrabold uppercase tracking-wider shadow-2xs">PALING
+                            LARIS 🔥</span>
+                        <div class="flex items-center gap-3">
+                            <input type="radio" name="credit_pkg" value="15" data-price="Rp 60.000"
+                                data-label="Paket 15x Sortir" checked
+                                class="w-4 h-4 text-amber-600 focus:ring-amber-500"
+                                onchange="onCreditPackageChange(this)">
+                            <div>
+                                <div class="font-bold text-amber-950 text-sm">Paket Populer: 15x Sortir</div>
+                                <div class="text-[11px] text-amber-800">Hemat 20% (Rp 4.000 / sesi)</div>
+                            </div>
+                        </div>
+                        <span class="text-sm font-extrabold text-amber-950 font-mono">Rp 60.000</span>
+                    </label>
+
+                    <!-- Paket 3 -->
+                    <label
+                        class="credit-pkg-card relative flex items-center justify-between p-3.5 rounded-2xl border-2 border-gray-200 hover:border-amber-400 bg-white hover:bg-amber-50/40 cursor-pointer transition-all">
+                        <span
+                            class="absolute -top-2.5 right-4 px-2 py-0.5 bg-indigo-600 text-white rounded-full text-[10px] font-extrabold uppercase tracking-wider shadow-2xs">STUDIO
+                            HEMAT ⚡</span>
+                        <div class="flex items-center gap-3">
+                            <input type="radio" name="credit_pkg" value="50" data-price="Rp 150.000"
+                                data-label="Paket 50x Sortir" class="w-4 h-4 text-amber-600 focus:ring-amber-500"
+                                onchange="onCreditPackageChange(this)">
+                            <div>
+                                <div class="font-bold text-gray-900 text-sm">Paket Studio: 50x Sortir</div>
+                                <div class="text-[11px] text-gray-500">Hemat 40% (Rp 3.000 / sesi)</div>
+                            </div>
+                        </div>
+                        <span class="text-sm font-extrabold text-gray-900 font-mono">Rp 150.000</span>
+                    </label>
+                </div>
+
+                <!-- Box Detail WhatsApp Admin -->
+                <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-1.5">
+                    <div class="flex items-center justify-between text-gray-600">
+                        <span>Paket Dipilih:</span>
+                        <strong id="modal-topup-pkg-label" class="text-gray-900">Paket 15x Sortir (Rp 60.000)</strong>
+                    </div>
+                    <div class="flex items-center justify-between text-gray-600">
+                        <span>WhatsApp Admin:</span>
+                        <strong id="modal-topup-admin-wa" class="text-emerald-700 font-mono">081234567890</strong>
+                    </div>
+                </div>
+
+                <div class="text-[11px] text-gray-500 leading-relaxed flex items-center gap-1.5">
+                    <i class="fas fa-shield-alt text-emerald-600"></i>
+                    <span>Setelah pembayaran, Admin akan langsung mengupdate saldo credit Anda di sistem.</span>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div
+                class="p-4 sm:p-5 px-6 border-t border-gray-100 flex flex-col-reverse sm:flex-row items-center justify-between gap-2.5 bg-gray-50/80">
+                <button type="button" onclick="closeCreditTopUpModal()"
+                    class="w-full sm:w-auto px-4 py-2.5 text-xs sm:text-sm font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer text-center">
+                    Batal
+                </button>
+                <button type="button" onclick="executeTopUpViaWa()"
+                    class="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md shadow-emerald-600/25 flex items-center justify-center gap-2 cursor-pointer">
+                    <i class="fab fa-whatsapp text-base"></i>
+                    <span>Kirim Pesan Top-Up ke Admin</span>
+                </button>
+            </div>
+        </div>
+    </div>
 </body>
 
 </html>
