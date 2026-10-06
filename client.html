@@ -28,6 +28,9 @@
                     var defaultGasUrl = "https://script.google.com/macros/s/AKfycby-2Fa7q5ZObc7D8_bRs7aJH-gYCzDXq-Ms2njEXtV7Zuj4LYekorYJnGxR67B-Qofs/exec";
                     var query = window.location.search || '';
                     var params = new URLSearchParams(query);
+                    if (!params.get('v_domain')) {
+                        params.set('v_domain', window.location.origin);
+                    }
                     params.set('page', 'client'); // Pastikan membuka halaman Client
                     var targetSrc = defaultGasUrl + '?' + params.toString();
 
@@ -54,6 +57,9 @@
                     var loader = document.getElementById('portalLoader');
                     if (frame && loader) {
                         frame.onload = function () {
+                            try {
+                                frame.contentWindow.postMessage({ type: 'SET_DOMAIN', domain: window.location.origin }, '*');
+                            } catch (e) { }
                             loader.style.opacity = '0';
                             setTimeout(function () { loader.style.display = 'none'; }, 300);
                         };
@@ -1226,6 +1232,21 @@
         }
         window.GOOGLE_SITES_URL = rawClientSitesUrl;
         window.INITIAL_GALLERY_ID = "<?= (typeof initialGaleri !== 'undefined' && initialGaleri) ? initialGaleri : '' ?>";
+        window.CUSTOM_VERCEL_DOMAIN = "<?= (typeof customDomain !== 'undefined' && customDomain) ? customDomain : '' ?>";
+        try {
+            var _cParams = new URLSearchParams(window.location.search);
+            if (_cParams.get('v_domain')) {
+                var _vdClient = _cParams.get('v_domain');
+                window.CUSTOM_VERCEL_DOMAIN = _vdClient;
+                try { localStorage.setItem('custom_vercel_domain', _vdClient); } catch (e) { }
+            }
+        } catch (e) { }
+        window.addEventListener('message', function (ev) {
+            if (ev.data && ev.data.type === 'SET_DOMAIN' && ev.data.domain) {
+                window.CUSTOM_VERCEL_DOMAIN = ev.data.domain;
+                try { localStorage.setItem('custom_vercel_domain', ev.data.domain); } catch (e) { }
+            }
+        });
         try {
             var _initDataEl = document.getElementById('initialGalleryDataJson');
             window.INITIAL_GALLERY_DATA = _initDataEl ? JSON.parse(_initDataEl.textContent.trim()) : null;
