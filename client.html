@@ -179,83 +179,156 @@
             pointer-events: auto;
         }
 
-        /* Photo Grid Layout & Dynamic Grid System */
+        /* Photo Grid Layout: Mode Desktop Full Page (Lebar Penuh & Multi-Kolom) */
         .photo-grid {
-            column-count: 4;
-            column-gap: 1rem;
+            display: grid !important;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+            column-gap: 1.125rem !important;
+            row-gap: 1.35rem !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            align-items: start !important;
         }
 
-        @media (max-width: 1200px) {
+        @media (min-width: 641px) and (max-width: 1023px) {
             .photo-grid {
-                column-count: 3;
-                column-gap: 0.875rem;
+                grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+                column-gap: 1rem !important;
+                row-gap: 1.25rem !important;
+                max-width: 100% !important;
             }
         }
 
-        /* --- Tampilan Layar HP (< 640px): 2 Kolom Proporsional (Potret 1 Kolom, Landscape 2 Kolom Penuh) --- */
+        @media (min-width: 1024px) and (max-width: 1439px) {
+            .photo-grid {
+                grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+                column-gap: 1.25rem !important;
+                row-gap: 1.5rem !important;
+                max-width: 100% !important;
+            }
+        }
+
+        @media (min-width: 1440px) {
+            .photo-grid {
+                grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+                column-gap: 1.25rem !important;
+                row-gap: 1.5rem !important;
+                max-width: 100% !important;
+            }
+        }
+
+        /* Kartu foto tampil proporsional sesuai rasio asli (Potret tampil potret, Landscape tampil landscape) */
+        .photo-item {
+            grid-column: span 1 !important;
+            width: 100% !important;
+            margin-bottom: 0 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            border-radius: 0.85rem !important;
+            overflow: hidden !important;
+            border: 2px solid #e2e8f0 !important;
+            background-color: #ffffff !important;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            content-visibility: auto;
+            contain-intrinsic-size: auto 300px;
+            align-self: start !important;
+        }
+
+        /* Frame foto mengikuti orientasi asli (Potret = tinggi/vertikal, Landscape = lebar/horizontal) */
+        .photo-item .photo-img-wrapper {
+            position: relative !important;
+            width: 100% !important;
+            aspect-ratio: auto;
+            min-height: 160px;
+            overflow: hidden !important;
+            background-color: #f8fafc !important;
+            flex-shrink: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+
+        .photo-item.photo-portrait .photo-img-wrapper {
+            aspect-ratio: 2 / 3;
+        }
+
+        .photo-item.photo-landscape .photo-img-wrapper {
+            aspect-ratio: 3 / 2;
+        }
+
+        .photo-item .photo-img-wrapper img,
+        .photo-item.photo-portrait .photo-img-wrapper img,
+        .photo-item.photo-landscape .photo-img-wrapper img {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+            object-position: center !important;
+            display: block !important;
+        }
+
+        /* Area tombol & nama file di bawah gambar (Terpisah rapi tanpa menutupi foto) */
+        .photo-item .photo-card-bottom {
+            padding: 0.6rem 0.5rem !important;
+            gap: 0.35rem !important;
+            background-color: #ffffff !important;
+            border-top: 1px solid #f1f5f9 !important;
+            flex: 1 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+        }
+
+        /* --- Penyesuaian khusus Layar HP (< 640px): 2 Kolom Masonry Rapat & Padat (Tanpa Celah Kosong) --- */
         @media (max-width: 640px) {
-            .photo-grid {
-                display: grid !important;
-                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-                grid-auto-flow: dense !important;
-                column-count: auto !important;
-                column-gap: 0.625rem !important;
-                row-gap: 0.75rem !important;
+            .photo-grid,
+            .photo-grid.mobile-masonry {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                flex-direction: row !important;
+                align-items: flex-start !important;
+                justify-content: space-between !important;
+                gap: 0.5rem !important;
                 width: 100% !important;
+                max-width: 100% !important;
             }
 
-            .photo-item {
-                break-inside: avoid;
-                margin-bottom: 0 !important;
-                width: 100% !important;
-                border-radius: 0.75rem !important;
-                border-width: 1.5px !important;
-                grid-column: span 1; /* Default potret: 1 dari 2 kolom (2 foto berdampingan) */
-                content-visibility: auto;
-                contain-intrinsic-size: auto 260px;
+            .photo-col-masonry {
                 display: flex !important;
                 flex-direction: column !important;
-                overflow: hidden !important;
-                background-color: #ffffff !important;
+                flex: 1 1 0% !important;
+                min-width: 0 !important;
+                width: calc(50% - 0.25rem) !important;
+                max-width: calc(50% - 0.25rem) !important;
+                gap: 0.55rem !important;
             }
 
-            /* Jika foto Potret: tampil 1 dari 2 kolom (2 foto per baris) */
-            .photo-item.photo-portrait {
-                grid-column: span 1 !important;
-            }
-
-            /* Jika foto Landscape: tampil 2 kolom penuh (lebar penuh layar HP agar proporsional dan jelas) */
-            .photo-item.photo-landscape {
-                grid-column: span 2 !important;
-            }
-
-            /* Rasio gambar agar pas dan proporsional di layar HP */
-            .photo-item.photo-portrait .photo-img-wrapper img {
-                aspect-ratio: 3 / 4 !important;
+            .photo-col-masonry .photo-item,
+            .photo-item {
                 width: 100% !important;
-                height: auto !important;
-                object-fit: cover !important;
+                margin-bottom: 0 !important;
+                align-self: stretch !important;
+                border-radius: 0.75rem !important;
+                border-width: 1.5px !important;
             }
 
-            .photo-item.photo-landscape .photo-img-wrapper img {
-                aspect-ratio: 3 / 2 !important;
+            .photo-item .photo-img-wrapper {
+                min-height: 0 !important; /* Hilangkan min-height buatan agar foto landscape padat tanpa celah kosong */
+            }
+
+            #clientGallerySentinel {
+                flex-basis: 100% !important;
                 width: 100% !important;
-                height: auto !important;
-                object-fit: cover !important;
+                order: 9999 !important;
             }
 
-            .photo-item:not(.photo-landscape):not(.photo-portrait) .photo-img-wrapper img {
-                aspect-ratio: 3 / 4 !important;
-                width: 100% !important;
-                height: auto !important;
-                object-fit: cover !important;
-            }
-
-            /* Area tombol & nama file di bawah gambar (SAMA SEKALI TIDAK MENUTUPI FOTO) */
             .photo-item .photo-card-bottom {
-                padding: 0.5rem !important;
-                gap: 0.35rem !important;
-                background-color: #ffffff !important;
+                padding: 0.45rem 0.4rem !important;
+                gap: 0.3rem !important;
             }
 
             .photo-item .photo-filename {
@@ -266,50 +339,32 @@
             }
 
             .photo-item .btn-card-select {
-                padding: 0.45rem 0.5rem !important;
+                padding: 0.45rem 0.4rem !important;
                 font-size: 0.75rem !important;
                 border-radius: 0.5rem !important;
-                min-height: 34px !important;
+                min-height: 33px !important;
                 font-weight: 700 !important;
             }
 
             .photo-item .btn-card-note {
-                padding: 0.35rem 0.5rem !important;
-                font-size: 0.7rem !important;
+                padding: 0.35rem 0.4rem !important;
+                font-size: 0.68rem !important;
                 border-radius: 0.5rem !important;
             }
 
             .photo-item .note-preview-box {
-                padding: 0.25rem 0.45rem !important;
-                font-size: 0.68rem !important;
+                padding: 0.25rem 0.4rem !important;
+                font-size: 0.66rem !important;
                 border-radius: 0.375rem !important;
             }
 
             .photo-item .photo-sel-badge {
                 top: 0.4rem !important;
                 right: 0.4rem !important;
-                padding: 0.15rem 0.45rem !important;
-                font-size: 0.68rem !important;
+                padding: 0.15rem 0.4rem !important;
+                font-size: 0.65rem !important;
                 border-radius: 0.375rem !important;
             }
-        }
-
-        .photo-item {
-            break-inside: avoid;
-            margin-bottom: 1rem;
-            display: inline-block;
-            width: 100%;
-            position: relative;
-            border-radius: 0.85rem;
-            overflow: hidden;
-            border: 2px solid #e2e8f0;
-            background-color: #ffffff;
-            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
-            content-visibility: auto;
-            contain-intrinsic-size: auto 240px;
         }
 
         .photo-item:hover {
@@ -440,7 +495,8 @@
     <div id="fullPageLoading">
         <div class="spinner mb-4"></div>
         <h3 class="text-base font-bold text-gray-800" id="loadingTitle">Sedang Masuk ke Galeri Foto...</h3>
-        <p class="text-xs text-gray-500 mt-1" id="loadingSubtitle">Menyiapkan dan memuat foto-foto terbaik Anda, mohon tunggu sebentar...</p>
+        <p class="text-xs text-gray-500 mt-1" id="loadingSubtitle">Menyiapkan dan memuat foto-foto terbaik Anda, mohon
+            tunggu sebentar...</p>
     </div>
 
     <!-- 1. CLIENT PORTAL / INPUT KODE (Tampil jika dibuka tanpa parameter kode galeri) -->
@@ -745,18 +801,24 @@
 
                 <!-- Photos Container (Masonry Grid) -->
                 <div id="clientPhotoContainer" class="photo-grid">
-                    <div id="clientInitialEnteringState" class="col-span-full py-16 sm:py-24 text-center flex flex-col items-center justify-center p-6 animate-in fade-in duration-300">
+                    <div id="clientInitialEnteringState"
+                        class="col-span-full py-16 sm:py-24 text-center flex flex-col items-center justify-center p-6 animate-in fade-in duration-300">
                         <div class="relative mb-4">
-                            <div class="w-16 h-16 rounded-3xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-2xl shadow-xl shadow-blue-500/25">
+                            <div
+                                class="w-16 h-16 rounded-3xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-2xl shadow-xl shadow-blue-500/25">
                                 <i class="fas fa-images"></i>
                             </div>
-                            <div class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-md">
+                            <div
+                                class="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-white flex items-center justify-center shadow-md">
                                 <i class="fas fa-circle-notch fa-spin text-blue-600 text-xs"></i>
                             </div>
                         </div>
-                        <h3 class="text-base sm:text-lg font-bold text-gray-900 tracking-tight" id="initialEnteringTitle">Sedang Masuk ke Galeri Foto...</h3>
-                        <p class="text-xs sm:text-sm text-gray-500 mt-1 max-w-xs">Menyiapkan dan memuat foto-foto pilihan Anda, mohon tunggu sebentar...</p>
-                        <div class="mt-4 flex items-center gap-2 text-xs font-semibold text-blue-700 bg-blue-50 px-3.5 py-1.5 rounded-full border border-blue-200/80">
+                        <h3 class="text-base sm:text-lg font-bold text-gray-900 tracking-tight"
+                            id="initialEnteringTitle">Sedang Masuk ke Galeri Foto...</h3>
+                        <p class="text-xs sm:text-sm text-gray-500 mt-1 max-w-xs">Menyiapkan dan memuat foto-foto
+                            pilihan Anda, mohon tunggu sebentar...</p>
+                        <div
+                            class="mt-4 flex items-center gap-2 text-xs font-semibold text-blue-700 bg-blue-50 px-3.5 py-1.5 rounded-full border border-blue-200/80">
                             <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
                             <span id="initialEnteringBadge">Menghubungkan ke server...</span>
                         </div>
@@ -954,7 +1016,7 @@
 
     <!-- MODAL: CLIENT REVIEW & REKAP SELEKSI -->
     <div id="modalClientReview"
-        class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4">
+        class="hidden fixed inset-0 bg-black/75 backdrop-blur-xs z-[10005] flex items-center justify-center p-3 sm:p-4">
         <div
             class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-gray-100 animate-in fade-in zoom-in-95 duration-200">
             <!-- Modal Header -->
@@ -1083,16 +1145,21 @@
                     </p>
                 </div>
 
-                <!-- Input Nomor WhatsApp Fotografer / Vendor -->
-                <div class="bg-gray-50 border border-gray-200 rounded-2xl p-3.5 space-y-1.5">
-                    <label class="block text-xs font-bold text-gray-700">
-                        <i class="fab fa-whatsapp text-emerald-600 mr-1"></i> Nomor WhatsApp Fotografer:
-                    </label>
-                    <input type="tel" id="reviewClientWaInput" placeholder="Contoh: 081234567890"
-                        class="w-full px-3.5 py-2 text-xs sm:text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white" />
-                    <p id="reviewClientWaNote" class="text-[10px] text-gray-500">Pesan dan rekap foto otomatis
-                        diteruskan ke nomor ini saat
-                        "Kirim Sekarang" ditekan.</p>
+                <!-- Nomor WhatsApp Fotografer / Vendor dari Sistem -->
+                <div class="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-3.5 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="block text-xs font-bold text-emerald-950 flex items-center gap-1.5">
+                            <i class="fab fa-whatsapp text-emerald-600 text-sm"></i> Nomor WhatsApp Vendor Sistem:
+                        </label>
+                        <span id="reviewVendorWaBadge" class="text-[10px] font-bold text-emerald-700 bg-white px-2 py-0.5 rounded-full border border-emerald-200">
+                            Terhubung Sistem
+                        </span>
+                    </div>
+                    <input type="tel" id="reviewClientWaInput" placeholder="Nomor WhatsApp vendor otomatis..."
+                        class="w-full px-3.5 py-2.5 text-xs sm:text-sm border border-emerald-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 bg-white font-semibold text-gray-800" />
+                    <p id="reviewClientWaNote" class="text-[10px] text-emerald-800/90 leading-tight">
+                        <i class="fas fa-paper-plane mr-0.5 text-emerald-600"></i> Rekap daftar foto pilihan Anda langsung diarahkan dan dikirimkan ke nomor WhatsApp vendor ini.
+                    </p>
                 </div>
 
                 <!-- Lock Notice -->
@@ -1119,9 +1186,9 @@
                     <i class="fas fa-arrow-left mr-1.5"></i> Periksa Lagi
                 </button>
                 <button type="button" onclick="clientApp.executeFinalSubmit()" id="btnConfirmSubmitClient"
-                    class="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 cursor-pointer">
-                    <i class="fas fa-paper-plane"></i>
-                    <span>Kirim Sekarang</span>
+                    class="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 cursor-pointer">
+                    <i class="fab fa-whatsapp text-base sm:text-lg"></i>
+                    <span>Kirim ke WhatsApp Vendor</span>
                 </button>
             </div>
         </div>
@@ -1235,7 +1302,7 @@
                         <a id="btnDirectSendWaSuccess" href="#" target="_blank" rel="noopener noreferrer"
                             class="hidden w-full px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-98 cursor-pointer ring-2 ring-emerald-400/40">
                             <i class="fab fa-whatsapp text-xl"></i>
-                            <span>Kirim / Buka WhatsApp Fotografer</span>
+                            <span>Kirim Pesan ke WhatsApp Vendor</span>
                         </a>
                         <button type="button" onclick="clientApp.copySimpleFileNames()"
                             class="w-full px-4 py-2.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-800 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-2xs active:scale-98">
@@ -1434,6 +1501,57 @@
             var txt = document.createElement('textarea');
             txt.innerHTML = String(text);
             return txt.value;
+        }
+
+        // Langsung membuka aplikasi WhatsApp ke vendor secara otomatis (mendukung HP & Desktop)
+        function openWhatsAppDirect(phone, message) {
+            var cleanPhone = '';
+            if (phone) {
+                cleanPhone = String(phone).replace(/[^0-9]/g, '');
+                if (cleanPhone.startsWith('0')) cleanPhone = '62' + cleanPhone.slice(1);
+                else if (cleanPhone.startsWith('8')) cleanPhone = '62' + cleanPhone;
+            }
+
+            var textParam = encodeURIComponent(message || '');
+            var nativeUrl = (cleanPhone && cleanPhone.length >= 9)
+                ? ('whatsapp://send?phone=' + cleanPhone + '&text=' + textParam)
+                : ('whatsapp://send?text=' + textParam);
+            var webUrl = (cleanPhone && cleanPhone.length >= 9)
+                ? ('https://api.whatsapp.com/send?phone=' + cleanPhone + '&text=' + textParam)
+                : ('https://api.whatsapp.com/send?text=' + textParam);
+
+            // Salin pesan ke clipboard secara otomatis (backup aman)
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                try { navigator.clipboard.writeText(message); } catch (e) { }
+            }
+
+            var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+            var targetUrl = isMobile ? nativeUrl : webUrl;
+
+            // Picu peluncuran aplikasi WhatsApp
+            var a = document.createElement('a');
+            a.href = targetUrl;
+            if (!isMobile) {
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+            }
+            a.style.display = 'none';
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(function () {
+                try { document.body.removeChild(a); } catch (e) { }
+            }, 1000);
+
+            // Fallback trigger jika di browser smartphone
+            if (isMobile) {
+                setTimeout(function () {
+                    try {
+                        window.location.href = nativeUrl;
+                    } catch (e) { }
+                }, 200);
+            }
+
+            return targetUrl;
         }
 
         function extractDriveId(url) {
@@ -2545,7 +2663,7 @@
                 if (filtered.length === 0) {
                     this.updateScrollSentinel(false);
                     container.innerHTML = `
-                        <div class="py-16 text-center bg-white rounded-3xl border border-gray-200 shadow-2xs p-6 col-span-full">
+                        <div class="py-16 text-center bg-white rounded-3xl border border-gray-200 shadow-2xs p-6 col-span-full w-full">
                             <div class="w-14 h-14 mx-auto rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-2xl mb-3 shadow-inner">
                                 <i class="${this.clientData.activeFilter === 'selected' ? 'fas fa-check-circle' : 'fas fa-images'}"></i>
                             </div>
@@ -2561,6 +2679,18 @@
                         </div>
                     `;
                     return;
+                }
+
+                // Mode HP (< 640px): Siapkan 2 Kolom Masonry rapat agar foto landscape & portrait padat tanpa ruang kosong
+                var isMobile = (typeof window !== 'undefined' && window.innerWidth <= 640);
+                this._isMobileView = isMobile;
+
+                if (isMobile) {
+                    container.className = 'photo-grid mobile-masonry';
+                    container.innerHTML = '<div class="photo-col-masonry" id="photoCol0"></div><div class="photo-col-masonry" id="photoCol1"></div>';
+                } else {
+                    container.className = 'photo-grid';
+                    container.innerHTML = '';
                 }
 
                 // Inisialisasi state batch rendering cerdas
@@ -2588,19 +2718,47 @@
                     return;
                 }
 
-                var start = st.renderedCount;
-                var end = Math.min(start + st.batchSize, st.photos.length);
-                var fragment = document.createDocumentFragment();
+                var isMobile = (typeof window !== 'undefined' && window.innerWidth <= 640);
+                var col0 = isMobile ? document.getElementById('photoCol0') : null;
+                var col1 = isMobile ? document.getElementById('photoCol1') : null;
 
-                for (var i = start; i < end; i++) {
-                    fragment.appendChild(this.createPhotoCard(st.photos[i], i));
+                // Jika di mode mobile tapi kolom belum ada, siapkan kolom masonry
+                if (isMobile && (!col0 || !col1)) {
+                    container.className = 'photo-grid mobile-masonry';
+                    container.innerHTML = '<div class="photo-col-masonry" id="photoCol0"></div><div class="photo-col-masonry" id="photoCol1"></div>';
+                    col0 = document.getElementById('photoCol0');
+                    col1 = document.getElementById('photoCol1');
                 }
 
-                var sentinel = document.getElementById('clientGallerySentinel');
-                if (sentinel && sentinel.parentNode === container) {
-                    container.insertBefore(fragment, sentinel);
+                var start = st.renderedCount;
+                var end = Math.min(start + st.batchSize, st.photos.length);
+
+                if (isMobile && col0 && col1) {
+                    var frag0 = document.createDocumentFragment();
+                    var frag1 = document.createDocumentFragment();
+
+                    for (var i = start; i < end; i++) {
+                        var card = this.createPhotoCard(st.photos[i], i);
+                        if (i % 2 === 0) {
+                            frag0.appendChild(card);
+                        } else {
+                            frag1.appendChild(card);
+                        }
+                    }
+                    col0.appendChild(frag0);
+                    col1.appendChild(frag1);
                 } else {
-                    container.appendChild(fragment);
+                    var fragment = document.createDocumentFragment();
+                    for (var i = start; i < end; i++) {
+                        fragment.appendChild(this.createPhotoCard(st.photos[i], i));
+                    }
+
+                    var sentinel = document.getElementById('clientGallerySentinel');
+                    if (sentinel && sentinel.parentNode === container) {
+                        container.insertBefore(fragment, sentinel);
+                    } else {
+                        container.appendChild(fragment);
+                    }
                 }
 
                 st.renderedCount = end;
@@ -2696,9 +2854,13 @@
                 var isLandscape = img.naturalWidth > img.naturalHeight;
                 var targetClass = isLandscape ? 'photo-landscape' : 'photo-portrait';
                 var removeClass = isLandscape ? 'photo-portrait' : 'photo-landscape';
-                if (!card.classList.contains(targetClass)) {
-                    card.classList.add(targetClass);
-                    card.classList.remove(removeClass);
+                card.classList.add(targetClass);
+                card.classList.remove(removeClass);
+
+                // Terapkan rasio aspek asli foto ke wrapper secara presisi tanpa distorsi
+                var wrapper = card.querySelector('.photo-img-wrapper');
+                if (wrapper) {
+                    wrapper.style.setProperty('aspect-ratio', img.naturalWidth + ' / ' + img.naturalHeight, 'important');
                 }
             },
 
@@ -2794,7 +2956,7 @@
                     <!-- Bagian Foto (Bebas dari tombol yang menutupi gambar) -->
                     <div class="photo-img-wrapper cursor-pointer relative overflow-hidden group bg-gray-100" onclick="clientApp.openLightbox('${escapeHTML(p.id_foto)}')">
                         ${badgeHtml}
-                        <img src="${escapeHTML(displayUrl)}" alt="${escapeHTML(p.nama_file)}" loading="${idx < 8 ? 'eager' : 'lazy'}" decoding="async" ${idx < 4 ? 'fetchpriority="high"' : ''} onload="clientApp.handlePhotoOrient(this, 'photo-${escapeHTML(p.id_foto)}')" class="w-full h-auto block object-cover sm:aspect-auto sm:object-contain transition-transform duration-300 group-hover:scale-[1.02]" onerror="handleImageError(this, '${escapeHTML(driveId)}')">
+                        <img src="${escapeHTML(displayUrl)}" alt="${escapeHTML(p.nama_file)}" loading="${idx < 8 ? 'eager' : 'lazy'}" decoding="async" ${idx < 4 ? 'fetchpriority="high"' : ''} onload="clientApp.handlePhotoOrient(this, 'photo-${escapeHTML(p.id_foto)}')" class="w-full h-full block object-cover transition-transform duration-300 group-hover:scale-[1.02]" onerror="handleImageError(this, '${escapeHTML(driveId)}')">
                         
                         <div class="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-10">
                             <span class="bg-black/60 text-white p-2.5 rounded-full text-xs shadow-md"><i class="fas fa-search-plus"></i></span>
@@ -2806,6 +2968,15 @@
                         ${bottomHtml}
                     </div>
                 `;
+
+                // Jika gambar sudah selesai dimuat dari cache browser, langsung sinkronkan orientasinya
+                setTimeout(function () {
+                    var imgEl = div.querySelector('img');
+                    if (imgEl && imgEl.complete && imgEl.naturalWidth) {
+                        clientApp.handlePhotoOrient(imgEl, div.id);
+                    }
+                }, 0);
+
                 return div;
             },
 
@@ -3106,115 +3277,145 @@
 
             // --- CLIENT REVIEW & SUBMIT ---
             openClientReviewModal: function () {
-                var count = this.clientData.selected ? this.clientData.selected.size : 0;
-                var gal = this.clientData.gallery;
-                var max = gal ? (parseInt(gal.batas_foto, 10) || 30) : 30;
-                var totalPhotos = (this.clientData.photos || []).length;
-                var isComplete = (count >= max) || (totalPhotos > 0 && count >= totalPhotos);
+                try {
+                    var count = this.clientData.selected ? this.clientData.selected.size : 0;
+                    var gal = this.clientData.gallery;
+                    var max = gal ? (parseInt(gal.batas_foto, 10) || 30) : 30;
+                    var totalPhotos = (this.clientData.photos || []).length;
+                    var isComplete = (count >= max) || (totalPhotos > 0 && count >= totalPhotos) || (max <= 0 && count > 0);
 
-                if (count === 0) {
-                    this.showToast('Pilih minimal 1 foto terlebih dahulu.', true);
-                    return;
-                }
+                    if (count === 0) {
+                        this.showToast('Pilih minimal 1 foto terlebih dahulu.', true);
+                        return;
+                    }
 
-                if (!isComplete && (!gal || gal.status !== 'Selesai')) {
-                    this.showToast('Pilihan belum lengkap. Silakan pilih ' + (max - count) + ' foto lagi hingga total ' + max + ' foto sebelum mengirim pilihan.', true);
-                    return;
-                }
+                    if (!isComplete && (!gal || gal.status !== 'Selesai')) {
+                        this.showToast('Pilihan belum lengkap. Silakan pilih ' + (max - count) + ' foto lagi hingga total ' + max + ' foto sebelum mengirim pilihan.', true);
+                        return;
+                    }
 
-                var notesCount = 0;
-                this.clientData.selected.forEach(function (n) { if (n && n.trim()) notesCount++; });
+                    var notesCount = 0;
+                    if (this.clientData.selected) {
+                        this.clientData.selected.forEach(function (n) { if (n && n.trim()) notesCount++; });
+                    }
 
-                document.getElementById('reviewPhotoCount').textContent = count;
-                document.getElementById('reviewMaxCountText').textContent = 'dari kuota ' + max + ' foto';
-                document.getElementById('reviewNoteCount').textContent = notesCount;
-                document.getElementById('reviewPhotoCountBadge').textContent = count + ' Foto';
-                document.getElementById('reviewNotesSectionBadge').textContent = notesCount + ' Catatan';
+                    var elRpc = document.getElementById('reviewPhotoCount');
+                    if (elRpc) elRpc.textContent = count;
+                    var elRmc = document.getElementById('reviewMaxCountText');
+                    if (elRmc) elRmc.textContent = 'dari kuota ' + max + ' foto';
+                    var elRnc = document.getElementById('reviewNoteCount');
+                    if (elRnc) elRnc.textContent = notesCount;
+                    var elRpb = document.getElementById('reviewPhotoCountBadge');
+                    if (elRpb) elRpb.textContent = count + ' Foto';
+                    var elRnb = document.getElementById('reviewNotesSectionBadge');
+                    if (elRnb) elRnb.textContent = notesCount + ' Catatan';
 
-                // Render per-folder grouping
-                var container = document.getElementById('reviewPhotoListContainer');
-                container.innerHTML = '';
-                var allPhotos = this.clientData.photos || [];
+                    // Render per-folder grouping
+                    var container = document.getElementById('reviewPhotoListContainer');
+                    if (container) {
+                        container.innerHTML = '';
+                        var grouped = this.getGroupedSelections();
+                        grouped.sortedFolders.forEach(function (fName) {
+                            var items = grouped.folderMap[fName] || [];
+                            if (items.length === 0) return;
 
-                var grouped = this.getGroupedSelections();
-                grouped.sortedFolders.forEach(function (fName) {
-                    var items = grouped.folderMap[fName] || [];
-                    if (items.length === 0) return;
-
-                    var fWrap = document.createElement('div');
-                    fWrap.className = 'space-y-1.5 mb-3 last:mb-0';
-                    fWrap.innerHTML = `
-                        <div class="flex items-center justify-between bg-blue-50/90 border border-blue-200/80 px-3 py-1.5 rounded-xl sticky top-0 z-10 backdrop-blur-xs">
-                            <span class="text-xs font-bold text-blue-950 truncate">${escapeHTML(fName)}</span>
-                            <span class="text-[10px] font-bold text-blue-700 bg-white px-2 py-0.5 rounded-full border border-blue-200">${items.length} Foto</span>
-                        </div>
-                    `;
-
-                    var itemsWrap = document.createElement('div');
-                    itemsWrap.className = 'space-y-1 pl-1';
-                    items.forEach(function (item, idx) {
-                        var p = item.photo;
-                        var displayUrl = formatPhotoDisplayUrl(p.url_foto);
-                        var driveId = p.id_drive || extractDriveId(p.url_foto);
-                        var row = document.createElement('div');
-                        row.className = 'flex items-center gap-2.5 p-1.5 bg-white rounded-xl border border-gray-200/80 shadow-2xs';
-                        row.innerHTML = `
-                            <img src="${escapeHTML(displayUrl)}" alt="${escapeHTML(p.nama_file)}" class="w-10 h-10 object-cover rounded-lg shrink-0 border border-gray-200" onerror="handleImageError(this, '${escapeHTML(driveId)}')">
-                            <div class="flex-1 min-w-0">
-                                <span class="font-mono text-xs font-bold text-gray-800 truncate block">${escapeHTML(p.nama_file)}</span>
-                                ${item.note ? `<span class="text-[10px] text-amber-800 italic block truncate"><i class="fas fa-comment-dots text-amber-500 mr-1"></i>${escapeHTML(item.note)}</span>` : ''}
-                            </div>
-                        `;
-                        itemsWrap.appendChild(row);
-                    });
-                    fWrap.appendChild(itemsWrap);
-                    container.appendChild(fWrap);
-                });
-
-                // Notes recap list
-                var nContainer = document.getElementById('reviewNotesListContainer');
-                nContainer.innerHTML = '';
-                var noteIdx = 1;
-                grouped.sortedFolders.forEach(function (fName) {
-                    var items = grouped.folderMap[fName] || [];
-                    items.forEach(function (item) {
-                        if (item.note && item.note.trim()) {
-                            var nRow = document.createElement('div');
-                            nRow.className = 'flex items-start gap-2 p-2 bg-white rounded-xl border border-amber-200/80';
-                            nRow.innerHTML = `
-                                <span class="text-xs font-bold text-amber-800 shrink-0">${noteIdx}.</span>
-                                <div class="flex-1 min-w-0">
-                                    <span class="font-mono text-xs font-bold text-gray-900 truncate block">${escapeHTML(item.photo.nama_file)}</span>
-                                    <p class="text-xs text-amber-950 mt-0.5 leading-relaxed">${escapeHTML(item.note)}</p>
+                            var fWrap = document.createElement('div');
+                            fWrap.className = 'space-y-1.5 mb-3 last:mb-0';
+                            fWrap.innerHTML = `
+                                <div class="flex items-center justify-between bg-blue-50/90 border border-blue-200/80 px-3 py-1.5 rounded-xl sticky top-0 z-10 backdrop-blur-xs">
+                                    <span class="text-xs font-bold text-blue-950 truncate">${escapeHTML(fName)}</span>
+                                    <span class="text-[10px] font-bold text-blue-700 bg-white px-2 py-0.5 rounded-full border border-blue-200">${items.length} Foto</span>
                                 </div>
                             `;
-                            nContainer.appendChild(nRow);
-                            noteIdx++;
-                        }
-                    });
-                });
-                if (noteIdx === 1) {
-                    nContainer.innerHTML = '<p class="text-xs text-amber-800/70 italic p-2">Tidak ada pilihan catatan khusus.</p>';
-                }
 
-                // WhatsApp Vendor input
-                var waInput = document.getElementById('reviewClientWaInput');
-                if (waInput) {
-                    var defaultWa = (gal && (gal.whatsapp_vendor || gal.whatsapp_client)) ? String(gal.whatsapp_vendor || gal.whatsapp_client) : '';
-                    if (!defaultWa) {
-                        try { defaultWa = localStorage.getItem('last_vendor_wa') || ''; } catch (e) { }
+                            var itemsWrap = document.createElement('div');
+                            itemsWrap.className = 'space-y-1 pl-1';
+                            items.forEach(function (item, idx) {
+                                var p = item.photo || {};
+                                var fileName = p.nama_file || ('Foto ' + (idx + 1));
+                                var displayUrl = formatPhotoDisplayUrl(p.url_foto);
+                                var driveId = p.id_drive || extractDriveId(p.url_foto);
+                                var row = document.createElement('div');
+                                row.className = 'flex items-center gap-2.5 p-1.5 bg-white rounded-xl border border-gray-200/80 shadow-2xs';
+                                row.innerHTML = `
+                                    <img src="${escapeHTML(displayUrl)}" alt="${escapeHTML(fileName)}" class="w-10 h-10 object-cover rounded-lg shrink-0 border border-gray-200" onerror="handleImageError(this, '${escapeHTML(driveId)}')">
+                                    <div class="flex-1 min-w-0">
+                                        <span class="font-mono text-xs font-bold text-gray-800 truncate block">${escapeHTML(fileName)}</span>
+                                        ${item.note ? `<span class="text-[10px] text-amber-800 italic block truncate"><i class="fas fa-comment-dots text-amber-500 mr-1"></i>${escapeHTML(item.note)}</span>` : ''}
+                                    </div>
+                                `;
+                                itemsWrap.appendChild(row);
+                            });
+                            fWrap.appendChild(itemsWrap);
+                            container.appendChild(fWrap);
+                        });
                     }
-                    waInput.value = defaultWa;
-                }
 
-                // Inisialisasi toggle kirim langsung ke WhatsApp tanpa folder Drive
-                var toggleDirectWa = document.getElementById('toggleDirectWaNoDrive');
-                if (toggleDirectWa) {
-                    toggleDirectWa.checked = this.isDirectWaNoDriveActive();
-                    this.onToggleDirectWaNoDrive(toggleDirectWa.checked);
-                }
+                    // Notes recap list
+                    var nContainer = document.getElementById('reviewNotesListContainer');
+                    if (nContainer) {
+                        nContainer.innerHTML = '';
+                        var noteIdx = 1;
+                        var groupedNotes = this.getGroupedSelections();
+                        groupedNotes.sortedFolders.forEach(function (fName) {
+                            var items = groupedNotes.folderMap[fName] || [];
+                            items.forEach(function (item) {
+                                if (item.note && item.note.trim()) {
+                                    var nRow = document.createElement('div');
+                                    nRow.className = 'flex items-start gap-2 p-2 bg-white rounded-xl border border-amber-200/80';
+                                    nRow.innerHTML = `
+                                        <span class="text-xs font-bold text-amber-800 shrink-0">${noteIdx}.</span>
+                                        <div class="flex-1 min-w-0">
+                                            <span class="font-mono text-xs font-bold text-gray-900 truncate block">${escapeHTML((item.photo && item.photo.nama_file) || '')}</span>
+                                            <p class="text-xs text-amber-950 mt-0.5 leading-relaxed">${escapeHTML(item.note)}</p>
+                                        </div>
+                                    `;
+                                    nContainer.appendChild(nRow);
+                                    noteIdx++;
+                                }
+                            });
+                        });
+                        if (noteIdx === 1) {
+                            nContainer.innerHTML = '<p class="text-xs text-amber-800/70 italic p-2">Tidak ada pilihan catatan khusus.</p>';
+                        }
+                    }
 
-                this.openModal('modalClientReview');
+                    // WhatsApp Vendor (Ambil nomor vendor sistem secara otomatis)
+                    var waInput = document.getElementById('reviewClientWaInput');
+                    if (waInput) {
+                        var defaultWa = (gal && (gal.whatsapp_vendor || gal.whatsapp_studio || gal.no_wa_vendor || gal.wa_vendor)) ? String(gal.whatsapp_vendor || gal.whatsapp_studio || gal.no_wa_vendor || gal.wa_vendor).trim() : '';
+                        if (!defaultWa) {
+                            try { defaultWa = localStorage.getItem('last_vendor_wa') || ''; } catch (e) { }
+                        }
+                        waInput.value = defaultWa;
+                    }
+
+                    // Inisialisasi toggle kirim langsung ke WhatsApp tanpa folder Drive
+                    var toggleDirectWa = document.getElementById('toggleDirectWaNoDrive');
+                    if (toggleDirectWa) {
+                        toggleDirectWa.checked = this.isDirectWaNoDriveActive();
+                        this.onToggleDirectWaNoDrive(toggleDirectWa.checked);
+                    }
+
+                    // Atur tombol konfirmasi kirim di modal review
+                    var btnConfirm = document.getElementById('btnConfirmSubmitClient');
+                    if (btnConfirm) {
+                        if (gal && gal.status === 'Selesai') {
+                            btnConfirm.disabled = true;
+                            btnConfirm.className = 'w-full sm:w-auto px-6 py-2.5 bg-gray-400 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-2 cursor-not-allowed';
+                            btnConfirm.innerHTML = '<i class="fas fa-lock"></i> <span>Pilihan Sudah Terkunci (Selesai)</span>';
+                        } else {
+                            btnConfirm.disabled = false;
+                            btnConfirm.className = 'w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 cursor-pointer';
+                            btnConfirm.innerHTML = '<i class="fab fa-whatsapp text-base sm:text-lg"></i> <span>Kirim ke WhatsApp Vendor</span>';
+                        }
+                    }
+
+                    this.openModal('modalClientReview');
+                } catch (err) {
+                    console.error('Error opening client review modal:', err);
+                    this.showToast('Gagal membuka rekap foto: ' + (err.message || err), true);
+                }
             },
 
             isDirectWaNoDriveActive: function () {
@@ -3270,7 +3471,7 @@
                 var self = this;
 
                 this.clientData.selected.forEach(function (note, photoId) {
-                    var p = allPhotos.find(function (item) { return item.id_foto === photoId; }) || { id_foto: photoId, nama_file: photoId, url_foto: '', nama_folder: 'Folder Utama' };
+                    var p = allPhotos.find(function (item) { return String(item.id_foto) === String(photoId); }) || { id_foto: photoId, nama_file: photoId, url_foto: '', nama_folder: 'Folder Utama' };
                     var rawFolder = (p.nama_folder || 'Folder Utama').trim() || 'Folder Utama';
                     if (!folderMap[rawFolder]) folderMap[rawFolder] = [];
                     folderMap[rawFolder].push({ photo: p, note: (note || '').trim() });
@@ -3371,27 +3572,7 @@
             },
 
             sendWhatsAppDirect: function (phone, msg) {
-                var waUrl = (phone && phone.length >= 9)
-                    ? ('https://api.whatsapp.com/send?phone=' + encodeURIComponent(phone) + '&text=' + encodeURIComponent(msg))
-                    : ('https://api.whatsapp.com/send?text=' + encodeURIComponent(msg));
-
-                var win = null;
-                try {
-                    win = window.open(waUrl, '_blank');
-                } catch (e) {
-                    win = null;
-                }
-
-                if (!win || win.closed || typeof win.closed === 'undefined') {
-                    var a = document.createElement('a');
-                    a.href = waUrl;
-                    a.target = '_blank';
-                    a.rel = 'noopener noreferrer';
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                }
-                return waUrl;
+                return openWhatsAppDirect(phone, msg);
             },
 
             promptConfirmSubmit: function () {
@@ -3408,21 +3589,20 @@
 
                 var gal = this.clientData.gallery || {};
                 var waInput = document.getElementById('reviewClientWaInput');
-                var rawPhone = (waInput ? waInput.value.trim() : '') || gal.whatsapp_vendor || gal.whatsapp_client || '';
+                // Utamakan nomor WhatsApp vendor sistem dari galeri
+                var rawPhone = (gal && (gal.whatsapp_vendor || gal.whatsapp_studio || gal.no_wa_vendor || gal.wa_vendor)) ? String(gal.whatsapp_vendor || gal.whatsapp_studio || gal.no_wa_vendor || gal.wa_vendor).trim() : '';
+                if (!rawPhone && waInput) {
+                    rawPhone = waInput.value.trim();
+                }
+                if (!rawPhone) {
+                    try { rawPhone = localStorage.getItem('last_vendor_wa') || ''; } catch (e) { }
+                }
+
                 var cleanPhone = rawPhone.replace(/[^0-9]/g, '');
                 if (cleanPhone.startsWith('0')) cleanPhone = '62' + cleanPhone.slice(1);
                 else if (cleanPhone.startsWith('8')) cleanPhone = '62' + cleanPhone;
 
-                if (!cleanPhone || cleanPhone.length < 9) {
-                    this.showToast('Silakan masukkan nomor WhatsApp fotografer / vendor terlebih dahulu.', true);
-                    if (waInput) {
-                        waInput.focus();
-                        waInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                    return;
-                }
-
-                if (cleanPhone) {
+                if (cleanPhone && cleanPhone.length >= 9) {
                     try { localStorage.setItem('last_vendor_wa', cleanPhone); } catch (e) { }
                 }
 
@@ -3430,11 +3610,8 @@
 
                 // Format pesan WhatsApp seketika
                 var updatedWaMsg = this.buildWhatsAppMessage('', skipDrive);
-                var waUrl = (cleanPhone && cleanPhone.length >= 9)
-                    ? ('https://api.whatsapp.com/send?phone=' + encodeURIComponent(cleanPhone) + '&text=' + encodeURIComponent(updatedWaMsg))
-                    : ('https://api.whatsapp.com/send?text=' + encodeURIComponent(updatedWaMsg));
 
-                // Tutup modal review langsung tanpa memunculkan modal perantara
+                // Tutup modal review
                 this.closeModal('modalClientReview');
 
                 // Kunci galeri di tampilan klien seketika
@@ -3442,6 +3619,11 @@
                     this.clientData.gallery.status = 'Selesai';
                 }
                 this.renderGallery();
+                this.updateProgressCounters();
+
+                // Tampilkan banner status selesai
+                var banner = document.getElementById('clientSuccessBanner');
+                if (banner) banner.classList.remove('hidden');
 
                 // Simpan data seleksi ke server di latar belakang (background)
                 var selections = [];
@@ -3454,16 +3636,10 @@
                     console.error('Error submitting selection:', err);
                 });
 
-                // Otomatis langsung arahkan ke WhatsApp vendor seketika
-                var win = null;
-                try {
-                    win = window.open(waUrl, '_blank');
-                } catch (e) {
-                    win = null;
-                }
-                if (!win || win.closed || typeof win.closed === 'undefined') {
-                    window.location.href = waUrl;
-                }
+                // Otomatis langsung arahkan ke WhatsApp vendor tanpa menampilkan pop-up baru
+                openWhatsAppDirect(cleanPhone, updatedWaMsg);
+
+                this.showToast('🎉 Mengarahkan ke WhatsApp Vendor... Pilihan foto berhasil dikirim!', false);
             },
 
             closeSuccessAndBackToPhotos: function () {
@@ -3975,6 +4151,21 @@
         // RUN ON LOAD
         document.addEventListener('DOMContentLoaded', function () {
             clientApp.init();
+        });
+
+        // Responsive resize listener: otomatis beralih antara 2-kolom masonry (HP) & full multi-kolom grid (Desktop)
+        var clientResizeTimer = null;
+        window.addEventListener('resize', function () {
+            clearTimeout(clientResizeTimer);
+            clientResizeTimer = setTimeout(function () {
+                var isNowMobile = (window.innerWidth <= 640);
+                if (typeof clientApp._isMobileView !== 'undefined' && clientApp._isMobileView !== isNowMobile) {
+                    clientApp._isMobileView = isNowMobile;
+                    if (clientApp.clientData && clientApp.clientData.gallery) {
+                        clientApp.renderGallery();
+                    }
+                }
+            }, 200);
         });
     </script>
 </body>
