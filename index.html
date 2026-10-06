@@ -7864,6 +7864,82 @@
                     }
                 },
 
+                asGetMatchKeys: function (name) {
+                    if (!name) return [];
+                    var keys = new Set();
+                    var lastDot = name.lastIndexOf('.');
+                    var base = (lastDot !== -1 ? name.substring(0, lastDot) : name).trim().toUpperCase();
+                    if (!base) return [];
+
+                    keys.add(base);
+                    var clean = base.replace(/^_+|_+$/g, '').trim();
+                    if (clean) keys.add(clean);
+                    var compact = base.replace(/[\s_\-\.]+/g, '');
+                    if (compact) keys.add(compact);
+
+                    if (base.startsWith('_DSC')) {
+                        var rest = base.substring(4);
+                        keys.add('DSC' + rest);
+                        keys.add('DSC_' + rest);
+                        var restCompact = rest.replace(/[\s_\-\.]+/g, '');
+                        if (restCompact) keys.add('DSC' + restCompact);
+                    } else if (base.startsWith('DSC_')) {
+                        var rest = base.substring(4);
+                        keys.add('DSC' + rest);
+                        keys.add('_DSC' + rest);
+                        var restCompact = rest.replace(/[\s_\-\.]+/g, '');
+                        if (restCompact) keys.add('DSC' + restCompact);
+                    } else if (base.startsWith('DSC')) {
+                        var rest = base.substring(3);
+                        keys.add('_DSC' + rest);
+                        keys.add('DSC_' + rest);
+                        var restCompact = rest.replace(/[\s_\-\.]+/g, '');
+                        if (restCompact) keys.add('DSC' + restCompact);
+                    }
+
+                    if (base.startsWith('IMG_')) {
+                        var rest = base.substring(4);
+                        keys.add('_MG_' + rest);
+                        keys.add('MG_' + rest);
+                        keys.add('IMG' + rest);
+                        var restCompact = rest.replace(/[\s_\-\.]+/g, '');
+                        if (restCompact) keys.add('IMG' + restCompact);
+                    } else if (base.startsWith('_MG_')) {
+                        var rest = base.substring(4);
+                        keys.add('IMG_' + rest);
+                        keys.add('IMG' + rest);
+                        keys.add('MG_' + rest);
+                        var restCompact = rest.replace(/[\s_\-\.]+/g, '');
+                        if (restCompact) keys.add('IMG' + restCompact);
+                    } else if (base.startsWith('MG_')) {
+                        var rest = base.substring(3);
+                        keys.add('IMG_' + rest);
+                        keys.add('_MG_' + rest);
+                    } else if (base.startsWith('IMG')) {
+                        var rest = base.substring(3);
+                        keys.add('IMG_' + rest);
+                        keys.add('_MG_' + rest);
+                    }
+
+                    if (base.startsWith('DSCF')) {
+                        var rest = base.substring(4);
+                        keys.add('_DSF' + rest);
+                        keys.add('DSF' + rest);
+                    } else if (base.startsWith('_DSF')) {
+                        var rest = base.substring(4);
+                        keys.add('DSCF' + rest);
+                    }
+
+                    var numMatch = base.match(/\d+$/);
+                    if (numMatch) {
+                        keys.add('NUM_' + numMatch[0]);
+                        var parsedNum = parseInt(numMatch[0], 10);
+                        if (!isNaN(parsedNum)) keys.add('NUM_' + parsedNum);
+                    }
+
+                    return Array.from(keys);
+                },
+
                 asParseTargets: function (text) {
                     var badge = document.getElementById('as-target-badge');
                     var wrap = document.getElementById('as-chips-wrap');
@@ -7883,61 +7959,72 @@
                         'HALO', 'HI', 'HAI', 'KAK', 'KAKAK', 'MIN', 'ADMIN', 'INI', 'DAFTAR', 'FOTO', 'FOTONYA',
                         'PILIHAN', 'TERIMA', 'KASIH', 'MAKASIH', 'THANKS', 'THANK', 'YOU', 'SELAMAT', 'PAGI',
                         'SIANG', 'SORE', 'MALAM', 'TOTAL', 'SEMUA', 'CATATAN', 'NOTE', 'NOTES', 'REQUEST', 'TOLONG',
-                        'MOHON', 'DIEDIT', 'EDIT', 'DICROP', 'CROP', 'CETAK', 'ALBUM', 'COVER', 'SELESAI', 'BAGIAN'
+                        'MOHON', 'DIEDIT', 'EDIT', 'DICROP', 'CROP', 'CETAK', 'ALBUM', 'COVER', 'SELESAI', 'BAGIAN',
+                        'SAYA', 'BERIKUT', 'STATUS', 'LINK', 'HTTPS', 'HTTP', 'DRIVE', 'FOLDER', 'FILE', 'FIX',
+                        'DIKUNCI', 'KLIEN', 'CLIENT', 'VENDOR', 'FOTOGRAFER', 'FOTONYA', 'ACARA'
                     ]);
-                    var allExts = 'jpg|jpeg|png|cr2|cr3|arw|nef|nrw|dng|raw|tif|tiff|raf|rw2|orf|pef|3fr|fff';
-                    var extPattern = new RegExp('\\b([A-Za-z0-9_-]+)\\.(' + allExts + ')\\b', 'gi');
+                    var allExts = 'jpg|jpeg|png|cr2|cr3|arw|nef|nrw|dng|raw|tif|tiff|raf|rw2|orf|pef|3fr|fff|srw|x3f|gpr|heic|heif|webp';
 
                     var lines = text.split('\n');
                     lines.forEach(function (rawLine) {
                         var line = rawLine.trim();
                         if (!line) return;
 
-                        var matchedWithExt = false;
-                        var match;
-                        extPattern.lastIndex = 0;
-                        while ((match = extPattern.exec(line)) !== null) {
-                            var baseWithExt = match[1].toUpperCase();
-                            var ext = match[2].toUpperCase();
-                            if (baseWithExt.length >= 2 && !stopWords.has(baseWithExt)) {
-                                targetsMap.set(baseWithExt, {
-                                    baseName: baseWithExt,
-                                    cleanBase: baseWithExt.replace(/^_+/, ''),
-                                    originalExt: ext
-                                });
-                                matchedWithExt = true;
-                            }
-                        }
+                        // 1. Saring baris non-foto (Greeting WA, pembuka, link drive, footer, dll.)
+                        if (/^(?:https?:\/\/|drive\.google\.com)/i.test(line)) return;
+                        if (/^(?:halo|hai|hi|dear|assalamu|selamat|terima\s*kasih|makasih|thanks|thank\s*you)/i.test(line)) return;
+                        if (/^(?:saya\s|berikut\s*daftar|daftar\s*foto|status\s*:|mohon\s*diproses)/i.test(line)) return;
+                        if (/^[📁\uD83C-\uDBFF\uDC00-\uDFFF\s\*~_-]*(?:folder|album|sesi|kategori|hari|day|link\s*folder)/i.test(line)) return;
+                        if (/^(?:\*|_|~)?\s*(?:pilihan\s*catatan|catatan\s*khusus|catatan\s*foto|notes?)\s*[:\*~_-]*$/i.test(line)) return;
+                        if (/^[\s\-\*_~]*\(tidak ada pilihan catatan\)/i.test(line)) return;
 
-                        if (matchedWithExt) return;
-
-                        // Bersihkan nomor urut di awal: 1. , 2) , #3 , Foto 4: , 5 - , dll.
+                        // 2. Bersihkan nomor urut di awal baris: misal 1. , 2) , #3 , Foto 4. , * 5. * , 6 -
                         var cleaned = line.replace(/^(?:(?:\*|_|~)?\s*(?:no\.?|foto|photo|pilihan|pic|#)?\s*\d+\s*[\.\)\:\-\]]*\s*|[\*\->]\s*)+/i, '').trim();
-                        cleaned = cleaned.replace(/^[*~"']+|[*~"']+$/g, '').trim();
                         if (!cleaned) return;
 
-                        var parts = cleaned.split(/[,;]+/);
-                        parts.forEach(function (part) {
-                            var item = part.trim();
+                        // Potong catatan klien di belakang nama file (setelah ':', '(', '[', '{', atau ' - ')
+                        var beforeNote = cleaned.split(/[\:\(\[\{]/)[0].trim();
+                        if (beforeNote.indexOf(' - ') !== -1) {
+                            beforeNote = beforeNote.split(' - ')[0].trim();
+                        }
+
+                        // Tangani beberapa file dipisahkan koma atau titik koma
+                        var tokens = (beforeNote.indexOf(',') !== -1 || beforeNote.indexOf(';') !== -1)
+                            ? beforeNote.split(/[,;]+/).map(s => s.trim()).filter(Boolean)
+                            : [beforeNote];
+
+                        tokens.forEach(function (tok) {
+                            var item = tok.replace(/^[\s\*~"'\(\)\[\]]+|[\s\*~"'\(\)\[\]]+$/g, '').trim();
                             if (!item) return;
 
-                            item = item.replace(/^\[([A-Za-z0-9_-]+)\].*$/, '$1');
-                            item = item.split(/[\:\(\[\{]/)[0].trim();
-                            if (item.indexOf(' - ') !== -1) {
-                                item = item.split(' - ')[0].trim();
+                            var extMatch = item.match(new RegExp('\\.(' + allExts + ')$', 'i'));
+                            var baseName = '';
+                            var ext = '';
+
+                            if (extMatch) {
+                                ext = extMatch[1].toUpperCase();
+                                baseName = item.substring(0, item.length - (ext.length + 1)).trim().toUpperCase();
+                            } else {
+                                var isPhotoName = item.length >= 2 && item.length <= 60 && (
+                                    /\d/.test(item) ||
+                                    /^(?:DSC|_DSC|IMG|_MG|DJI|SAM|NIK|CAN|FOTO|PIC|PHOTO|WEDDING)/i.test(item)
+                                ) && !stopWords.has(item.toUpperCase());
+
+                                if (isPhotoName) {
+                                    baseName = item.toUpperCase();
+                                }
                             }
 
-                            var token = item.split(/\s+/)[0].trim().replace(/[,;:]+$/, '');
-                            if (!token) return;
-
-                            token = token.replace(new RegExp('\\.(' + allExts + ')$', 'i'), '');
-                            var upper = token.toUpperCase();
-                            if (upper.length >= 2 && !stopWords.has(upper)) {
-                                targetsMap.set(upper, {
-                                    baseName: upper,
-                                    cleanBase: upper.replace(/^_+/, ''),
-                                    originalExt: ''
-                                });
+                            if (baseName && !stopWords.has(baseName)) {
+                                var cleanBase = baseName.replace(/^_+|_+$/g, '').trim();
+                                if (!targetsMap.has(baseName)) {
+                                    targetsMap.set(baseName, {
+                                        rawName: item,
+                                        baseName: baseName,
+                                        cleanBase: cleanBase,
+                                        originalExt: ext
+                                    });
+                                }
                             }
                         });
                     });
@@ -8131,17 +8218,42 @@
                     if (this.asState.destMode === 'direct' && !this.asState.destHandle) {
                         if (this.asState.supportsFSA && window.showDirectoryPicker) {
                             try {
+                                ui.showToast('Silakan pilih Folder Tujuan di komputer Anda...', false);
                                 var dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
                                 this.asState.destHandle = dirHandle;
                                 this.asState.destName = dirHandle.name;
                                 document.getElementById('as-dest-label').innerHTML = `<strong class="text-emerald-900 truncate">📁 ${escapeHTML(dirHandle.name)}</strong>`;
                             } catch (e) {
-                                if (e.name === 'AbortError') return;
+                                if (e.name === 'AbortError') {
+                                    ui.showToast('Pemilihan folder tujuan dibatalkan.', true);
+                                    return;
+                                }
                                 this.asSetDestMode('script');
                             }
                         } else {
                             this.asSetDestMode('script');
                         }
+                    }
+
+                    // Minta izin akses folder jika didukung
+                    if (this.asState.srcHandle && this.asState.srcHandle.requestPermission) {
+                        try {
+                            var perm = await this.asState.srcHandle.requestPermission({ mode: 'read' });
+                            if (perm !== 'granted') {
+                                ui.showToast('Izin akses Folder Master tidak diberikan.', true);
+                                return;
+                            }
+                        } catch (e) { }
+                    }
+
+                    if (this.asState.destMode === 'direct' && this.asState.destHandle && this.asState.destHandle.requestPermission) {
+                        try {
+                            var dPerm = await this.asState.destHandle.requestPermission({ mode: 'readwrite' });
+                            if (dPerm !== 'granted') {
+                                ui.showToast('Izin tulis Folder Tujuan tidak diberikan.', true);
+                                return;
+                            }
+                        } catch (e) { }
                     }
 
                     var logContainer = document.getElementById('as-log-container');
@@ -8165,55 +8277,87 @@
                     btn.disabled = true;
                     if (btnText) btnText.textContent = 'Sedang Memproses Sortir...';
 
-                    var rawExtensions = ['CR2', 'CR3', 'ARW', 'NEF', 'NRW', 'DNG', 'RAF', 'RW2', 'ORF', 'PEF', 'RAW', '3FR', 'FFF', 'SRW', 'X3F'];
+                    var rawExtensions = ['CR2', 'CR3', 'ARW', 'NEF', 'NRW', 'DNG', 'RAF', 'RW2', 'ORF', 'PEF', 'RAW', '3FR', 'FFF', 'SRW', 'X3F', 'GPR'];
                     var jpgExtensions = ['JPG', 'JPEG'];
                     var pngExtensions = ['PNG'];
 
                     var self = this;
                     try {
-                        // 1. Kumpulkan file dari Master Folder
+                        // 1. Kumpulkan file dari Master Folder secara rekursif (termasuk seluruh subfolder)
                         var allSrcFiles = [];
                         if (this.asState.srcHandle) {
-                            self.asLog(`[SCAN] Membaca isi folder master: ${self.asState.srcName}...`, 'sub');
-                            for await (const entry of this.asState.srcHandle.values()) {
-                                if (entry.kind === 'file') {
-                                    try {
-                                        var f = await entry.getFile();
-                                        allSrcFiles.push(f);
-                                    } catch (e) { }
+                            self.asLog(`[SCAN] Membaca isi Folder Master dan seluruh subfolder: ${self.asState.srcName}...`, 'sub');
+                            async function readRecursive(dirH, currentRel) {
+                                currentRel = currentRel || '';
+                                for await (const entry of dirH.values()) {
+                                    if (entry.kind === 'file') {
+                                        try {
+                                            var f = await entry.getFile();
+                                            f._relPath = currentRel ? (currentRel + '/' + f.name) : f.name;
+                                            allSrcFiles.push(f);
+                                        } catch (e) { }
+                                    } else if (entry.kind === 'directory') {
+                                        try {
+                                            var nextRel = currentRel ? (currentRel + '/' + entry.name) : entry.name;
+                                            await readRecursive(entry, nextRel);
+                                        } catch (e) { }
+                                    }
                                 }
                             }
+                            await readRecursive(this.asState.srcHandle, '');
                         } else if (this.asState.srcFiles && this.asState.srcFiles.length > 0) {
                             allSrcFiles = this.asState.srcFiles;
                         }
 
-                        self.asLog(`[SCAN SELESAI] Terdeteksi ${allSrcFiles.length} file di folder master.`, 'info');
+                        self.asLog(`[SCAN SELESAI] Total ${allSrcFiles.length} file terdeteksi di Folder Master.`, 'info');
 
-                        // 2. Buat Index O(1)
+                        if (allSrcFiles.length === 0) {
+                            self.asLog('[ERROR] Folder Master kosong atau tidak ada file foto yang terbaca.', 'err');
+                            ui.showToast('Folder Master kosong atau tidak ada file terbaca. Harap periksa folder yang dipilih.', true);
+                            return;
+                        }
+
+                        // 2. Buat Multi-Key Index O(1) untuk pencarian cepat & variasi kamera
                         var fileIndex = new Map();
                         allSrcFiles.forEach(function (f) {
                             var lastDot = f.name.lastIndexOf('.');
                             var ext = (lastDot !== -1 ? f.name.substring(lastDot + 1) : '').toUpperCase();
-                            var base = (lastDot !== -1 ? f.name.substring(0, lastDot) : f.name).toUpperCase();
-                            var cleanBase = base.replace(/^_+/, '');
+                            var item = {
+                                file: f,
+                                name: f.name,
+                                ext: ext,
+                                relPath: f._relPath || f.webkitRelativePath || f.name
+                            };
 
-                            var item = { file: f, name: f.name, ext: ext };
-                            if (!fileIndex.has(base)) fileIndex.set(base, []);
-                            fileIndex.get(base).push(item);
-
-                            if (cleanBase !== base) {
-                                if (!fileIndex.has(cleanBase)) fileIndex.set(cleanBase, []);
-                                fileIndex.get(cleanBase).push(item);
-                            }
+                            var keys = self.asGetMatchKeys(f.name);
+                            keys.forEach(function (k) {
+                                if (!fileIndex.has(k)) fileIndex.set(k, []);
+                                fileIndex.get(k).push(item);
+                            });
                         });
 
                         // 3. Pencocokan Sesuai Target & Filter Format
                         var matchedFiles = [];
                         var matchedSet = new Set();
                         var missing = [];
+                        var formatMismatchCount = 0;
 
                         this.asState.targets.forEach(function (target) {
-                            var candidates = fileIndex.get(target.baseName) || fileIndex.get(target.cleanBase) || [];
+                            var targetKeys = self.asGetMatchKeys(target.baseName);
+                            var candidateMap = new Map();
+
+                            targetKeys.forEach(function (k) {
+                                var items = fileIndex.get(k);
+                                if (items) {
+                                    items.forEach(function (it) {
+                                        if (!candidateMap.has(it.name)) {
+                                            candidateMap.set(it.name, it);
+                                        }
+                                    });
+                                }
+                            });
+
+                            var candidates = Array.from(candidateMap.values());
 
                             var filtered = candidates.filter(function (c) {
                                 if (self.asState.formatFilter === 'raw') {
@@ -8236,7 +8380,14 @@
                                 self.asLog(`[COCOK] ${target.baseName} -> ${filtered.map(c => c.name).join(', ')}`, 'info');
                             } else {
                                 missing.push(target.baseName);
-                                var note = (candidates.length > 0) ? `(Ada ${candidates.length} file tapi bukan format ${self.asState.formatFilter.toUpperCase()})` : '';
+                                var note = '';
+                                if (candidates.length > 0) {
+                                    formatMismatchCount++;
+                                    var fExts = Array.from(new Set(candidates.map(c => c.ext))).join(', ');
+                                    note = `(Ditemukan ${candidates.length} file [${fExts}] tapi disaring filter: ${self.asState.formatFilter.toUpperCase()})`;
+                                } else {
+                                    note = `(Tidak ditemukan di folder master)`;
+                                }
                                 self.asLog(`[TIDAK DITEMUKAN] ${target.baseName} ${note}`, 'warn');
                             }
                         });
@@ -8244,7 +8395,12 @@
                         self.asLog(`Hasil Pencocokan: ${matchedFiles.length} file cocok (${missing.length} tidak ditemukan).`, 'info');
 
                         if (matchedFiles.length === 0) {
-                            ui.showToast('Tidak ada file yang cocok dengan format yang dipilih.', true);
+                            if (formatMismatchCount > 0 && self.asState.formatFilter === 'raw') {
+                                self.asLog(`[SARAN] Foto pilihan klien ditemukan di folder master tetapi dalam format JPG/PNG, bukan RAW. Coba ubah Pilihan Format ke 'Semua Foto' atau 'JPG Saja'.`, 'err');
+                                ui.showToast("Foto ditemukan dalam format JPG! Ganti format ke 'Semua Foto' atau 'JPG Saja'.", true);
+                            } else {
+                                ui.showToast('Tidak ada file foto yang cocok di folder master.', true);
+                            }
                             return;
                         }
 
@@ -8313,22 +8469,29 @@
                                 'if not exist "%TARGET_DIR%" mkdir "%TARGET_DIR%"',
                                 'echo.',
                                 'echo Menyalin ' + matchedFiles.length + ' file pilihan klien...',
+                                'echo Mohon tunggu sebentar...',
                                 'echo.',
                                 'set /a count_ok=0'
                             ];
 
                             matchedFiles.forEach(function (f) {
-                                var rel = f.webkitRelativePath ? f.webkitRelativePath.replace(/\//g, '\\') : f.name;
-                                if (rel.indexOf('\\') !== -1) rel = rel.substring(rel.indexOf('\\') + 1);
+                                var rel = (f._relPath || f.webkitRelativePath || f.name).replace(/\//g, '\\');
                                 batLines.push('if exist "%~dp0' + rel + '" (');
                                 batLines.push('    copy /y "%~dp0' + rel + '" "%TARGET_DIR%\\" >nul 2>&1 && (echo [OK] ' + f.name + ' & set /a count_ok+=1)');
                                 batLines.push(') else (');
-                                batLines.push('    copy /y "' + f.name + '" "%TARGET_DIR%\\" >nul 2>&1 && (echo [OK] ' + f.name + ' & set /a count_ok+=1)');
+                                batLines.push('    set "found="');
+                                batLines.push('    for /r "%~dp0" %%F in ("' + f.name + '") do (');
+                                batLines.push('        if not defined found (');
+                                batLines.push('            set "found=1"');
+                                batLines.push('            copy /y "%%F" "%TARGET_DIR%\\" >nul 2>&1 && (echo [OK] ' + f.name + ' & set /a count_ok+=1)');
+                                batLines.push('        )');
+                                batLines.push('    )');
+                                batLines.push('    if not defined found (echo [GAGAL] ' + f.name + ' tidak ditemukan)');
                                 batLines.push(')');
                             });
 
                             batLines.push('echo.');
-                            batLines.push('echo [SELESAI] Total berhasil disalin: %count_ok% file.');
+                            batLines.push('echo [SELESAI] Total berhasil disalin: %count_ok% dari ' + matchedFiles.length + ' file.');
                             batLines.push('echo Hasil tersimpan di: %TARGET_DIR%');
                             batLines.push('echo.');
                             batLines.push('pause');
