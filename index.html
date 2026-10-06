@@ -242,21 +242,47 @@
             background: #94a3b8;
         }
 
-        /* Image Grid & Photo Card Aesthetics: 2 Kolom Seragam (Desktop & HP) */
+        /* Image Grid & Photo Card Aesthetics: Mode Desktop Full Page (Lebar Penuh & Multi-Kolom) */
         .photo-grid {
             display: grid !important;
-            grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-            column-gap: 0.875rem !important;
-            row-gap: 1.125rem !important;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)) !important;
+            column-gap: 1.125rem !important;
+            row-gap: 1.35rem !important;
             width: 100% !important;
-            max-width: 860px !important;
-            margin-left: auto !important;
-            margin-right: auto !important;
+            max-width: 100% !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            align-items: start !important;
         }
 
-        .photo-item,
-        .photo-item.photo-portrait,
-        .photo-item.photo-landscape {
+        @media (min-width: 641px) and (max-width: 1023px) {
+            .photo-grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+                column-gap: 1rem !important;
+                row-gap: 1.25rem !important;
+                max-width: 100% !important;
+            }
+        }
+
+        @media (min-width: 1024px) and (max-width: 1439px) {
+            .photo-grid {
+                grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+                column-gap: 1.25rem !important;
+                row-gap: 1.5rem !important;
+                max-width: 100% !important;
+            }
+        }
+
+        @media (min-width: 1440px) {
+            .photo-grid {
+                grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+                column-gap: 1.25rem !important;
+                row-gap: 1.5rem !important;
+                max-width: 100% !important;
+            }
+        }
+
+        .photo-item {
             grid-column: span 1 !important;
             margin-bottom: 0 !important;
             display: flex !important;
@@ -272,16 +298,29 @@
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
             content-visibility: auto;
-            contain-intrinsic-size: auto 260px;
+            contain-intrinsic-size: auto 300px;
+            align-self: start !important;
         }
 
         .photo-item .photo-img-wrapper {
             position: relative !important;
             width: 100% !important;
-            aspect-ratio: 1 / 1 !important;
+            aspect-ratio: auto;
+            min-height: 160px;
             overflow: hidden !important;
             background-color: #f8fafc !important;
             flex-shrink: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+
+        .photo-item.photo-portrait .photo-img-wrapper {
+            aspect-ratio: 2 / 3;
+        }
+
+        .photo-item.photo-landscape .photo-img-wrapper {
+            aspect-ratio: 3 / 2;
         }
 
         .photo-item .photo-img-wrapper img,
@@ -289,7 +328,6 @@
         .photo-item.photo-landscape .photo-img-wrapper img {
             width: 100% !important;
             height: 100% !important;
-            aspect-ratio: 1 / 1 !important;
             object-fit: cover !important;
             object-position: center !important;
             display: block !important;
@@ -462,19 +500,49 @@
             box-shadow: 0 20px 30px -5px rgba(0, 0, 0, 0.4), 0 10px 15px -5px rgba(0, 0, 0, 0.3);
         }
 
-        /* --- MOBILE PHONE OPTIMIZATION (Layar HP < 640px): 2 Kolom Proporsional (Potret 1 Kolom, Landscape 2 Kolom Penuh) --- */
+        /* --- MOBILE PHONE OPTIMIZATION (Layar HP < 640px): 2 Kolom Masonry Rapat & Padat (Tanpa Celah Kosong) --- */
         @media (max-width: 640px) {
-            .photo-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-                column-gap: 0.5rem !important;
-                row-gap: 0.65rem !important;
+            .photo-grid,
+            .photo-grid.mobile-masonry {
+                display: flex !important;
+                flex-wrap: wrap !important;
+                flex-direction: row !important;
+                align-items: flex-start !important;
+                justify-content: space-between !important;
+                gap: 0.5rem !important;
+                width: 100% !important;
                 max-width: 100% !important;
             }
 
+            .photo-col-masonry {
+                display: flex !important;
+                flex-direction: column !important;
+                flex: 1 1 0% !important;
+                min-width: 0 !important;
+                width: calc(50% - 0.25rem) !important;
+                max-width: calc(50% - 0.25rem) !important;
+                gap: 0.55rem !important;
+            }
+
+            .photo-col-masonry .photo-item,
             .photo-item {
+                width: 100% !important;
+                margin-bottom: 0 !important;
+                align-self: stretch !important;
                 border-radius: 0.75rem !important;
                 border-width: 1.5px !important;
-                grid-column: span 1 !important;
+                grid-column: auto !important;
+            }
+
+            .photo-item .photo-img-wrapper {
+                min-height: 0 !important; /* Padatkan foto landscape tanpa celah kosong buatan */
+            }
+
+            #clientPhotoSentinel,
+            #clientGallerySentinel {
+                flex-basis: 100% !important;
+                width: 100% !important;
+                order: 9999 !important;
             }
 
             /* Area tombol & nama file di bawah gambar (SAMA SEKALI TIDAK MENUTUPI FOTO) */
@@ -2932,7 +3000,7 @@
                 });
             }
 
-            // Langsung membuka aplikasi WhatsApp native (Android, iPhone, Windows/Mac app) tanpa melalui WhatsApp Web
+            // Langsung membuka aplikasi WhatsApp ke vendor secara otomatis (mendukung HP & Desktop)
             function openWhatsAppDirect(phone, message) {
                 var cleanPhone = '';
                 if (phone) {
@@ -2941,18 +3009,29 @@
                     else if (cleanPhone.startsWith('8')) cleanPhone = '62' + cleanPhone;
                 }
 
+                var textParam = encodeURIComponent(message || '');
                 var nativeUrl = (cleanPhone && cleanPhone.length >= 9)
-                    ? ('whatsapp://send?phone=' + encodeURIComponent(cleanPhone) + '&text=' + encodeURIComponent(message))
-                    : ('whatsapp://send?text=' + encodeURIComponent(message));
+                    ? ('whatsapp://send?phone=' + cleanPhone + '&text=' + textParam)
+                    : ('whatsapp://send?text=' + textParam);
+                var webUrl = (cleanPhone && cleanPhone.length >= 9)
+                    ? ('https://api.whatsapp.com/send?phone=' + cleanPhone + '&text=' + textParam)
+                    : ('https://api.whatsapp.com/send?text=' + textParam);
 
                 // Salin pesan ke clipboard secara otomatis (backup aman)
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     try { navigator.clipboard.writeText(message); } catch (e) { }
                 }
 
-                // Picu peluncuran aplikasi WhatsApp native via link klik
+                var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+                var targetUrl = isMobile ? nativeUrl : webUrl;
+
+                // Picu peluncuran aplikasi WhatsApp
                 var a = document.createElement('a');
-                a.href = nativeUrl;
+                a.href = targetUrl;
+                if (!isMobile) {
+                    a.target = '_blank';
+                    a.rel = 'noopener noreferrer';
+                }
                 a.style.display = 'none';
                 document.body.appendChild(a);
                 a.click();
@@ -2960,14 +3039,16 @@
                     try { document.body.removeChild(a); } catch (e) { }
                 }, 1000);
 
-                // Fallback trigger langsung (sangat handal di browser smartphone Android & iOS)
-                setTimeout(function () {
-                    try {
-                        window.location.href = nativeUrl;
-                    } catch (e) { }
-                }, 150);
+                // Fallback trigger jika di browser smartphone
+                if (isMobile) {
+                    setTimeout(function () {
+                        try {
+                            window.location.href = nativeUrl;
+                        } catch (e) { }
+                    }, 200);
+                }
 
-                return nativeUrl;
+                return targetUrl;
             }
 
             // Mengurutkan foto dari nomor nama file terbaru sampai terlama (descending)
@@ -4020,6 +4101,15 @@
                                     sb.classList.add('hidden');
                                     sb.classList.remove('flex');
                                 }
+                            }
+                        }
+
+                        // Responsive Client Gallery: otomatis adaptasi antara 2-kolom masonry (HP) dan desktop grid
+                        var isNowClientMobile = (window.innerWidth <= 640);
+                        if (typeof appState._isClientMobileView !== 'undefined' && appState._isClientMobileView !== isNowClientMobile) {
+                            appState._isClientMobileView = isNowClientMobile;
+                            if (appState.clientData && appState.clientData.gallery) {
+                                appState.renderClientGallery();
                             }
                         }
                     });
@@ -8667,9 +8757,12 @@
                     var isLandscape = img.naturalWidth > img.naturalHeight;
                     var targetClass = isLandscape ? 'photo-landscape' : 'photo-portrait';
                     var removeClass = isLandscape ? 'photo-portrait' : 'photo-landscape';
-                    if (!card.classList.contains(targetClass)) {
-                        card.classList.add(targetClass);
-                        card.classList.remove(removeClass);
+                    card.classList.add(targetClass);
+                    card.classList.remove(removeClass);
+
+                    var wrapper = card.querySelector('.photo-img-wrapper');
+                    if (wrapper) {
+                        wrapper.style.setProperty('aspect-ratio', img.naturalWidth + ' / ' + img.naturalHeight, 'important');
                     }
                 },
 
@@ -8779,6 +8872,14 @@
                             ${bottomHtml}
                         </div>
                     `;
+
+                    // Jika gambar sudah selesai dimuat dari cache browser, langsung sinkronkan orientasinya
+                    setTimeout(function () {
+                        var imgEl = div.querySelector('img');
+                        if (imgEl && imgEl.complete && imgEl.naturalWidth) {
+                            appState.handlePhotoOrient(imgEl, div.id);
+                        }
+                    }, 0);
 
                     return div;
                 },
@@ -8924,7 +9025,7 @@
                                     ? 'Tidak ada foto pada folder ini atau proses sinkronisasi sedang berlangsung.'
                                     : 'Galeri ini belum memiliki foto yang dapat ditampilkan.'));
                         container.innerHTML = `
-                            <div class="py-16 text-center bg-white rounded-2xl border border-gray-200 shadow-2xs p-6">
+                            <div class="py-16 text-center bg-white rounded-2xl border border-gray-200 shadow-2xs p-6 col-span-full w-full">
                                 <div class="w-14 h-14 mx-auto rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-2xl mb-3 shadow-inner">
                                     <i class="${this.clientData.activeFilter === 'selected' ? 'fas fa-check-circle' : 'fas fa-folder-open'}"></i>
                                 </div>
@@ -8938,6 +9039,18 @@
                             </div>
                         `;
                         return;
+                    }
+
+                    // Mode HP (< 640px): Siapkan 2 Kolom Masonry rapat agar foto landscape & portrait padat tanpa celah kosong
+                    var isMobile = (typeof window !== 'undefined' && window.innerWidth <= 640);
+                    this._isClientMobileView = isMobile;
+
+                    if (isMobile) {
+                        container.className = 'photo-grid mobile-masonry';
+                        container.innerHTML = '<div class="photo-col-masonry" id="clientPhotoCol0"></div><div class="photo-col-masonry" id="clientPhotoCol1"></div>';
+                    } else {
+                        container.className = 'photo-grid';
+                        container.innerHTML = '';
                     }
 
                     // Inisialisasi state batch rendering cerdas
@@ -8965,19 +9078,47 @@
                         return;
                     }
 
-                    var start = st.renderedCount;
-                    var end = Math.min(start + st.batchSize, st.photos.length);
-                    var fragment = document.createDocumentFragment();
+                    var isMobile = (typeof window !== 'undefined' && window.innerWidth <= 640);
+                    var col0 = isMobile ? document.getElementById('clientPhotoCol0') : null;
+                    var col1 = isMobile ? document.getElementById('clientPhotoCol1') : null;
 
-                    for (var i = start; i < end; i++) {
-                        fragment.appendChild(appState.createClientPhotoCard(st.photos[i], i));
+                    // Jika di mode mobile tapi kolom belum ada, siapkan kolom masonry
+                    if (isMobile && (!col0 || !col1)) {
+                        container.className = 'photo-grid mobile-masonry';
+                        container.innerHTML = '<div class="photo-col-masonry" id="clientPhotoCol0"></div><div class="photo-col-masonry" id="clientPhotoCol1"></div>';
+                        col0 = document.getElementById('clientPhotoCol0');
+                        col1 = document.getElementById('clientPhotoCol1');
                     }
 
-                    var sentinel = document.getElementById('clientPhotoSentinel');
-                    if (sentinel && sentinel.parentNode === container) {
-                        container.insertBefore(fragment, sentinel);
+                    var start = st.renderedCount;
+                    var end = Math.min(start + st.batchSize, st.photos.length);
+
+                    if (isMobile && col0 && col1) {
+                        var frag0 = document.createDocumentFragment();
+                        var frag1 = document.createDocumentFragment();
+
+                        for (var i = start; i < end; i++) {
+                            var card = appState.createClientPhotoCard(st.photos[i], i);
+                            if (i % 2 === 0) {
+                                frag0.appendChild(card);
+                            } else {
+                                frag1.appendChild(card);
+                            }
+                        }
+                        col0.appendChild(frag0);
+                        col1.appendChild(frag1);
                     } else {
-                        container.appendChild(fragment);
+                        var fragment = document.createDocumentFragment();
+                        for (var i = start; i < end; i++) {
+                            fragment.appendChild(appState.createClientPhotoCard(st.photos[i], i));
+                        }
+
+                        var sentinel = document.getElementById('clientPhotoSentinel');
+                        if (sentinel && sentinel.parentNode === container) {
+                            container.insertBefore(fragment, sentinel);
+                        } else {
+                            container.appendChild(fragment);
+                        }
                     }
 
                     st.renderedCount = end;
@@ -10000,12 +10141,12 @@
 
                     // Ambil nomor WA fotografer / vendor terlebih dahulu sebelum modal ditutup
                     var waInput = document.getElementById('reviewClientWaInput');
-                    var rawPhone = waInput ? waInput.value.trim() : '';
-                    if (!rawPhone && this.clientData.gallery && (this.clientData.gallery.whatsapp_vendor || this.clientData.gallery.whatsapp_studio || this.clientData.gallery.no_wa_vendor)) {
+                    var rawPhone = '';
+                    if (this.clientData.gallery && (this.clientData.gallery.whatsapp_vendor || this.clientData.gallery.whatsapp_studio || this.clientData.gallery.no_wa_vendor)) {
                         rawPhone = String(this.clientData.gallery.whatsapp_vendor || this.clientData.gallery.whatsapp_studio || this.clientData.gallery.no_wa_vendor).trim();
                     }
-                    if (!rawPhone && this.clientData.gallery && this.clientData.gallery.whatsapp_client) {
-                        rawPhone = String(this.clientData.gallery.whatsapp_client).trim();
+                    if (!rawPhone && waInput) {
+                        rawPhone = waInput.value.trim();
                     }
                     if (!rawPhone) {
                         try { rawPhone = localStorage.getItem('last_vendor_wa') || ''; } catch (e) { }
@@ -10044,16 +10185,20 @@
                     this.renderClientGallery();
                     this.updateClientProgress();
 
+                    // Tampilkan banner status selesai
+                    var banner = document.getElementById('clientSuccessBanner');
+                    if (banner) banner.classList.remove('hidden');
+
                     // Simpan data seleksi ke server di latar belakang (background)
                     var galId = this.clientData.gallery ? this.clientData.gallery.id_galeri : '';
                     gasRun('submitClientSelection', galId, selections, { skipDriveFolder: skipDrive }).catch(function (err) {
                         console.error('Submit error:', err);
                     });
 
-                    // Otomatis langsung buka aplikasi WhatsApp native tanpa lewat WA Web
+                    // Otomatis langsung arahkan ke WhatsApp vendor tanpa menampilkan pop-up baru
                     openWhatsAppDirect(cleanPhone, waMessage);
 
-                    ui.showToast('🎉 Membuka aplikasi WhatsApp vendor... Pilihan foto berhasil dikirim!', false);
+                    ui.showToast('🎉 Mengarahkan ke WhatsApp Vendor... Pilihan foto berhasil dikirim!', false);
                 },
 
                 closeSuccessAndBackToPhotos: function () {
