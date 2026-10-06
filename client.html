@@ -192,6 +192,8 @@
                 border-radius: 0.5rem !important;
                 border-width: 1.5px !important;
                 grid-column: span 1; /* Default potret: 1 dari 4 kolom (4 foto per baris) */
+                content-visibility: auto;
+                contain-intrinsic-size: auto 160px;
             }
 
             /* Jika foto Potret: tampil 4 kolom kesamping (masing-masing 1 kolom dari 4) */
@@ -317,6 +319,8 @@
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
+            content-visibility: auto;
+            contain-intrinsic-size: auto 240px;
         }
 
         .photo-item:hover {
@@ -1445,7 +1449,9 @@
 
         function formatPhotoDisplayUrl(url, targetSize) {
             if (!url) return '';
-            var sz = targetSize || 'w600';
+            var isMobile = (typeof window !== 'undefined' && (window.innerWidth <= 640 || (window.screen && window.screen.width <= 640)));
+            var defaultSize = isMobile ? 'w360' : 'w600';
+            var sz = targetSize || defaultSize;
             var driveId = extractDriveId(url);
             if (driveId && (url.indexOf('drive.google.com') !== -1 || url.indexOf('google.com') !== -1 || url.indexOf('googleusercontent.com') !== -1)) {
                 return 'https://drive.google.com/thumbnail?id=' + driveId + '&sz=' + sz;
@@ -1460,9 +1466,11 @@
         function handleImageError(img, driveId) {
             if (!img) return;
             var dId = driveId || extractDriveId(img.src);
+            var isMobile = (typeof window !== 'undefined' && (window.innerWidth <= 640 || (window.screen && window.screen.width <= 640)));
+            var thumbSize = isMobile ? 'w360' : 'w600';
             if (dId && !img.dataset.triedCdn) {
                 img.dataset.triedCdn = 'true';
-                img.src = 'https://lh3.googleusercontent.com/d/' + dId + '=w600';
+                img.src = 'https://lh3.googleusercontent.com/d/' + dId + '=' + thumbSize;
                 return;
             }
             img.style.display = 'none';
@@ -2496,6 +2504,14 @@
                 }
             },
 
+            _batchRenderState: {
+                photos: [],
+                renderedCount: 0,
+                batchSize: 36,
+                isLoading: false,
+                observer: null
+            },
+
             renderGallery: function () {
                 var gal = this.clientData.gallery;
                 if (!gal) return;
@@ -2510,6 +2526,7 @@
                 container.innerHTML = '';
 
                 if (filtered.length === 0) {
+                    this.updateScrollSentinel(false);
                     container.innerHTML = `
                         <div class="py-16 text-center bg-white rounded-3xl border border-gray-200 shadow-2xs p-6 col-span-full">
                             <div class="w-14 h-14 mx-auto rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-2xl mb-3 shadow-inner">
@@ -2529,9 +2546,130 @@
                     return;
                 }
 
-                filtered.forEach(function (p, idx) {
-                    container.appendChild(clientApp.createPhotoCard(p, idx));
-                });
+                // Inisialisasi state batch rendering cerdas
+                this._batchRenderState.photos = filtered;
+                this._batchRenderState.renderedCount = 0;
+                this._batchRenderState.isLoading = false;
+
+                // Muat 36 foto pertama seketika
+                this.renderNextBatch();
+                // Aktifkan pemuatan batch berikutnya saat scroll otomatis mendekati bawah
+                this.initInfiniteScroll();
+            },
+
+            renderNextBatch: function () {
+                var st = this._batchRenderState;
+                if (!st || st.isLoading) return;
+                if (st.renderedCount >= st.photos.length) {
+                    this.updateScrollSentinel(false);
+                    return;
+                }
+                st.isLoading = true;
+                var container = document.getElementById('clientPhotoContainer');
+                if (!container) {
+                    st.isLoading = false;
+                    return;
+                }
+
+                var start = st.renderedCount;
+                var end = Math.min(start + st.batchSize, st.photos.length);
+                var fragment = document.createDocumentFragment();
+
+                for (var i = start; i < end; i++) {
+                    fragment.appendChild(this.createPhotoCard(st.photos[i], i));
+                }
+
+                var sentinel = document.getElementById('clientGallerySentinel');
+                if (sentinel && sentinel.parentNode === container) {
+                    container.insertBefore(fragment, sentinel);
+                } else {
+                    container.appendChild(fragment);
+                }
+
+                st.renderedCount = end;
+                st.isLoading = false;
+
+                var hasMore = st.renderedCount < st.photos.length;
+                this.updateScrollSentinel(hasMore);
+            },
+
+            updateScrollSentinel: function (hasMore) {
+                var container = document.getElementById('clientPhotoContainer');
+                if (!container) return;
+                var sentinel = document.getElementById('clientGallerySentinel');
+                if (hasMore) {
+                    if (!sentinel) {
+                        sentinel = document.createElement('div');
+                        sentinel.id = 'clientGallerySentinel';
+                        sentinel.className = 'col-span-full py-6 flex flex-col items-center justify-center text-xs text-gray-400 gap-2';
+                        sentinel.innerHTML = `
+                            <div class="flex items-center gap-2 bg-white/90 px-4 py-2 rounded-full border border-gray-200/80 shadow-xs">
+                                <i class="fas fa-circle-notch fa-spin text-blue-500 text-sm"></i>
+                                <span class="font-medium text-gray-600">Memuat foto berikutnya...</span>
+                            </div>
+                        `;
+                        container.appendChild(sentinel);
+                    } else {
+                        sentinel.style.display = 'flex';
+                        if (sentinel.parentNode !== container) {
+                            container.appendChild(sentinel);
+                        }
+                    }
+
+                    if (this._batchRenderState.observer && sentinel) {
+                        this._batchRenderState.observer.observe(sentinel);
+                    }
+                } else {
+                    if (sentinel) {
+                        sentinel.style.display = 'none';
+                    }
+                }
+            },
+
+            initInfiniteScroll: function () {
+                var self = this;
+                if (this._batchRenderState.observer) {
+                    try { this._batchRenderState.observer.disconnect(); } catch (e) { }
+                }
+
+                if (typeof window !== 'undefined' && 'IntersectionObserver' in window) {
+                    this._batchRenderState.observer = new IntersectionObserver(function (entries) {
+                        entries.forEach(function (entry) {
+                            if (entry.isIntersecting) {
+                                self.renderNextBatch();
+                            }
+                        });
+                    }, {
+                        root: null,
+                        rootMargin: '600px',
+                        threshold: 0.01
+                    });
+
+                    var sentinel = document.getElementById('clientGallerySentinel');
+                    if (sentinel) {
+                        this._batchRenderState.observer.observe(sentinel);
+                    }
+                }
+
+                if (!this._scrollBound) {
+                    this._scrollBound = true;
+                    var throttle = false;
+                    window.addEventListener('scroll', function () {
+                        if (throttle) return;
+                        throttle = true;
+                        setTimeout(function () {
+                            throttle = false;
+                            var st = self._batchRenderState;
+                            if (!st || st.renderedCount >= st.photos.length) return;
+                            var scrollY = window.pageYOffset || document.documentElement.scrollTop;
+                            var winH = window.innerHeight;
+                            var docH = document.documentElement.scrollHeight;
+                            if (docH - (scrollY + winH) < 800) {
+                                self.renderNextBatch();
+                            }
+                        }, 80);
+                    }, { passive: true });
+                }
             },
 
             handlePhotoOrient: function (img, cardId) {
@@ -2539,12 +2677,11 @@
                 var card = document.getElementById(cardId) || (img.closest ? img.closest('.photo-item') : null);
                 if (!card) return;
                 var isLandscape = img.naturalWidth > img.naturalHeight;
-                if (isLandscape) {
-                    card.classList.add('photo-landscape');
-                    card.classList.remove('photo-portrait');
-                } else {
-                    card.classList.add('photo-portrait');
-                    card.classList.remove('photo-landscape');
+                var targetClass = isLandscape ? 'photo-landscape' : 'photo-portrait';
+                var removeClass = isLandscape ? 'photo-portrait' : 'photo-landscape';
+                if (!card.classList.contains(targetClass)) {
+                    card.classList.add(targetClass);
+                    card.classList.remove(removeClass);
                 }
             },
 
@@ -2573,7 +2710,7 @@
                 } else {
                     selectButtonHtml = `
                         <button type="button" onclick="event.stopPropagation(); clientApp.togglePhotoSelection('${escapeHTML(p.id_foto)}')"
-                            class="btn-card-select w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer bg-black/50 text-white hover:bg-black/70 border border-white/20 backdrop-blur-xs">
+                            class="btn-card-select w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer bg-black/60 text-white hover:bg-black/80 border border-white/20">
                             <i class="fas fa-plus text-[11px]"></i>
                             <span>Pilih Foto</span>
                         </button>
@@ -2582,7 +2719,7 @@
 
                 var noteButtonHtml = isSelected ? `
                     <button type="button" onclick="event.stopPropagation(); clientApp.openNoteModal('${escapeHTML(p.id_foto)}')"
-                        class="btn-card-note w-full py-1.5 px-3 rounded-xl text-xs font-semibold bg-white/20 hover:bg-white/30 text-white transition-all flex items-center justify-center gap-1.5 border border-white/20 cursor-pointer backdrop-blur-xs shadow-sm">
+                        class="btn-card-note w-full py-1.5 px-3 rounded-xl text-xs font-semibold bg-white/20 hover:bg-white/30 text-white transition-all flex items-center justify-center gap-1.5 border border-white/20 cursor-pointer shadow-sm">
                         <i class="fas fa-comment-dots text-amber-400 text-xs"></i>
                         <span>${note && note.trim() ? 'Ubah Catatan' : 'Catatan'}</span>
                     </button>
@@ -2608,7 +2745,9 @@
                 var isFinished = !!(gal && gal.status === 'Selesai');
                 var isSelected = this.clientData.selected.has(p.id_foto);
                 var note = this.clientData.selected.get(p.id_foto) || '';
-                var displayUrl = formatPhotoDisplayUrl(p.url_foto, 'w600');
+                var isMobile = (typeof window !== 'undefined' && (window.innerWidth <= 640 || (window.screen && window.screen.width <= 640)));
+                var thumbSize = isMobile ? 'w360' : 'w600';
+                var displayUrl = formatPhotoDisplayUrl(p.url_foto, thumbSize);
                 var driveId = p.id_drive || extractDriveId(p.url_foto);
 
                 var selectedOrder = '';
@@ -2714,7 +2853,11 @@
                 }
 
                 // Update class aktif pada pembungkus kartu foto
-                card.className = 'photo-item ' + (isSelected ? 'selected' : '');
+                if (isSelected) {
+                    card.classList.add('selected');
+                } else {
+                    card.classList.remove('selected');
+                }
 
                 var wrapper = card.querySelector('.photo-img-wrapper');
                 if (!wrapper) return;
@@ -3449,7 +3592,7 @@
                 var isMobile = (window.innerWidth < 768);
                 var targetSize = isMobile ? 'w1000' : 'w1600';
                 var fullUrl = formatPhotoDisplayUrl(p.url_foto, targetSize);
-                var thumbUrl = formatPhotoDisplayUrl(p.url_foto, 'w600');
+                var thumbUrl = formatPhotoDisplayUrl(p.url_foto, isMobile ? 'w360' : 'w600');
 
                 if (img) {
                     img.onerror = function () {
