@@ -2440,7 +2440,7 @@
 
     <!-- Client Review Modal (Periksa Sebelum Kirim) -->
     <div id="modalClientReview"
-        class="hidden fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4">
+        class="hidden fixed inset-0 bg-black/75 backdrop-blur-xs z-[10005] flex items-center justify-center p-3 sm:p-4">
         <div
             class="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[92vh] flex flex-col overflow-hidden border border-gray-100">
             <!-- Modal Header -->
@@ -2627,9 +2627,9 @@
                     <i class="fas fa-arrow-left mr-1.5"></i> Kembali & Revisi Pilihan
                 </button>
                 <button type="button" onclick="appState.confirmAndSubmitClientSelection()" id="btnConfirmSubmitClient"
-                    class="w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 cursor-pointer">
-                    <i class="fas fa-paper-plane"></i>
-                    <span>Kirim Sekarang</span>
+                    class="w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 cursor-pointer">
+                    <i class="fab fa-whatsapp text-base sm:text-lg"></i>
+                    <span>Kirim ke WhatsApp Vendor</span>
                 </button>
             </div>
         </div>
@@ -2930,6 +2930,44 @@
                     var charsToReplace = { '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' };
                     return charsToReplace[tag] || tag;
                 });
+            }
+
+            // Langsung membuka aplikasi WhatsApp native (Android, iPhone, Windows/Mac app) tanpa melalui WhatsApp Web
+            function openWhatsAppDirect(phone, message) {
+                var cleanPhone = '';
+                if (phone) {
+                    cleanPhone = String(phone).replace(/[^0-9]/g, '');
+                    if (cleanPhone.startsWith('0')) cleanPhone = '62' + cleanPhone.slice(1);
+                    else if (cleanPhone.startsWith('8')) cleanPhone = '62' + cleanPhone;
+                }
+
+                var nativeUrl = (cleanPhone && cleanPhone.length >= 9)
+                    ? ('whatsapp://send?phone=' + encodeURIComponent(cleanPhone) + '&text=' + encodeURIComponent(message))
+                    : ('whatsapp://send?text=' + encodeURIComponent(message));
+
+                // Salin pesan ke clipboard secara otomatis (backup aman)
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    try { navigator.clipboard.writeText(message); } catch (e) { }
+                }
+
+                // Picu peluncuran aplikasi WhatsApp native via link klik
+                var a = document.createElement('a');
+                a.href = nativeUrl;
+                a.style.display = 'none';
+                document.body.appendChild(a);
+                a.click();
+                setTimeout(function () {
+                    try { document.body.removeChild(a); } catch (e) { }
+                }, 1000);
+
+                // Fallback trigger langsung (sangat handal di browser smartphone Android & iOS)
+                setTimeout(function () {
+                    try {
+                        window.location.href = nativeUrl;
+                    } catch (e) { }
+                }, 150);
+
+                return nativeUrl;
             }
 
             // Mengurutkan foto dari nomor nama file terbaru sampai terlama (descending)
@@ -7070,24 +7108,8 @@
                         return;
                     }
 
-                    var waUrl = 'https://api.whatsapp.com/send?phone=' + encodeURIComponent(phone) + '&text=' + encodeURIComponent(msg);
-                    var win = null;
-                    try {
-                        win = window.open(waUrl, '_blank');
-                    } catch (e) {
-                        win = null;
-                    }
-
-                    if (!win || win.closed || typeof win.closed === 'undefined') {
-                        var a = document.createElement('a');
-                        a.href = waUrl;
-                        a.target = '_blank';
-                        a.rel = 'noopener noreferrer';
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                    }
-                    ui.showToast('Membuka WhatsApp Client...', false);
+                    openWhatsAppDirect(phone, msg);
+                    ui.showToast('Membuka aplikasi WhatsApp Client...', false);
                 },
 
                 previewClientFromShare: function () {
@@ -9555,21 +9577,22 @@
                 },
 
                 openClientReviewModal: function () {
-                    var count = this.clientData.selected ? this.clientData.selected.size : 0;
-                    var gal = this.clientData.gallery;
-                    var max = gal ? (parseInt(gal.batas_foto, 10) || 30) : 30;
-                    var totalPhotos = (this.clientData.photos || []).length;
-                    var isComplete = (count >= max) || (totalPhotos > 0 && count >= totalPhotos);
+                    try {
+                        var count = this.clientData.selected ? this.clientData.selected.size : 0;
+                        var gal = this.clientData.gallery;
+                        var max = gal ? (parseInt(gal.batas_foto, 10) || 30) : 30;
+                        var totalPhotos = (this.clientData.photos || []).length;
+                        var isComplete = (count >= max) || (totalPhotos > 0 && count >= totalPhotos) || (max <= 0 && count > 0);
 
-                    if (count === 0) {
-                        ui.showToast('Silakan pilih foto terlebih dahulu.', true);
-                        return;
-                    }
+                        if (count === 0) {
+                            ui.showToast('Silakan pilih foto terlebih dahulu.', true);
+                            return;
+                        }
 
-                    if (!isComplete && (!gal || gal.status !== 'Selesai')) {
-                        ui.showToast('Pilihan belum lengkap. Silakan pilih ' + (max - count) + ' foto lagi hingga total ' + max + ' foto sebelum mengirim pilihan.', true);
-                        return;
-                    }
+                        if (!isComplete && (!gal || gal.status !== 'Selesai')) {
+                            ui.showToast('Pilihan belum lengkap. Silakan pilih ' + (max - count) + ' foto lagi hingga total ' + max + ' foto sebelum mengirim pilihan.', true);
+                            return;
+                        }
 
                     var notesCount = 0;
                     this.clientData.selected.forEach(function (note) {
@@ -9744,7 +9767,7 @@
                         this.onToggleDirectWaNoDrive(toggle.checked);
                     }
 
-                    // Atur status tombol Kirim Sekarang di modal review
+                    // Atur status tombol Kirim Pilihan di modal review
                     var btnSubmitClient = document.getElementById('btnConfirmSubmitClient');
                     if (btnSubmitClient) {
                         if (gal && gal.status === 'Selesai') {
@@ -9753,13 +9776,17 @@
                             btnSubmitClient.innerHTML = '<i class="fas fa-lock"></i> <span>Pilihan Sudah Terkunci (Selesai)</span>';
                         } else {
                             btnSubmitClient.disabled = false;
-                            btnSubmitClient.className = 'w-full sm:w-auto px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 cursor-pointer';
-                            btnSubmitClient.innerHTML = '<i class="fas fa-paper-plane"></i> <span>Kirim Sekarang</span>';
+                            btnSubmitClient.className = 'w-full sm:w-auto px-6 py-3 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 cursor-pointer';
+                            btnSubmitClient.innerHTML = '<i class="fab fa-whatsapp text-base sm:text-lg"></i> <span>Kirim ke WhatsApp Vendor</span>';
                         }
                     }
 
                     ui.openModal('modalClientReview');
-                },
+                } catch (err) {
+                    console.error('Error opening client review modal:', err);
+                    ui.showToast('Gagal membuka rekap foto: ' + (err.message || err), true);
+                }
+            },
 
                 copySimpleFileNames: function () {
                     var textToCopy = this.buildSimpleNumberedPhotoListText();
@@ -9916,10 +9943,8 @@
                 sendReviewViaWhatsApp: function () {
                     var waInput = document.getElementById('reviewClientWaInput');
                     var rawPhone = waInput ? waInput.value.trim() : '';
-                    if (!rawPhone) {
-                        ui.showToast('Silakan masukkan nomor WhatsApp vendor terlebih dahulu.', true);
-                        if (waInput) waInput.focus();
-                        return;
+                    if (!rawPhone && this.clientData.gallery && (this.clientData.gallery.whatsapp_vendor || this.clientData.gallery.whatsapp_studio || this.clientData.gallery.no_wa_vendor)) {
+                        rawPhone = String(this.clientData.gallery.whatsapp_vendor || this.clientData.gallery.whatsapp_studio || this.clientData.gallery.no_wa_vendor).trim();
                     }
 
                     // Bersihkan nomor WhatsApp (hapus karakter non-angka)
@@ -9930,14 +9955,11 @@
                         cleanPhone = '628' + cleanPhone.slice(1);
                     }
 
-                    if (cleanPhone.length < 9) {
-                        ui.showToast('Nomor WhatsApp vendor tidak valid. Mohon periksa kembali.', true);
-                        return;
+                    if (cleanPhone && cleanPhone.length >= 9) {
+                        try {
+                            localStorage.setItem('last_vendor_wa', cleanPhone);
+                        } catch (e) { }
                     }
-
-                    try {
-                        localStorage.setItem('last_vendor_wa', cleanPhone);
-                    } catch (e) { }
 
                     var waMessage = this.buildWhatsAppReviewMessage();
                     if (!waMessage) {
@@ -9945,9 +9967,8 @@
                         return;
                     }
 
-                    var waUrl = 'https://api.whatsapp.com/send?phone=' + encodeURIComponent(cleanPhone) + '&text=' + encodeURIComponent(waMessage);
-                    window.open(waUrl, '_blank');
-                    ui.showToast('Membuka WhatsApp ke Vendor...', false);
+                    openWhatsAppDirect(cleanPhone, waMessage);
+                    ui.showToast('Membuka aplikasi WhatsApp ke Vendor...', false);
                 },
 
                 promptConfirmSubmitClient: function () {
@@ -9980,8 +10001,8 @@
                     // Ambil nomor WA fotografer / vendor terlebih dahulu sebelum modal ditutup
                     var waInput = document.getElementById('reviewClientWaInput');
                     var rawPhone = waInput ? waInput.value.trim() : '';
-                    if (!rawPhone && this.clientData.gallery && this.clientData.gallery.whatsapp_vendor) {
-                        rawPhone = String(this.clientData.gallery.whatsapp_vendor).trim();
+                    if (!rawPhone && this.clientData.gallery && (this.clientData.gallery.whatsapp_vendor || this.clientData.gallery.whatsapp_studio || this.clientData.gallery.no_wa_vendor)) {
+                        rawPhone = String(this.clientData.gallery.whatsapp_vendor || this.clientData.gallery.whatsapp_studio || this.clientData.gallery.no_wa_vendor).trim();
                     }
                     if (!rawPhone && this.clientData.gallery && this.clientData.gallery.whatsapp_client) {
                         rawPhone = String(this.clientData.gallery.whatsapp_client).trim();
@@ -10011,14 +10032,8 @@
 
                     // Bangun format pesan WhatsApp seketika
                     var waMessage = this.buildWhatsAppReviewMessage('', skipDrive);
-                    var waUrl = '';
-                    if (cleanPhone && cleanPhone.length >= 9 && waMessage) {
-                        waUrl = 'https://api.whatsapp.com/send?phone=' + encodeURIComponent(cleanPhone) + '&text=' + encodeURIComponent(waMessage);
-                    } else if (waMessage) {
-                        waUrl = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(waMessage);
-                    }
 
-                    // Tutup modal review dan konfirmasi langsung tanpa memunculkan modal perantara
+                    // Tutup modal review dan konfirmasi langsung
                     ui.closeModal('modalClientReview');
                     ui.closeModal('modalConfirmFinalSubmit');
 
@@ -10035,18 +10050,10 @@
                         console.error('Submit error:', err);
                     });
 
-                    // Otomatis langsung arahkan ke WhatsApp vendor seketika
-                    if (waUrl) {
-                        var win = null;
-                        try {
-                            win = window.open(waUrl, '_blank');
-                        } catch (e) {
-                            win = null;
-                        }
-                        if (!win || win.closed || typeof win.closed === 'undefined') {
-                            window.location.href = waUrl;
-                        }
-                    }
+                    // Otomatis langsung buka aplikasi WhatsApp native tanpa lewat WA Web
+                    openWhatsAppDirect(cleanPhone, waMessage);
+
+                    ui.showToast('🎉 Membuka aplikasi WhatsApp vendor... Pilihan foto berhasil dikirim!', false);
                 },
 
                 closeSuccessAndBackToPhotos: function () {
