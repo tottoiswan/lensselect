@@ -2800,10 +2800,10 @@
                     <span class="text-[11px] font-bold text-gray-700 block uppercase tracking-wider">Simpan Rekap Foto
                         Terpilih:</span>
                     <div class="space-y-2">
-                        <a id="btnDirectSendWaSuccess" href="#" target="_blank"
-                            class="hidden w-full px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-2 shadow-xs active:scale-98">
-                            <i class="fab fa-whatsapp text-lg"></i>
-                            <span id="btnDirectSendWaSuccessText">Kirim Pesan ke WhatsApp Vendor</span>
+                        <a id="btnDirectSendWaSuccess" href="#" target="_blank" rel="noopener noreferrer"
+                            class="hidden w-full px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-98 cursor-pointer ring-2 ring-emerald-400/40">
+                            <i class="fab fa-whatsapp text-xl"></i>
+                            <span id="btnDirectSendWaSuccessText">Buka / Kirim ke WhatsApp Vendor Sekarang</span>
                         </a>
                         <button type="button" onclick="appState.copySimpleFileNames()"
                             id="btnCopySimpleFileNamesSuccess"
@@ -2995,7 +2995,34 @@
                 });
             }
 
-            // Langsung membuka aplikasi WhatsApp ke vendor secara otomatis (mendukung HP & Desktop)
+            // Salin teks ke clipboard secara aman dengan multi-level fallback
+            function safeCopyTextToClipboard(text) {
+                if (!text) return;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(text).catch(function () {
+                        fallbackExecCopy(text);
+                    });
+                } else {
+                    fallbackExecCopy(text);
+                }
+            }
+
+            function fallbackExecCopy(text) {
+                try {
+                    var ta = document.createElement('textarea');
+                    ta.value = text;
+                    ta.style.position = 'fixed';
+                    ta.style.opacity = '0';
+                    ta.style.left = '-9999px';
+                    document.body.appendChild(ta);
+                    ta.focus();
+                    ta.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(ta);
+                } catch (e) { }
+            }
+
+            // Langsung membuka aplikasi WhatsApp ke vendor secara otomatis (mendukung HP & Desktop tanpa layar blank)
             function openWhatsAppDirect(phone, message) {
                 var cleanPhone = '';
                 if (phone) {
@@ -3004,27 +3031,46 @@
                     else if (cleanPhone.startsWith('8')) cleanPhone = '62' + cleanPhone;
                 }
 
-                var textParam = encodeURIComponent(message || '');
-                var waUrl = (cleanPhone && cleanPhone.length >= 9)
-                    ? ('https://api.whatsapp.com/send?phone=' + cleanPhone + '&text=' + textParam)
-                    : ('https://api.whatsapp.com/send?text=' + textParam);
+                // Batasi panjang teks pada query string URL agar aman dari batas panjang URI browser HP (maks ~1800 karakter)
+                // Seluruh pesan lengkap tetap disalin 100% ke clipboard untuk kemudahan pengguna
+                var urlMsg = message || '';
+                if (urlMsg.length > 1800) {
+                    urlMsg = urlMsg.substring(0, 1750) + '\n\n...(Daftar lengkap foto terpilih telah disalin ke clipboard - silakan Tempel/Paste di chat ini)...';
+                }
+                var textParam = encodeURIComponent(urlMsg);
 
-                // Salin pesan ke clipboard secara otomatis (backup aman)
-                if (navigator.clipboard && navigator.clipboard.writeText) {
-                    try { navigator.clipboard.writeText(message || ''); } catch (e) { }
+                // Gunakan Universal Link resmi WhatsApp (https://wa.me/...) yang aman di HP & Desktop
+                var waUrl = (cleanPhone && cleanPhone.length >= 9)
+                    ? ('https://wa.me/' + cleanPhone + (textParam ? ('?text=' + textParam) : ''))
+                    : ('https://wa.me/?text=' + textParam);
+
+                // 1. Salin pesan lengkap ke clipboard secara otomatis (backup aman)
+                safeCopyTextToClipboard(message || '');
+
+                // 2. Buka WhatsApp menggunakan jendela/tab baru atau anchor tag (JANGAN ubah window.location.href agar halaman web tidak berubah menjadi layar blank!)
+                var opened = false;
+                try {
+                    var win = window.open(waUrl, '_blank', 'noopener,noreferrer');
+                    if (win && !win.closed && typeof win.closed !== 'undefined') {
+                        opened = true;
+                    }
+                } catch (e) {
+                    opened = false;
                 }
 
-                var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
-                if (isMobile) {
-                    // Di HP / Smartphone: langsung arahkan ke URL WhatsApp (Universal link langsung buka aplikasi WhatsApp)
-                    window.location.href = waUrl;
-                } else {
-                    // Di Desktop: Buka tab baru ke WhatsApp Web / Desktop
-                    var win = window.open(waUrl, '_blank');
-                    if (!win || win.closed || typeof win.closed === 'undefined') {
-                        // Jika popup diblokir oleh browser, alihkan di tab aktif
-                        window.location.href = waUrl;
-                    }
+                // Fallback klik link dengan target="_blank" jika window.open dihalangi popup blocker
+                if (!opened) {
+                    try {
+                        var link = document.createElement('a');
+                        link.href = waUrl;
+                        link.target = '_blank';
+                        link.rel = 'noopener noreferrer';
+                        document.body.appendChild(link);
+                        link.click();
+                        setTimeout(function () {
+                            try { document.body.removeChild(link); } catch (e) { }
+                        }, 500);
+                    } catch (e) { }
                 }
 
                 return waUrl;
@@ -10199,11 +10245,14 @@
                     // Bangun format pesan WhatsApp seketika
                     var waMessage = this.buildWhatsAppReviewMessage('', skipDrive);
 
-                    // Tutup modal review dan konfirmasi langsung
+                    // 1. Langsung picu buka aplikasi WhatsApp nomor vendor pada saat interaksi klik aktif
+                    var waUrl = openWhatsAppDirect(cleanPhone, waMessage);
+
+                    // 2. Tutup modal review dan konfirmasi langsung
                     ui.closeModal('modalClientReview');
                     ui.closeModal('modalConfirmFinalSubmit');
 
-                    // Kunci pilihan foto secara permanen di tampilan klien seketika
+                    // 3. Kunci pilihan foto secara permanen di tampilan klien seketika
                     if (this.clientData.gallery) {
                         this.clientData.gallery.status = 'Selesai';
                     }
@@ -10214,17 +10263,22 @@
                     this.renderClientGallery();
                     this.updateClientProgress();
 
-                    // Tampilkan banner status selesai
+                    // 4. Siapkan tombol Buka WhatsApp di modal sukses & tampilkan modal sukses
+                    var btnWaSuccess = document.getElementById('btnDirectSendWaSuccess');
+                    if (btnWaSuccess) {
+                        btnWaSuccess.href = waUrl;
+                        btnWaSuccess.classList.remove('hidden');
+                    }
+                    ui.openModal('modalClientSuccess');
+
+                    // Tampilkan juga banner status selesai
                     var banner = document.getElementById('clientSuccessBanner');
                     if (banner) banner.classList.remove('hidden');
 
-                    // Simpan data seleksi ke server di latar belakang (background)
+                    // 5. Simpan data seleksi ke server di latar belakang (background)
                     gasRun('submitClientSelection', galId, selections, { skipDriveFolder: skipDrive }).catch(function (err) {
                         console.error('Submit error:', err);
                     });
-
-                    // Otomatis langsung arahkan ke WhatsApp vendor tanpa kendala popup
-                    openWhatsAppDirect(cleanPhone, waMessage);
 
                     ui.showToast('🎉 Mengarahkan ke WhatsApp Vendor... Pilihan foto berhasil dikirim dan dikunci!', false);
                 },
