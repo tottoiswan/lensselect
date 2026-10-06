@@ -31,12 +31,17 @@ function doGet(e) {
   }
 
   var defaultGoogleSitesUrl = 'https://sites.google.com/view/ttwinselect/client';
+  var defaultCustomDomain = PropertiesService.getScriptProperties().getProperty('CUSTOM_VERCEL_DOMAIN') || '';
+  if (!defaultCustomDomain && e && e.parameter && e.parameter.v_domain) {
+    defaultCustomDomain = String(e.parameter.v_domain).trim();
+  }
 
   if (isClientPage) {
     var clientTemplate = HtmlService.createTemplateFromFile('Client');
     clientTemplate.runtimeMode = 'production';
     clientTemplate.webAppUrl = ScriptApp.getService().getUrl();
     clientTemplate.googleSitesUrl = defaultGoogleSitesUrl;
+    clientTemplate.customDomain = defaultCustomDomain;
 
     var initialGaleri = '';
     if (e && e.parameter) {
@@ -77,6 +82,7 @@ function doGet(e) {
   var webAppUrl = ScriptApp.getService().getUrl();
   template.webAppUrl = webAppUrl;
   template.googleSitesUrl = defaultGoogleSitesUrl;
+  template.customDomain = defaultCustomDomain;
 
   var initialGaleri = '';
   var initialGalleryData = null;
@@ -115,7 +121,7 @@ function doGet(e) {
 function setupDatabase() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheets = {
-    'User': ['id_user', 'nama', 'email', 'role', 'paket', 'username', 'password'],
+    'User': ['id_user', 'nama', 'email', 'role', 'paket', 'username', 'password', 'wa_vendor', 'logo_vendor', 'custom_domain'],
     'Galeri': ['id_galeri', 'id_fotografer', 'nama_client', 'judul_acara', 'link_drive', 'batas_foto', 'deadline', 'tanggal_acara', 'highlight', 'email_client', 'whatsapp_client', 'izin_download', 'status', 'whatsapp_vendor', 'nama_vendor', 'kirim_tanpa_drive'],
     'Foto': ['id_foto', 'id_galeri', 'nama_file', 'url_foto', 'nomor_foto', 'nama_folder'],
     'Seleksi': ['id_seleksi', 'id_galeri', 'id_foto', 'pesan_client', 'tanggal_pilih'],
@@ -131,9 +137,15 @@ function setupDatabase() {
       sheet.appendRow(sheets[name]);
       sheet.setFrozenRows(1);
     } else {
-      var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-      if (headers.join() !== sheets[name].join()) {
-        sheet.getRange(1, 1, 1, sheets[name].length).setValues([sheets[name]]);
+      var lastCol = Math.max(1, sheet.getLastColumn());
+      var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+      for (var colIdx = 0; colIdx < sheets[name].length; colIdx++) {
+        var colName = sheets[name][colIdx];
+        if (headers.indexOf(colName) === -1) {
+          lastCol++;
+          sheet.getRange(1, lastCol).setValue(colName);
+          headers.push(colName);
+        }
       }
     }
   }
@@ -229,6 +241,22 @@ function ensureGalleryVendorColumn(galSheet, optMap) {
   return changed ? getColumnMap(galSheet) : map;
 }
 
+function ensureUserColumns(userSheet, optMap) {
+  var map = optMap || getColumnMap(userSheet);
+  var changed = false;
+  var required = ['wa_vendor', 'logo_vendor', 'custom_domain'];
+  for (var i = 0; i < required.length; i++) {
+    var col = required[i];
+    if (map[col] === undefined) {
+      var lastCol = Math.max(1, userSheet.getLastColumn());
+      userSheet.getRange(1, lastCol + 1).setValue(col);
+      changed = true;
+      map = getColumnMap(userSheet);
+    }
+  }
+  return map;
+}
+
 
 function logAction(action, user, details) {
   try {
@@ -280,16 +308,17 @@ function loginUser(username, password) {
       sheet = ss.getSheetByName('User');
     }
 
+    var map = ensureUserColumns(sheet);
     var data = sheet.getDataRange().getValues();
-    var map = getColumnMap(sheet);
     var hashedPass = hashPassword(password);
     var cleanUser = String(u).trim().toLowerCase();
 
     // Pastikan database terisi admin awal jika baris hanya header
     if (data.length <= 1) {
       setupDatabase();
+      sheet = ss.getSheetByName('User');
+      map = ensureUserColumns(sheet);
       data = sheet.getDataRange().getValues();
-      map = getColumnMap(sheet);
     }
 
     for (var i = 1; i < data.length; i++) {
@@ -311,7 +340,10 @@ function loginUser(username, password) {
         var token = generateSessionToken();
         var cache = CacheService.getScriptCache();
         
-var userObj = {
+        var savedDomain = (map['custom_domain'] !== undefined ? String(data[i][map['custom_domain']] || '').trim() : '') ||
+                          PropertiesService.getScriptProperties().getProperty('CUSTOM_VERCEL_DOMAIN') || '';
+
+        var userObj = {
           id_user: data[i][map['id_user']] || 'U1',
           nama: data[i][map['nama']] || 'Fotografer Studio',
           email: data[i][map['email']] || 'studio@email.com',
@@ -319,7 +351,8 @@ var userObj = {
           paket: data[i][map['paket']] || 'PRO',
           username: map['username'] !== undefined ? data[i][map['username']] : cleanUser,
           wa: map['wa_vendor'] !== undefined ? data[i][map['wa_vendor']] : '',
-          logo: map['logo_vendor'] !== undefined ? data[i][map['logo_vendor']] : ''
+          logo: map['logo_vendor'] !== undefined ? data[i][map['logo_vendor']] : '',
+          custom_domain: savedDomain
         };
         
         cache.put('session_' + token, JSON.stringify(userObj), CACHE_EXPIRATION);
@@ -334,15 +367,19 @@ var userObj = {
     if (cleanUser === 'admin' && (password === 'bismillah' || password === 'Admin@2026' || password === 'admin')) {
       var newUserId = 'U' + new Date().getTime();
       var newAdminPass = hashPassword(password);
-      sheet.appendRow([newUserId, 'Fotografer Studio', 'studio@email.com', 'Fotografer', 'PRO', 'admin', newAdminPass]);
+      var savedDomain = PropertiesService.getScriptProperties().getProperty('CUSTOM_VERCEL_DOMAIN') || '';
+      sheet.appendRow([newUserId, 'Fotografer Studio', 'studio@email.com', 'Fotografer', 'PRO', 'admin', newAdminPass, '', '', savedDomain]);
       
-var newAdminObj = {
+      var newAdminObj = {
         id_user: newUserId,
         nama: 'Fotografer Studio',
         email: 'studio@email.com',
         role: 'Fotografer',
         paket: 'PRO',
-        username: 'admin'
+        username: 'admin',
+        wa: '',
+        logo: '',
+        custom_domain: savedDomain
       };
       var token = generateSessionToken();
       var cache = CacheService.getScriptCache();
@@ -389,25 +426,8 @@ function updateUserSettings(token, payload) {
     lock.waitLock(5000);
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName('User');
+    var map = ensureUserColumns(sheet);
     var data = sheet.getDataRange().getValues();
-    var map = getColumnMap(sheet);
-    
-    // Pastikan kolom wa_vendor dan logo_vendor otomatis ditambahkan jika belum ada
-    var changed = false;
-    if (map['wa_vendor'] === undefined) {
-      var lastCol = Math.max(1, sheet.getLastColumn());
-      sheet.getRange(1, lastCol + 1).setValue('wa_vendor');
-      changed = true;
-    }
-    if (map['logo_vendor'] === undefined) {
-      var lastCol2 = Math.max(1, sheet.getLastColumn());
-      sheet.getRange(1, lastCol2 + (changed ? 2 : 1)).setValue('logo_vendor');
-      changed = true;
-    }
-    if (changed) {
-      map = getColumnMap(sheet);
-      data = sheet.getDataRange().getValues();
-    }
 
     var rowIndex = -1;
     for (var i = 1; i < data.length; i++) {
@@ -417,12 +437,32 @@ function updateUserSettings(token, payload) {
       }
     }
 
-if (rowIndex === -1) return { success: false, message: 'User tidak ditemukan.' };
+    if (rowIndex === -1) return { success: false, message: 'User tidak ditemukan.' };
 
     if (payload.nama) sheet.getRange(rowIndex, map['nama'] + 1).setValue(sanitizeInput(payload.nama));
-    if (payload.wa) sheet.getRange(rowIndex, map['wa_vendor'] + 1).setValue(sanitizeInput(payload.wa));
+    if (payload.wa !== undefined) sheet.getRange(rowIndex, map['wa_vendor'] + 1).setValue(sanitizeInput(payload.wa));
     if (payload.email) sheet.getRange(rowIndex, map['email'] + 1).setValue(sanitizeInput(payload.email));
     if (payload.password) sheet.getRange(rowIndex, map['password'] + 1).setValue(hashPassword(payload.password));
+
+    // Simpan Domain Kustom / Vercel ke database User dan ScriptProperties
+    var cleanDomain = '';
+    if (payload.custom_domain !== undefined) {
+      cleanDomain = String(payload.custom_domain || '').trim().replace(/\/+$/, '');
+      if (cleanDomain && !/^https?:\/\//i.test(cleanDomain)) {
+        cleanDomain = 'https://' + cleanDomain;
+      }
+      sheet.getRange(rowIndex, map['custom_domain'] + 1).setValue(cleanDomain);
+      try {
+        if (cleanDomain) {
+          PropertiesService.getScriptProperties().setProperty('CUSTOM_VERCEL_DOMAIN', cleanDomain);
+        } else {
+          PropertiesService.getScriptProperties().deleteProperty('CUSTOM_VERCEL_DOMAIN');
+        }
+      } catch (errProp) {}
+    } else {
+      cleanDomain = (map['custom_domain'] !== undefined ? String(data[rowIndex - 1][map['custom_domain']] || '').trim() : '') ||
+                    PropertiesService.getScriptProperties().getProperty('CUSTOM_VERCEL_DOMAIN') || '';
+    }
     
     var logoUrl = null;
     if (payload.logoData && payload.logoMime) {
@@ -430,7 +470,7 @@ if (rowIndex === -1) return { success: false, message: 'User tidak ditemukan.' }
       sheet.getRange(rowIndex, map['logo_vendor'] + 1).setValue(logoUrl);
     }
 
-// Update session data di cache langsung
+    // Update session data di cache langsung
     var updatedUser = {
       id_user: user.id_user,
       nama: payload.nama || user.nama,
@@ -438,17 +478,55 @@ if (rowIndex === -1) return { success: false, message: 'User tidak ditemukan.' }
       role: user.role,
       paket: user.paket,
       username: user.username,
-      wa: payload.wa || user.wa,
-      logo: logoUrl || user.logo
+      wa: payload.wa !== undefined ? payload.wa : user.wa,
+      logo: logoUrl || user.logo,
+      custom_domain: cleanDomain
     };
     CacheService.getScriptCache().put('session_' + token, JSON.stringify(updatedUser), CACHE_EXPIRATION);
 
-    logAction('UPDATE_SETTINGS', user.id_user, 'Update Profile');
-    return { success: true, logoUrl: logoUrl };
+    logAction('UPDATE_SETTINGS', user.id_user, 'Update Profile & Domain');
+    return { success: true, logoUrl: logoUrl, customDomain: cleanDomain, user: updatedUser };
   } catch (e) {
     return { success: false, message: e.message };
   } finally {
-    lock.releaseLock();
+    try { lock.releaseLock(); } catch(e) {}
+  }
+}
+
+function getUserSettings(token) {
+  var user = validateSession(token);
+  if (!user) return { success: false, message: 'Session expired', sessionExpired: true };
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName('User');
+    var map = ensureUserColumns(sheet);
+    var data = sheet.getDataRange().getValues();
+    var foundUser = null;
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][map['id_user']] === user.id_user) {
+        var domain = (map['custom_domain'] !== undefined ? String(data[i][map['custom_domain']] || '').trim() : '') ||
+                     PropertiesService.getScriptProperties().getProperty('CUSTOM_VERCEL_DOMAIN') || '';
+        foundUser = {
+          id_user: data[i][map['id_user']],
+          nama: data[i][map['nama']] || '',
+          email: data[i][map['email']] || '',
+          role: data[i][map['role']] || '',
+          paket: data[i][map['paket']] || '',
+          username: data[i][map['username']] || '',
+          wa: map['wa_vendor'] !== undefined ? (data[i][map['wa_vendor']] || '') : '',
+          logo: map['logo_vendor'] !== undefined ? (data[i][map['logo_vendor']] || '') : '',
+          custom_domain: domain
+        };
+        break;
+      }
+    }
+    if (!foundUser) {
+      foundUser = user;
+    }
+    CacheService.getScriptCache().put('session_' + token, JSON.stringify(foundUser), CACHE_EXPIRATION);
+    return { success: true, data: foundUser };
+  } catch(e) {
+    return { success: false, message: e.message };
   }
 }
 
