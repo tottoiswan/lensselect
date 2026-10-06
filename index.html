@@ -276,6 +276,8 @@
             transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
             touch-action: manipulation;
             -webkit-tap-highlight-color: transparent;
+            content-visibility: auto;
+            contain-intrinsic-size: auto 240px;
         }
 
         .photo-item:hover {
@@ -454,6 +456,8 @@
                 border-radius: 0.75rem;
                 margin-bottom: 0.5rem !important;
                 break-inside: avoid !important;
+                content-visibility: auto;
+                contain-intrinsic-size: auto 160px;
             }
 
             .photo-item img {
@@ -2933,7 +2937,9 @@
 
             function formatPhotoDisplayUrl(url, targetSize) {
                 if (!url) return '';
-                var sz = targetSize || 'w600';
+                var isMobile = (typeof window !== 'undefined' && (window.innerWidth <= 640 || (window.screen && window.screen.width <= 640)));
+                var defaultSize = isMobile ? 'w360' : 'w600';
+                var sz = targetSize || defaultSize;
                 var driveId = extractDriveId(url);
                 if (driveId && (url.indexOf('drive.google.com') !== -1 || url.indexOf('google.com') !== -1 || url.indexOf('googleusercontent.com') !== -1)) {
                     return 'https://drive.google.com/thumbnail?id=' + driveId + '&sz=' + sz;
@@ -2948,9 +2954,11 @@
             function handleImageError(img, driveId) {
                 if (!img) return;
                 var dId = driveId || extractDriveId(img.src);
+                var isMobile = (typeof window !== 'undefined' && (window.innerWidth <= 640 || (window.screen && window.screen.width <= 640)));
+                var thumbSize = isMobile ? 'w360' : 'w600';
                 if (dId && !img.dataset.triedCdn) {
                     img.dataset.triedCdn = 'true';
-                    img.src = 'https://lh3.googleusercontent.com/d/' + dId + '=w600';
+                    img.src = 'https://lh3.googleusercontent.com/d/' + dId + '=' + thumbSize;
                     return;
                 }
                 img.style.display = 'none';
@@ -3575,7 +3583,7 @@
                     var isMobile = (window.innerWidth < 768);
                     var targetSize = isMobile ? 'w1000' : 'w1600';
                     var fullUrl = formatPhotoDisplayUrl(p.url_foto, targetSize);
-                    var thumbUrl = formatPhotoDisplayUrl(p.url_foto, 'w600');
+                    var thumbUrl = formatPhotoDisplayUrl(p.url_foto, isMobile ? 'w360' : 'w600');
                     var imgEl = document.getElementById('lbImage');
                     var driveId = p.id_drive || extractDriveId(p.url_foto);
 
@@ -8205,12 +8213,11 @@
                     var card = document.getElementById(cardId) || (img.closest ? img.closest('.photo-item') : null);
                     if (!card) return;
                     var isLandscape = img.naturalWidth > img.naturalHeight;
-                    if (isLandscape) {
-                        card.classList.add('photo-landscape');
-                        card.classList.remove('photo-portrait');
-                    } else {
-                        card.classList.add('photo-portrait');
-                        card.classList.remove('photo-landscape');
+                    var targetClass = isLandscape ? 'photo-landscape' : 'photo-portrait';
+                    var removeClass = isLandscape ? 'photo-portrait' : 'photo-landscape';
+                    if (!card.classList.contains(targetClass)) {
+                        card.classList.add(targetClass);
+                        card.classList.remove(removeClass);
                     }
                 },
 
@@ -8245,7 +8252,7 @@
                     } else {
                         selectButtonHtml = `
                             <button type="button" onclick="event.stopPropagation(); appState.togglePhotoSelection('${escapeHTML(p.id_foto)}')"
-                                class="btn-card-select w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${isSelected ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/30' : 'bg-black/40 text-white hover:bg-black/60 border border-white/20'}">
+                                class="btn-card-select w-full py-2 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${isSelected ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg shadow-emerald-500/30' : 'bg-black/60 text-white hover:bg-black/80 border border-white/20'}">
                                 <i class="${isSelected ? 'fas fa-check-circle' : 'fas fa-plus'} text-[11px]"></i>
                                 <span>${isSelected ? ((selectedOrder ? ('#' + selectedOrder + ' ') : '') + 'Pesan Terpilih') : 'Pilih Foto'}</span>
                             </button>
@@ -8254,7 +8261,7 @@
 
                     var noteButtonHtml = isSelected ? `
                         <button type="button" onclick="event.stopPropagation(); appState.openClientNoteModal('${escapeHTML(p.id_foto)}')"
-                            class="w-full py-1.5 px-3 rounded-xl text-xs font-semibold bg-white/20 hover:bg-white/30 text-white transition-all flex items-center justify-center gap-1.5 border border-white/20 cursor-pointer backdrop-blur-xs shadow-sm">
+                            class="w-full py-1.5 px-3 rounded-xl text-xs font-semibold bg-white/20 hover:bg-white/30 text-white transition-all flex items-center justify-center gap-1.5 border border-white/20 cursor-pointer shadow-sm">
                             <i class="fas fa-comment-dots text-amber-400 text-xs"></i>
                             <span>${note && note.trim() ? 'Ubah Catatan' : 'Catatan'}</span>
                         </button>
@@ -8280,7 +8287,9 @@
                     var isFinished = !!(gal && gal.status === 'Selesai');
                     var isSelected = appState.clientData.selected.has(p.id_foto);
                     var note = appState.clientData.selected.get(p.id_foto) || '';
-                    var displayUrl = formatPhotoDisplayUrl(p.url_foto, 'w600');
+                    var isMobile = (typeof window !== 'undefined' && (window.innerWidth <= 640 || (window.screen && window.screen.width <= 640)));
+                    var thumbSize = isMobile ? 'w360' : 'w600';
+                    var displayUrl = formatPhotoDisplayUrl(p.url_foto, thumbSize);
                     var driveId = p.id_drive || extractDriveId(p.url_foto);
 
                     var selectedOrder = '';
@@ -8357,7 +8366,11 @@
                         selectedOrder = pos !== -1 ? (pos + 1) : '';
                     }
 
-                    card.className = 'photo-item ' + (isSelected ? 'selected' : '');
+                    if (isSelected) {
+                        card.classList.add('selected');
+                    } else {
+                        card.classList.remove('selected');
+                    }
                     var wrapper = card.querySelector('.photo-img-wrapper');
                     if (!wrapper) return;
 
@@ -8414,6 +8427,14 @@
                     }
                 },
 
+                _clientBatchRenderState: {
+                    photos: [],
+                    renderedCount: 0,
+                    batchSize: 36,
+                    isLoading: false,
+                    observer: null
+                },
+
                 renderClientGallery: function () {
                     var gal = this.clientData.gallery;
                     if (!gal) return;
@@ -8450,6 +8471,7 @@
                     container.innerHTML = '';
 
                     if (filteredPhotos.length === 0) {
+                        this.updateClientScrollSentinel(false);
                         var emptyMsg = this.clientData.activeFilter === 'selected'
                             ? 'Belum ada foto yang dipilih. Silakan klik tombol Pilih pada foto favorit Anda.'
                             : (this.clientData.searchQuery
@@ -8474,9 +8496,130 @@
                         return;
                     }
 
-                    filteredPhotos.forEach(function (p, idx) {
-                        container.appendChild(appState.createClientPhotoCard(p, idx));
-                    });
+                    // Inisialisasi state batch rendering cerdas
+                    this._clientBatchRenderState.photos = filteredPhotos;
+                    this._clientBatchRenderState.renderedCount = 0;
+                    this._clientBatchRenderState.isLoading = false;
+
+                    // Muat 36 foto pertama seketika
+                    this.renderNextClientBatch();
+                    // Aktifkan pemuatan batch berikutnya saat scroll otomatis mendekati bawah
+                    this.initClientInfiniteScroll();
+                },
+
+                renderNextClientBatch: function () {
+                    var st = this._clientBatchRenderState;
+                    if (!st || st.isLoading) return;
+                    if (st.renderedCount >= st.photos.length) {
+                        this.updateClientScrollSentinel(false);
+                        return;
+                    }
+                    st.isLoading = true;
+                    var container = document.getElementById('clientPhotoContainer');
+                    if (!container) {
+                        st.isLoading = false;
+                        return;
+                    }
+
+                    var start = st.renderedCount;
+                    var end = Math.min(start + st.batchSize, st.photos.length);
+                    var fragment = document.createDocumentFragment();
+
+                    for (var i = start; i < end; i++) {
+                        fragment.appendChild(appState.createClientPhotoCard(st.photos[i], i));
+                    }
+
+                    var sentinel = document.getElementById('clientPhotoSentinel');
+                    if (sentinel && sentinel.parentNode === container) {
+                        container.insertBefore(fragment, sentinel);
+                    } else {
+                        container.appendChild(fragment);
+                    }
+
+                    st.renderedCount = end;
+                    st.isLoading = false;
+
+                    var hasMore = st.renderedCount < st.photos.length;
+                    this.updateClientScrollSentinel(hasMore);
+                },
+
+                updateClientScrollSentinel: function (hasMore) {
+                    var container = document.getElementById('clientPhotoContainer');
+                    if (!container) return;
+                    var sentinel = document.getElementById('clientPhotoSentinel');
+                    if (hasMore) {
+                        if (!sentinel) {
+                            sentinel = document.createElement('div');
+                            sentinel.id = 'clientPhotoSentinel';
+                            sentinel.className = 'col-span-full py-6 flex flex-col items-center justify-center text-xs text-gray-400 gap-2';
+                            sentinel.innerHTML = `
+                                <div class="flex items-center gap-2 bg-white/90 px-4 py-2 rounded-full border border-gray-200/80 shadow-xs">
+                                    <i class="fas fa-circle-notch fa-spin text-blue-500 text-sm"></i>
+                                    <span class="font-medium text-gray-600">Memuat foto berikutnya...</span>
+                                </div>
+                            `;
+                            container.appendChild(sentinel);
+                        } else {
+                            sentinel.style.display = 'flex';
+                            if (sentinel.parentNode !== container) {
+                                container.appendChild(sentinel);
+                            }
+                        }
+
+                        if (this._clientBatchRenderState.observer && sentinel) {
+                            this._clientBatchRenderState.observer.observe(sentinel);
+                        }
+                    } else {
+                        if (sentinel) {
+                            sentinel.style.display = 'none';
+                        }
+                    }
+                },
+
+                initClientInfiniteScroll: function () {
+                    var self = this;
+                    if (this._clientBatchRenderState.observer) {
+                        try { this._clientBatchRenderState.observer.disconnect(); } catch (e) { }
+                    }
+
+                    if (typeof window !== 'undefined' && 'IntersectionObserver' in window) {
+                        this._clientBatchRenderState.observer = new IntersectionObserver(function (entries) {
+                            entries.forEach(function (entry) {
+                                if (entry.isIntersecting) {
+                                    self.renderNextClientBatch();
+                                }
+                            });
+                        }, {
+                            root: null,
+                            rootMargin: '600px',
+                            threshold: 0.01
+                        });
+
+                        var sentinel = document.getElementById('clientPhotoSentinel');
+                        if (sentinel) {
+                            this._clientBatchRenderState.observer.observe(sentinel);
+                        }
+                    }
+
+                    if (!this._clientScrollBound) {
+                        this._clientScrollBound = true;
+                        var throttle = false;
+                        window.addEventListener('scroll', function () {
+                            if (throttle) return;
+                            throttle = true;
+                            setTimeout(function () {
+                                throttle = false;
+                                var st = self._clientBatchRenderState;
+                                if (!st || st.renderedCount >= st.photos.length) return;
+                                var scrollY = window.pageYOffset || document.documentElement.scrollTop;
+                                var winH = window.innerHeight;
+                                var docH = document.documentElement.scrollHeight;
+                                if (docH - (scrollY + winH) < 800) {
+                                    self.renderNextClientBatch();
+                                }
+                            }, 80);
+                        }, { passive: true });
+                    }
                 },
 
                 togglePhotoSelection: function (photoId) {
