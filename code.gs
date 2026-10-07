@@ -672,6 +672,32 @@ function getGalleryAutoSelectCredits(galId) {
           } catch(uErr) {}
         }
 
+        if (!vendorWa || vendorWa === '081234567890') {
+          try {
+            var userSheet2 = ss.getSheetByName('User');
+            if (userSheet2 && userSheet2.getLastRow() > 1) {
+              var userMap2 = ensureUserColumns(userSheet2);
+              var userData2 = userSheet2.getDataRange().getValues();
+              for (var u2 = 1; u2 < userData2.length; u2++) {
+                var uWa = (userMap2['wa_vendor'] !== undefined && userData2[u2][userMap2['wa_vendor']]) ? String(userData2[u2][userMap2['wa_vendor']]).trim() : '';
+                if (uWa && uWa !== '081234567890') {
+                  vendorWa = uWa;
+                  if (!vendorName && userMap2['nama'] !== undefined) vendorName = String(userData2[u2][userMap2['nama']]).trim();
+                  break;
+                }
+              }
+            }
+          } catch(uErr2) {}
+        }
+
+        if ((!vendorWa || vendorWa === '081234567890') && map['whatsapp_vendor'] !== undefined && data[i][map['whatsapp_vendor']]) {
+          vendorWa = String(data[i][map['whatsapp_vendor']]).trim();
+        }
+
+        if (!vendorWa || vendorWa === '081234567890') {
+          vendorWa = '0895401147773';
+        }
+
         return {
           success: true,
           galId: cleanGalId,
