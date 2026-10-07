@@ -92,6 +92,14 @@ function doGet(e) {
     }
     return ContentService.createTextOutput(strSet).setMimeType(ContentService.MimeType.JSON);
   }
+  if (e && e.parameter && (e.parameter.action === 'getAllGalleriesCredits' || e.parameter.api === 'getAllGalleriesCredits' || e.parameter.action === 'getGalleriesCredits')) {
+    var resAll = getAllGalleriesAutoSelectCredits();
+    var strAll = JSON.stringify(resAll);
+    if (e.parameter.callback) {
+      return ContentService.createTextOutput(e.parameter.callback + '(' + strAll + ');').setMimeType(ContentService.MimeType.JAVASCRIPT);
+    }
+    return ContentService.createTextOutput(strAll).setMimeType(ContentService.MimeType.JSON);
+  }
 
   // Routing ke halaman khusus AutoSelect
   if (e && e.parameter && e.parameter.page === 'autoselect') {
@@ -649,7 +657,18 @@ function getGalleryAutoSelectCredits(galId) {
     for (var i = 1; i < data.length; i++) {
       if (String(data[i][map['id_galeri']] || '').trim().toUpperCase() === cleanGalId) {
         var raw = map['autoselect_credits'] !== undefined ? data[i][map['autoselect_credits']] : 1;
-        var credits = (raw !== '' && raw !== undefined && !isNaN(Number(raw))) ? Number(raw) : 1;
+        var credits = 1;
+        if (typeof raw === 'number') {
+          credits = Math.max(0, Math.floor(raw));
+        } else if (raw !== '' && raw !== undefined && raw !== null) {
+          var strRaw = String(raw).trim();
+          if (strRaw === '0') {
+            credits = 0;
+          } else {
+            var digits = strRaw.replace(/[^\d]/g, '');
+            credits = digits !== '' ? parseInt(digits, 10) : 1;
+          }
+        }
         
         // Ambil nomor WhatsApp vendor dari pengaturan profil vendor di sheet 'User' (wa_vendor)
         var vendorWa = '';
@@ -713,6 +732,41 @@ function getGalleryAutoSelectCredits(galId) {
     return { success: false, message: 'Galeri ' + cleanGalId + ' tidak ditemukan di database.', locked: true };
   } catch (e) {
     return { success: false, message: e.message, locked: true };
+  }
+}
+
+/**
+ * Mengambil daftar credit AutoSelect semua galeri langsung dari Sheet 'Galeri'
+ */
+function getAllGalleriesAutoSelectCredits() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName('Galeri') || ss.getSheetByName('Gallery') || ss.getSheetByName('galeri');
+    if (!sheet) return { success: false, message: 'Sheet Galeri tidak ditemukan.' };
+    var map = ensureGalleryVendorColumn(sheet);
+    var data = sheet.getDataRange().getValues();
+    var creditsMap = {};
+    for (var i = 1; i < data.length; i++) {
+      var gId = String(data[i][map['id_galeri']] || '').trim().toUpperCase();
+      if (!gId) continue;
+      var raw = map['autoselect_credits'] !== undefined ? data[i][map['autoselect_credits']] : 1;
+      var credits = 1;
+      if (typeof raw === 'number') {
+        credits = Math.max(0, Math.floor(raw));
+      } else if (raw !== '' && raw !== undefined && raw !== null) {
+        var strRaw = String(raw).trim();
+        if (strRaw === '0') {
+          credits = 0;
+        } else {
+          var digits = strRaw.replace(/[^\d]/g, '');
+          credits = digits !== '' ? parseInt(digits, 10) : 1;
+        }
+      }
+      creditsMap[gId] = credits;
+    }
+    return { success: true, creditsMap: creditsMap };
+  } catch (e) {
+    return { success: false, message: e.message };
   }
 }
 
@@ -824,15 +878,28 @@ function getGalleries(token) {
   if (!user) return { success: false, message: 'Session expired', sessionExpired: true };
 
   try {
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Galeri');
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName('Galeri') || ss.getSheetByName('Gallery') || ss.getSheetByName('galeri');
+    if (!sheet) return { success: false, message: 'Sheet Galeri tidak ditemukan.' };
     var map = ensureGalleryVendorColumn(sheet);
     var data = sheet.getDataRange().getValues();
     var results = [];
 
     for (var i = 1; i < data.length; i++) {
-      if(data[i][map['id_fotografer']] === user.id_user) {
+      if (String(data[i][map['id_fotografer']] || '').trim() === String(user.id_user || '').trim()) {
         var rawCredits = (map['autoselect_credits'] !== undefined) ? data[i][map['autoselect_credits']] : 1;
-        var galCredits = (rawCredits !== '' && rawCredits !== undefined && !isNaN(Number(rawCredits))) ? Number(rawCredits) : 1;
+        var galCredits = 1;
+        if (typeof rawCredits === 'number') {
+          galCredits = Math.max(0, Math.floor(rawCredits));
+        } else if (rawCredits !== '' && rawCredits !== undefined && rawCredits !== null) {
+          var strRaw = String(rawCredits).trim();
+          if (strRaw === '0') {
+            galCredits = 0;
+          } else {
+            var digits = strRaw.replace(/[^\d]/g, '');
+            galCredits = digits !== '' ? parseInt(digits, 10) : 1;
+          }
+        }
         results.push({
           id_galeri: data[i][map['id_galeri']],
           nama_client: data[i][map['nama_client']],
