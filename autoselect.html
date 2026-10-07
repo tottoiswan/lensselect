@@ -805,14 +805,48 @@
             clientName: '',
             eventTitle: '',
             price: 'Rp 5.000',
-            adminWa: '081234567890',
+            adminWa: '0895401147773',
             selectedPkgQty: 15,
             selectedPkgPrice: 'Rp 60.000',
             selectedPkgLabel: 'Paket 15x Sortir'
         };
 
         function initCreditState() {
+            // Bersihkan placeholder lama jika tersimpan di cache
+            try {
+                if (localStorage.getItem('autoselect_admin_wa') === '081234567890') localStorage.removeItem('autoselect_admin_wa');
+                if (localStorage.getItem('last_vendor_wa') === '081234567890') localStorage.removeItem('last_vendor_wa');
+                if (localStorage.getItem('autoselect_vendor_wa') === '081234567890') localStorage.removeItem('autoselect_vendor_wa');
+            } catch (e) { }
+
             var urlParams = new URLSearchParams(window.location.search);
+
+            // Prioritaskan nomor WhatsApp Vendor yang ada di profil vendor (0895401147773)
+            var paramWa = (urlParams.get('wa') || urlParams.get('v_wa') || urlParams.get('vendor_wa') || '').trim();
+            if (paramWa && paramWa !== '081234567890') {
+                asCreditState.adminWa = paramWa;
+                try { localStorage.setItem('autoselect_vendor_wa', paramWa); } catch (e) { }
+            } else {
+                var savedVendorWa = '';
+                try {
+                    savedVendorWa = localStorage.getItem('autoselect_vendor_wa') || localStorage.getItem('last_vendor_wa');
+                    if (!savedVendorWa || savedVendorWa === '081234567890') {
+                        var u = JSON.parse(localStorage.getItem('appUser') || '{}');
+                        savedVendorWa = u.wa || u.wa_vendor;
+                    }
+                } catch (e) { }
+                if (savedVendorWa && savedVendorWa !== '081234567890') {
+                    asCreditState.adminWa = savedVendorWa;
+                } else {
+                    var wa = localStorage.getItem('autoselect_admin_wa');
+                    if (wa && wa !== '081234567890') {
+                        asCreditState.adminWa = wa;
+                    } else {
+                        asCreditState.adminWa = '0895401147773';
+                    }
+                }
+            }
+
             var galParam = (urlParams.get('gal') || urlParams.get('galId') || urlParams.get('id') || '').trim();
 
             if (!galParam) {
@@ -855,28 +889,6 @@
 
             var p = localStorage.getItem('autoselect_price');
             if (p) asCreditState.price = p;
-
-            // Prioritaskan nomor WhatsApp Vendor yang ada di profil vendor
-            var paramWa = (urlParams.get('wa') || urlParams.get('v_wa') || urlParams.get('vendor_wa') || '').trim();
-            if (paramWa) {
-                asCreditState.adminWa = paramWa;
-                try { localStorage.setItem('autoselect_vendor_wa', paramWa); } catch (e) { }
-            } else {
-                var savedVendorWa = '';
-                try {
-                    savedVendorWa = localStorage.getItem('autoselect_vendor_wa') || localStorage.getItem('last_vendor_wa');
-                    if (!savedVendorWa) {
-                        var u = JSON.parse(localStorage.getItem('appUser') || '{}');
-                        savedVendorWa = u.wa || u.wa_vendor;
-                    }
-                } catch (e) { }
-                if (savedVendorWa) {
-                    asCreditState.adminWa = savedVendorWa;
-                } else {
-                    var wa = localStorage.getItem('autoselect_admin_wa');
-                    if (wa) asCreditState.adminWa = wa;
-                }
-            }
 
             applyLockState();
             updateCreditDisplay();
@@ -1071,6 +1083,14 @@
             var galBadge = document.getElementById('as-gal-badge-container');
             var galIdText = document.getElementById('as-gal-id-text');
 
+            // Selalu perbarui informasi di modal top-up credit baik kondisi terkunci atau aktif
+            if (modalCount) {
+                modalCount.textContent = asCreditState.credits;
+            }
+            if (modalAdminWa) {
+                modalAdminWa.textContent = asCreditState.adminWa || '0895401147773';
+            }
+
             if (asCreditState.isLocked) {
                 if (countEl) countEl.textContent = 'Terkunci';
                 if (container) {
@@ -1091,12 +1111,6 @@
 
             if (countEl) {
                 countEl.textContent = asCreditState.credits + 'x Sortir';
-            }
-            if (modalCount) {
-                modalCount.textContent = asCreditState.credits;
-            }
-            if (modalAdminWa) {
-                modalAdminWa.textContent = asCreditState.adminWa || '081234567890';
             }
 
             if (container) {
@@ -1147,6 +1161,10 @@
         }
 
         function openCreditTopUpModal() {
+            var modalAdminWa = document.getElementById('modal-topup-admin-wa');
+            if (modalAdminWa) {
+                modalAdminWa.textContent = asCreditState.adminWa || '0895401147773';
+            }
             updateCreditDisplay();
             var modal = document.getElementById('modalTopUpCredit');
             if (modal) modal.classList.remove('hidden');
@@ -1180,16 +1198,16 @@
 
         function executeTopUpViaWa() {
             var rawWa = asCreditState.adminWa || '';
-            if (!rawWa) {
+            if (!rawWa || rawWa === '081234567890') {
                 try {
                     rawWa = localStorage.getItem('autoselect_vendor_wa') || localStorage.getItem('last_vendor_wa');
-                    if (!rawWa) {
+                    if (!rawWa || rawWa === '081234567890') {
                         var u = JSON.parse(localStorage.getItem('appUser') || '{}');
                         rawWa = u.wa || u.wa_vendor;
                     }
                 } catch (e) { }
             }
-            if (!rawWa) rawWa = '081234567890';
+            if (!rawWa || rawWa === '081234567890') rawWa = '0895401147773';
 
             var wa = rawWa.replace(/[^\d]/g, '');
             if (wa.startsWith('0')) wa = '62' + wa.substring(1);
@@ -1829,7 +1847,7 @@
                     </div>
                     <div class="flex items-center justify-between text-gray-600">
                         <span>WhatsApp Vendor:</span>
-                        <strong id="modal-topup-admin-wa" class="text-emerald-700 font-mono">081234567890</strong>
+                        <strong id="modal-topup-admin-wa" class="text-emerald-700 font-mono">0895401147773</strong>
                     </div>
                 </div>
 
