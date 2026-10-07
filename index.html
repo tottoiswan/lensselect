@@ -1724,6 +1724,13 @@
                         <label for="galDirectWaNoDrive" class="text-sm text-gray-700 font-medium">Klien Langsung Kirim
                             WA (Tanpa Link Folder)</label>
                     </div>
+
+                    <div class="p-3 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl flex items-center gap-2.5 text-xs text-amber-900 shadow-2xs">
+                        <span class="text-base shrink-0">🪙</span>
+                        <div>
+                            <strong>AutoSelect Otomatis Aktif:</strong> Setiap galeri baru yang Anda buat otomatis mendapatkan <strong>+1 Credit AutoSelect</strong> sehingga fitur sortir & salin foto lokal langsung siap digunakan.
+                        </div>
+                    </div>
                 </form>
             </div>
             <div class="p-6 border-t border-gray-200 flex justify-end gap-3 bg-gray-50">
@@ -3048,6 +3055,139 @@
         </div>
     </div>
 
+    <!-- Modal Pengaturan & Tambah Credit di Menu Galeri -->
+    <div id="modalGalleryCredit"
+        class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-[99] flex items-center justify-center p-3 sm:p-4">
+        <div
+            class="bg-white rounded-3xl shadow-2xl max-w-lg w-full overflow-hidden border border-amber-300 animate-in fade-in zoom-in-95 duration-200">
+            <!-- Modal Header -->
+            <div
+                class="p-5 sm:p-6 border-b border-amber-100 flex items-center justify-between bg-gradient-to-r from-amber-50 via-yellow-50/70 to-amber-50">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-amber-500 to-amber-600 text-white flex items-center justify-center shadow-md shadow-amber-500/30 text-2xl shrink-0">
+                        🪙
+                    </div>
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold text-amber-950 leading-tight">Pengaturan Credit AutoSelect</h3>
+                        <p class="text-xs text-amber-800 mt-0.5">Kelola & tambah saldo credit sortir foto otomatis</p>
+                    </div>
+                </div>
+                <button type="button" onclick="appState.closeGalleryCreditModal()"
+                    class="text-amber-800 hover:text-amber-950 p-2 rounded-xl hover:bg-amber-100/80 transition-colors cursor-pointer"
+                    title="Tutup">
+                    <i class="fas fa-times text-base"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-5 sm:p-6 space-y-4 bg-white max-h-[75vh] overflow-y-auto custom-scroll-y">
+                <!-- Status Saldo Saat Ini -->
+                <div class="p-4 bg-gradient-to-br from-amber-50 via-yellow-50/60 to-amber-50 rounded-2xl border border-amber-200 flex items-center justify-between gap-3 shadow-2xs">
+                    <div>
+                        <span class="text-[11px] font-bold text-amber-800 block uppercase tracking-wider">Saldo Credit Saat Ini</span>
+                        <div class="flex items-baseline gap-1.5 mt-0.5">
+                            <span id="modal-gal-credit-current" class="text-3xl font-extrabold text-amber-950 font-mono">0</span>
+                            <span class="text-xs font-semibold text-amber-900">x Sesi Sortir Galeri</span>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <span class="px-2.5 py-1 bg-white text-emerald-800 border border-emerald-300 rounded-full text-[11px] font-bold inline-flex items-center gap-1 shadow-2xs">
+                            <i class="fas fa-check-circle text-emerald-600"></i> Siap Digunakan
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Banner Info Otomatisasi Galeri -->
+                <div class="p-3 bg-blue-50/80 border border-blue-200 rounded-xl flex items-start gap-2.5 text-xs text-blue-950 leading-relaxed">
+                    <i class="fas fa-info-circle text-blue-600 text-sm mt-0.5 shrink-0"></i>
+                    <div>
+                        <strong>Fitur Otomatis:</strong> Setiap kali Anda membuat galeri baru, kuota <strong>+1 Credit AutoSelect</strong> otomatis ditambahkan ke akun Anda sehingga fitur sortir foto selalu siap digunakan untuk setiap galeri.
+                    </div>
+                </div>
+
+                <!-- Bagian 1: Tambah Cepat Credit (Quick Add) -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-800 mb-1.5">Tambah Credit Cepat:</label>
+                    <div class="grid grid-cols-4 gap-2">
+                        <button type="button" onclick="appState.quickAddGalleryCredit(1)"
+                            class="py-2 px-2 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-950 rounded-xl text-xs font-bold transition hover:scale-105 active:scale-95 cursor-pointer shadow-2xs text-center">
+                            +1 Credit
+                        </button>
+                        <button type="button" onclick="appState.quickAddGalleryCredit(5)"
+                            class="py-2 px-2 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-950 rounded-xl text-xs font-bold transition hover:scale-105 active:scale-95 cursor-pointer shadow-2xs text-center">
+                            +5 Credit
+                        </button>
+                        <button type="button" onclick="appState.quickAddGalleryCredit(10)"
+                            class="py-2 px-2 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-950 rounded-xl text-xs font-bold transition hover:scale-105 active:scale-95 cursor-pointer shadow-2xs text-center">
+                            +10 Credit
+                        </button>
+                        <button type="button" onclick="appState.quickAddGalleryCredit(25)"
+                            class="py-2 px-2 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-950 rounded-xl text-xs font-bold transition hover:scale-105 active:scale-95 cursor-pointer shadow-2xs text-center">
+                            +25 Credit
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Bagian 2: Form Tambah / Set Credit Manual -->
+                <div class="p-4 bg-gray-50/80 rounded-2xl border border-gray-200 space-y-3">
+                    <h4 class="text-xs font-bold text-gray-800 uppercase tracking-wider flex items-center gap-1.5">
+                        <i class="fas fa-edit text-amber-600"></i> Pengaturan Saldo Manual
+                    </h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Tambah Sejumlah Credit</label>
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="inputGalCreditAdd" min="1" value="5"
+                                    class="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl font-mono font-bold text-sm text-gray-900 focus:ring-2 focus:ring-amber-500 outline-none">
+                                <button type="button" id="btnSaveGalCreditAdd" onclick="appState.saveGalleryCreditModal('add')"
+                                    class="px-3 py-2 bg-amber-600 hover:bg-amber-700 active:scale-95 text-white text-xs font-bold rounded-xl whitespace-nowrap transition cursor-pointer shadow-2xs">
+                                    Tambah
+                                </button>
+                            </div>
+                            <p class="text-[10px] text-gray-500 mt-0.5">Menambahkan ke saldo saat ini.</p>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-gray-700 mb-1">Atur Total Saldo Langsung</label>
+                            <div class="flex items-center gap-2">
+                                <input type="number" id="inputGalCreditDirect" min="0" value="0"
+                                    class="w-full px-3 py-2 bg-white border border-gray-300 rounded-xl font-mono font-bold text-sm text-gray-900 focus:ring-2 focus:ring-amber-500 outline-none">
+                                <button type="button" id="btnSaveGalCreditDirect" onclick="appState.saveGalleryCreditModal('direct')"
+                                    class="px-3 py-2 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white text-xs font-bold rounded-xl whitespace-nowrap transition cursor-pointer shadow-2xs">
+                                    Simpan
+                                </button>
+                            </div>
+                            <p class="text-[10px] text-gray-500 mt-0.5">Mengubah total saldo secara langsung.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Opsi Beli via WhatsApp jika ingin top up resmi -->
+                <div class="pt-2 flex items-center justify-between text-xs text-gray-500">
+                    <span>Ingin membeli paket top up via WhatsApp?</span>
+                    <button type="button" onclick="appState.closeGalleryCreditModal(); appState.openTopUpCreditModal();"
+                        class="text-amber-700 hover:text-amber-900 font-bold underline cursor-pointer">
+                        Beli via WA Admin &rarr;
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div
+                class="p-4 sm:p-5 px-6 border-t border-gray-100 flex items-center justify-between gap-2.5 bg-gray-50/80">
+                <button type="button" onclick="appState.closeGalleryCreditModal()"
+                    class="px-4 py-2 text-xs sm:text-sm font-semibold text-gray-600 hover:text-gray-800 hover:bg-gray-200 rounded-xl transition-colors cursor-pointer text-center">
+                    Tutup
+                </button>
+                <button type="button" onclick="appState.closeGalleryCreditModal(); appState.openAutoSelectPage();"
+                    class="px-5 py-2 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md shadow-indigo-600/25 flex items-center gap-2 cursor-pointer">
+                    <i class="fas fa-magic"></i>
+                    <span>Buka AutoSelect</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script type="application/json" id="initialGalleryDataJson">
         <?!= (typeof initialGalleryData !== 'undefined' && initialGalleryData) ? JSON.stringify(initialGalleryData).replace(new RegExp('<' + '/script', 'gi'), '<\\/script') : 'null' ?>
     </script>
@@ -3430,7 +3570,14 @@
                                         nama_folder: fld
                                     });
                                 }
-                                resolve({ success: true, id: payload.id_galeri, data: payload, photos_imported: photoCount });
+                                var curMockCred = Number(localStorage.getItem('autoselect_credits'));
+                                if (isNaN(curMockCred)) curMockCred = 5;
+                                var nextMockCred = curMockCred + 1;
+                                localStorage.setItem('autoselect_credits', nextMockCred);
+                                var curUser = Auth.getUser() || {};
+                                curUser.autoselect_credits = nextMockCred;
+                                Auth.set(Auth.getToken(), curUser);
+                                resolve({ success: true, id: payload.id_galeri, data: payload, photos_imported: photoCount, autoselect_credits: nextMockCred });
                             }
                             else if (funcName === 'updateGallery') {
                                 var payload = args[1];
@@ -4666,7 +4813,7 @@
                     }
                 },
 
-                openAutoSelectPage: function () {
+                openAutoSelectPage: function (galId) {
                     var isLocal = false;
                     try {
                         if (window.location && window.location.protocol === 'file:') isLocal = true;
@@ -4684,6 +4831,10 @@
                         } catch (e) { }
                     } else {
                         url = this.getGasAutoSelectUrl ? this.getGasAutoSelectUrl() : (this.getGasBaseUrl() + '?page=autoselect');
+                    }
+
+                    if (galId) {
+                        url += (url.indexOf('?') === -1 ? '?' : '&') + 'gal=' + encodeURIComponent(galId);
                     }
 
                     var newTab = null;
@@ -5538,64 +5689,6 @@
                                         </div>
                                     </div>
 
-                                    <!-- Manajemen Credit AutoSelect & Sortir Foto (Menu Admin) -->
-                                    <div class="space-y-4 pt-4 border-t border-gray-100">
-                                        <div class="flex items-center justify-between flex-wrap gap-2">
-                                            <div class="flex items-center gap-2.5">
-                                                <span class="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-lg shadow-2xs">🪙</span>
-                                                <div>
-                                                    <h3 class="text-lg font-bold text-gray-900">Manajemen Credit AutoSelect</h3>
-                                                    <p class="text-xs text-gray-500">Atur saldo credit fotografer, tarif pembelian, dan nomor konfirmasi top-up</p>
-                                                </div>
-                                            </div>
-                                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-900 border border-amber-200 shadow-2xs">
-                                                <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
-                                                <span id="setCreditSummaryBadge">Saldo: ${user.autoselect_credits !== undefined ? user.autoselect_credits : 5} Credit</span>
-                                            </span>
-                                        </div>
-
-                                        <div class="p-5 bg-gradient-to-br from-amber-50/90 via-yellow-50/60 to-amber-50/80 rounded-2xl border border-amber-200/90 shadow-2xs">
-                                            <div class="flex items-center justify-between flex-wrap gap-4 mb-4">
-                                                <div>
-                                                    <span class="text-[11px] text-amber-800 font-bold uppercase tracking-wider block">Saldo Credit AutoSelect Saat Ini</span>
-                                                    <div class="flex items-baseline gap-2 mt-0.5">
-                                                        <span class="text-4xl font-extrabold text-amber-950 font-mono" id="setCreditValue">${user.autoselect_credits !== undefined ? user.autoselect_credits : 5}</span>
-                                                        <span class="text-xs text-amber-800 font-semibold">x Sesi Sortir & Salin Foto</span>
-                                                    </div>
-                                                </div>
-                                                <div class="flex items-center gap-1.5 flex-wrap">
-                                                    <span class="text-xs text-amber-900 font-bold mr-1">Tambah Credit:</span>
-                                                    <button type="button" onclick="appState.quickAddCredit(1)" class="px-3 py-1.5 bg-white hover:bg-amber-100 border border-amber-300 rounded-xl text-xs font-bold text-amber-950 transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95">+1</button>
-                                                    <button type="button" onclick="appState.quickAddCredit(5)" class="px-3 py-1.5 bg-white hover:bg-amber-100 border border-amber-300 rounded-xl text-xs font-bold text-amber-950 transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95">+5</button>
-                                                    <button type="button" onclick="appState.quickAddCredit(10)" class="px-3 py-1.5 bg-white hover:bg-amber-100 border border-amber-300 rounded-xl text-xs font-bold text-amber-950 transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95">+10</button>
-                                                    <button type="button" onclick="appState.quickAddCredit(25)" class="px-3 py-1.5 bg-white hover:bg-amber-100 border border-amber-300 rounded-xl text-xs font-bold text-amber-950 transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95">+25</button>
-                                                </div>
-                                            </div>
-
-                                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-3.5 border-t border-amber-200/70">
-                                                <div>
-                                                    <label class="block text-xs font-bold text-amber-950 mb-1">Set Total Credit Manual</label>
-                                                    <input type="number" id="setCreditInput" min="0" value="${user.autoselect_credits !== undefined ? user.autoselect_credits : 5}" class="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl font-mono font-bold text-sm text-amber-950 focus:ring-2 focus:ring-amber-500 outline-none" oninput="document.getElementById('setCreditValue').textContent = this.value || '0'; document.getElementById('setCreditSummaryBadge').textContent = 'Saldo: ' + (this.value || '0') + ' Credit';">
-                                                    <p class="text-[10px] text-amber-800 mt-1">Ubah langsung jumlah credit user.</p>
-                                                </div>
-                                                <div>
-                                                    <label class="block text-xs font-bold text-amber-950 mb-1">Tarif per 1 Credit</label>
-                                                    <input type="text" id="setCreditPrice" value="${escapeHTML(user.autoselect_price || 'Rp 5.000')}" class="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl font-bold text-sm text-gray-800 focus:ring-2 focus:ring-amber-500 outline-none" placeholder="Rp 5.000">
-                                                    <p class="text-[10px] text-amber-800 mt-1">Ditampilkan saat fotografer beli credit.</p>
-                                                </div>
-                                                <div>
-                                                    <label class="block text-xs font-bold text-amber-950 mb-1">WhatsApp Admin Top-Up</label>
-                                                    <input type="text" id="setCreditAdminWa" value="${escapeHTML(user.autoselect_admin_wa || user.wa || '081234567890')}" class="w-full px-3 py-2 bg-white border border-amber-300 rounded-xl font-bold text-sm text-gray-800 focus:ring-2 focus:ring-amber-500 outline-none" placeholder="081234567890">
-                                                    <p class="text-[10px] text-amber-800 mt-1">Nomor tujuan pesanan credit.</p>
-                                                </div>
-                                            </div>
-                                            <p class="text-[11px] text-amber-900 mt-2.5 flex items-center gap-1.5 font-medium">
-                                                <i class="fas fa-info-circle text-amber-600"></i>
-                                                <span>1 Credit dipakai untuk 1x sortir & salin foto. Jika credit habis (0), tombol sortir terkunci dan fotografer diarahkan membayar/top-up ke WhatsApp Admin.</span>
-                                            </p>
-                                        </div>
-                                    </div>
-
                                     <div class="pt-6 border-t border-gray-100 flex justify-end">
                                         <button type="submit" id="btnSaveSettings" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-bold rounded-xl shadow-md shadow-blue-500/25 transition-all flex items-center gap-2 cursor-pointer">
                                             <i class="fas fa-save"></i> Simpan Pengaturan
@@ -5789,16 +5882,86 @@
                 },
 
                 quickAddCredit: function (amount) {
-                    var input = document.getElementById('setCreditInput');
-                    var badge = document.getElementById('setCreditValue');
-                    var summary = document.getElementById('setCreditSummaryBadge');
-                    if (input) {
-                        var current = parseInt(input.value, 10) || 0;
-                        var next = Math.max(0, current + amount);
-                        input.value = next;
-                        if (badge) badge.textContent = next;
-                        if (summary) summary.textContent = 'Saldo: ' + next + ' Credit';
+                    this.quickAddGalleryCredit(amount);
+                },
+
+                quickAddGalleryCredit: function (amount) {
+                    var addAmt = parseInt(amount, 10) || 1;
+                    var cur = this.getAutoSelectCreditsCount();
+                    var next = Math.max(0, cur + addAmt);
+                    localStorage.setItem('autoselect_credits', next);
+                    var u = Auth.getUser() || {};
+                    u.autoselect_credits = next;
+                    Auth.set(Auth.getToken(), u);
+                    this.updateCreditBadges();
+
+                    if (Auth.getToken()) {
+                        gasRun('updateAutoSelectCredits', Auth.getToken(), null, next).catch(function () { });
                     }
+                    ui.showToast('+' + addAmt + ' Credit AutoSelect berhasil ditambahkan! Saldo saat ini: ' + next + ' Credit.', false);
+                },
+
+                openGalleryCreditModal: function () {
+                    this.updateCreditBadges();
+                    var cur = this.getAutoSelectCreditsCount();
+                    var directInput = document.getElementById('inputGalCreditDirect');
+                    if (directInput) directInput.value = cur;
+                    var addInput = document.getElementById('inputGalCreditAdd');
+                    if (addInput) addInput.value = '5';
+                    var modal = document.getElementById('modalGalleryCredit');
+                    if (modal) modal.classList.remove('hidden');
+                },
+
+                closeGalleryCreditModal: function () {
+                    var modal = document.getElementById('modalGalleryCredit');
+                    if (modal) modal.classList.add('hidden');
+                },
+
+                saveGalleryCreditModal: function (mode) {
+                    var cur = this.getAutoSelectCreditsCount();
+                    var next = cur;
+                    if (mode === 'add') {
+                        var addInput = document.getElementById('inputGalCreditAdd');
+                        var addVal = parseInt(addInput ? addInput.value : 0, 10) || 0;
+                        if (addVal <= 0) {
+                            ui.showToast('Masukkan jumlah credit yang valid untuk ditambahkan.', true);
+                            return;
+                        }
+                        next = cur + addVal;
+                    } else {
+                        var directInput = document.getElementById('inputGalCreditDirect');
+                        var dirVal = parseInt(directInput ? directInput.value : 0, 10);
+                        if (isNaN(dirVal) || dirVal < 0) {
+                            ui.showToast('Masukkan total saldo credit yang valid.', true);
+                            return;
+                        }
+                        next = dirVal;
+                    }
+
+                    localStorage.setItem('autoselect_credits', next);
+                    var u = Auth.getUser() || {};
+                    u.autoselect_credits = next;
+                    Auth.set(Auth.getToken(), u);
+                    this.updateCreditBadges();
+
+                    var btn = document.getElementById(mode === 'add' ? 'btnSaveGalCreditAdd' : 'btnSaveGalCreditDirect');
+                    var origText = btn ? btn.innerHTML : '';
+                    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Menyimpan...'; }
+
+                    var self = this;
+                    var token = Auth.getToken();
+                    var p = token ? gasRun('updateAutoSelectCredits', token, null, next) : Promise.resolve({ success: true, credits: next });
+
+                    p.then(function (res) {
+                        if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+                        if (res && res.sessionExpired) return self.handleSessionExpired();
+                        ui.showToast('Saldo Credit AutoSelect berhasil diperbarui menjadi ' + next + ' Credit!', false);
+                        self.closeGalleryCreditModal();
+                    }).catch(function () {
+                        if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+                        ui.showToast('Saldo lokal tersimpan (' + next + ' Credit), namun sinkronisasi gagal.', true);
+                        self.closeGalleryCreditModal();
+                    });
                 },
 
                 getAutoSelectCreditsCount: function () {
@@ -5832,6 +5995,18 @@
                     }
                     var modalCreditCount = document.getElementById('modal-topup-spa-current-credit');
                     if (modalCreditCount) modalCreditCount.textContent = creds;
+
+                    var galHeaderBadge = document.getElementById('gallery-header-credit-badge');
+                    if (galHeaderBadge) galHeaderBadge.textContent = creds + 'x';
+
+                    var galBannerBadge = document.getElementById('gallery-banner-credit-badge');
+                    if (galBannerBadge) galBannerBadge.textContent = creds;
+
+                    var galModalBadge = document.getElementById('modal-gal-credit-current');
+                    if (galModalBadge) galModalBadge.textContent = creds;
+
+                    var galModalTotalInput = document.getElementById('inputGalCreditDirect');
+                    if (galModalTotalInput && !galModalTotalInput.matches(':focus')) galModalTotalInput.value = creds;
                 },
 
                 deductAutoSelectCredit: async function () {
@@ -5898,16 +6073,52 @@
 
                 buildGalleriesHtml: function (data) {
                     var list = (data && Array.isArray(data)) ? data : [];
+                    var curCredsCount = this.getAutoSelectCreditsCount();
                     var html = `
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 gap-4">
                   <div>
                     <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Kelola Galeri</h2>
                     <p class="text-xs text-gray-500 mt-0.5">Pantau status seleksi, unduh foto JPG pilihan klien, dan bagikan link.</p>
                   </div>
-                  <button onclick="appState.openCreateModal()" class="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold hover:bg-blue-700 w-full sm:w-auto shadow-sm shadow-blue-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer">
-                    <i class="fas fa-plus"></i>
-                    <span>Buat Galeri Baru</span>
-                  </button>
+                  <div class="flex items-center gap-2.5 flex-wrap w-full sm:w-auto">
+                    <!-- Tombol Pengaturan Credit AutoSelect di Menu Galeri -->
+                    <button type="button" onclick="appState.openGalleryCreditModal()" class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-amber-50 via-yellow-50 to-amber-50 hover:from-amber-100 hover:to-yellow-100 border border-amber-300 text-amber-950 font-bold text-xs sm:text-sm shadow-2xs hover:shadow-xs transition-all cursor-pointer hover:scale-[1.02] active:scale-95" title="Buka Pengaturan Credit AutoSelect">
+                      <span class="text-base">🪙</span>
+                      <span>Credit AutoSelect:</span>
+                      <span id="gallery-header-credit-badge" class="px-2 py-0.5 rounded-lg bg-amber-500 text-white font-mono text-xs font-extrabold shadow-2xs">${curCredsCount}x</span>
+                      <span class="text-[11px] text-amber-800 font-semibold underline ml-0.5 flex items-center gap-1"><i class="fas fa-sliders-h"></i> Atur Credit</span>
+                    </button>
+                    <button onclick="appState.openCreateModal()" class="bg-blue-600 text-white px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold hover:bg-blue-700 w-full sm:w-auto shadow-sm shadow-blue-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                      <i class="fas fa-plus"></i>
+                      <span>Buat Galeri Baru</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Banner Status Credit & Kesiapan AutoSelect di Menu Galeri -->
+                <div class="mb-5 p-4 rounded-2xl bg-gradient-to-r from-amber-50/90 via-yellow-50/70 to-amber-50/90 border border-amber-200 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3.5">
+                  <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center text-xl font-bold shrink-0 shadow-2xs">🪙</div>
+                    <div>
+                      <div class="flex items-center gap-2 flex-wrap">
+                        <h4 class="text-sm font-bold text-gray-900">AutoSelect & Sortir Foto Galeri</h4>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300">
+                          Saldo Aktif: <strong id="gallery-banner-credit-badge" class="font-mono">${curCredsCount}</strong> Credit
+                        </span>
+                      </div>
+                      <p class="text-xs text-amber-900/80 mt-0.5">AutoSelect siap digunakan fotografer untuk setiap galeri. Setiap membuat galeri baru otomatis bertambah +1 credit.</p>
+                    </div>
+                  </div>
+                  <div class="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+                    <span class="text-xs font-bold text-amber-900 mr-0.5 hidden md:inline">Tambah:</span>
+                    <button type="button" onclick="appState.quickAddGalleryCredit(1)" class="px-3 py-1.5 rounded-xl bg-white hover:bg-amber-100 border border-amber-300 text-xs font-bold text-amber-950 transition shadow-2xs cursor-pointer hover:scale-105 active:scale-95" title="Tambah 1 Credit">+1</button>
+                    <button type="button" onclick="appState.quickAddGalleryCredit(5)" class="px-3 py-1.5 rounded-xl bg-white hover:bg-amber-100 border border-amber-300 text-xs font-bold text-amber-950 transition shadow-2xs cursor-pointer hover:scale-105 active:scale-95" title="Tambah 5 Credit">+5</button>
+                    <button type="button" onclick="appState.quickAddGalleryCredit(10)" class="px-3 py-1.5 rounded-xl bg-white hover:bg-amber-100 border border-amber-300 text-xs font-bold text-amber-950 transition shadow-2xs cursor-pointer hover:scale-105 active:scale-95" title="Tambah 10 Credit">+10</button>
+                    <button type="button" onclick="appState.openGalleryCreditModal()" class="px-3.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-xs font-bold transition shadow-xs cursor-pointer flex items-center gap-1.5">
+                      <i class="fas fa-sliders-h"></i>
+                      <span>Setting Credit</span>
+                    </button>
+                  </div>
                 </div>
               `;
 
@@ -5983,6 +6194,10 @@
                             <button type="button" onclick="appState.openEditModal('${escapeHTML(g.id_galeri)}')" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors" title="Ubah Galeri">
                               <i class="fas fa-edit text-blue-600"></i>
                               <span>Ubah</span>
+                            </button>
+                            <button type="button" onclick="appState.openAutoSelectPage('${escapeHTML(g.id_galeri)}')" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-300 transition-colors cursor-pointer" title="Buka AutoSelect untuk sortir foto pilihan klien galeri ini">
+                              <i class="fas fa-magic text-amber-600"></i>
+                              <span>AutoSelect</span>
                             </button>
                             <button type="button" onclick="appState.previewClient('${escapeHTML(g.id_galeri)}')" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200 transition-colors" title="Preview Tampilan Klien">
                               <i class="fas fa-eye text-gray-500"></i>
@@ -6063,6 +6278,9 @@
                         </button>
                         <button type="button" onclick="appState.openEditModal('${escapeHTML(g.id_galeri)}')" class="py-2 px-3 rounded-xl text-xs font-semibold bg-gray-50 text-gray-700 border border-gray-200 flex items-center justify-center gap-1">
                           <i class="fas fa-edit"></i> Ubah
+                        </button>
+                        <button type="button" onclick="appState.openAutoSelectPage('${escapeHTML(g.id_galeri)}')" class="py-2 px-3 rounded-xl text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300 flex items-center justify-center gap-1" title="Buka AutoSelect untuk galeri ini">
+                          <i class="fas fa-magic text-amber-600"></i> AutoSelect
                         </button>
                         <button type="button" onclick="appState.previewClient('${escapeHTML(g.id_galeri)}')" class="py-2 px-3 rounded-xl text-xs font-semibold bg-gray-50 text-gray-700 border border-gray-200 flex items-center justify-center gap-1">
                           <i class="fas fa-eye"></i>
@@ -7967,7 +8185,16 @@
                         ui.hideFullLoading();
                         if (res.sessionExpired) return appState.handleSessionExpired();
                         if (res.success) {
-                            var msg = 'Galeri berhasil dibuat!';
+                            // Otomatis update credit fotografer (+1 credit per galeri yang dibuat)
+                            var curCredit = appState.getAutoSelectCreditsCount();
+                            var nextCredit = (res.autoselect_credits !== undefined) ? Number(res.autoselect_credits) : (curCredit + 1);
+                            localStorage.setItem('autoselect_credits', nextCredit);
+                            var u = Auth.getUser() || {};
+                            u.autoselect_credits = nextCredit;
+                            Auth.set(Auth.getToken(), u);
+                            appState.updateCreditBadges();
+
+                            var msg = 'Galeri berhasil dibuat! 🎁 +1 Credit AutoSelect ditambahkan sehingga AutoSelect siap digunakan.';
                             if (res.photos_imported > 0) {
                                 msg += ' ' + res.photos_imported + ' foto berhasil dimuat langsung dari Google Drive.';
                             } else {
