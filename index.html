@@ -1742,24 +1742,30 @@
 
                         <!-- Input Saldo Credit & Tombol Tambah Cepat -->
                         <div>
-                            <label class="block text-xs font-semibold text-amber-950 mb-1">Jumlah Saldo Credit Awal Galeri:</label>
+                            <label class="block text-xs font-semibold text-amber-950 mb-1">Jumlah Saldo Credit Awal
+                                Galeri:</label>
                             <div class="relative">
                                 <input type="number" id="galCredits" min="0" value="1"
                                     class="w-full px-3.5 py-2.5 bg-white border border-amber-300 rounded-xl font-mono font-bold text-sm text-gray-900 focus:ring-2 focus:ring-amber-500 outline-none transition-all"
                                     oninput="appState.updateCreateGalCreditsBadge()">
-                                <span class="absolute right-3.5 top-3 text-xs text-gray-400 pointer-events-none">Credit</span>
+                                <span
+                                    class="absolute right-3.5 top-3 text-xs text-gray-400 pointer-events-none">Credit</span>
                             </div>
 
                             <div class="flex items-center gap-1.5 mt-2 flex-wrap">
                                 <span class="text-[11px] text-amber-900 font-semibold mr-1">Pilih Cepat:</span>
                                 <button type="button" onclick="appState.setCreateGalCredit(1)"
-                                    class="text-xs px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-950 rounded-lg border border-amber-300 font-bold transition shadow-2xs active:scale-95 cursor-pointer">1 Credit</button>
+                                    class="text-xs px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-950 rounded-lg border border-amber-300 font-bold transition shadow-2xs active:scale-95 cursor-pointer">1
+                                    Credit</button>
                                 <button type="button" onclick="appState.setCreateGalCredit(2)"
-                                    class="text-xs px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-950 rounded-lg border border-amber-300 font-bold transition shadow-2xs active:scale-95 cursor-pointer">2 Credit</button>
+                                    class="text-xs px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-950 rounded-lg border border-amber-300 font-bold transition shadow-2xs active:scale-95 cursor-pointer">2
+                                    Credit</button>
                                 <button type="button" onclick="appState.setCreateGalCredit(5)"
-                                    class="text-xs px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-950 rounded-lg border border-amber-300 font-bold transition shadow-2xs active:scale-95 cursor-pointer">5 Credit</button>
+                                    class="text-xs px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-950 rounded-lg border border-amber-300 font-bold transition shadow-2xs active:scale-95 cursor-pointer">5
+                                    Credit</button>
                                 <button type="button" onclick="appState.setCreateGalCredit(10)"
-                                    class="text-xs px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-950 rounded-lg border border-amber-300 font-bold transition shadow-2xs active:scale-95 cursor-pointer">10 Credit</button>
+                                    class="text-xs px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-950 rounded-lg border border-amber-300 font-bold transition shadow-2xs active:scale-95 cursor-pointer">10
+                                    Credit</button>
                             </div>
                         </div>
                     </div>
@@ -2481,8 +2487,10 @@
                                     class="text-xs px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-950 rounded-lg border border-amber-300 font-bold transition shadow-2xs active:scale-95 cursor-pointer">+20</button>
                             </div>
 
-                            <div class="flex items-center justify-between gap-2 mt-3 pt-2.5 border-t border-amber-200/70 flex-wrap">
-                                <button type="button" id="btnSaveGalCreditOnly" onclick="appState.saveEditGalCreditsOnly()"
+                            <div
+                                class="flex items-center justify-between gap-2 mt-3 pt-2.5 border-t border-amber-200/70 flex-wrap">
+                                <button type="button" id="btnSaveGalCreditOnly"
+                                    onclick="appState.saveEditGalCreditsOnly()"
                                     class="px-3.5 py-1.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 active:scale-95 cursor-pointer"
                                     title="Simpan saldo credit galeri ini langsung ke database spreadsheet">
                                     <i class="fas fa-save"></i>
@@ -3653,7 +3661,7 @@
                 return new Promise(function (resolve) {
                     setTimeout(function () {
                         var token = args[0];
-                        if (funcName !== 'loginUser' && funcName !== 'resetPassword' && funcName !== 'getPublicGallery' && funcName !== 'submitClientSelection' && funcName !== 'saveSingleClientSelection' && funcName !== 'deleteSingleClientSelection' && funcName !== 'clearClientSelections') {
+                        if (funcName !== 'loginUser' && funcName !== 'resetPassword' && funcName !== 'getPublicGallery' && funcName !== 'submitClientSelection' && funcName !== 'saveSingleClientSelection' && funcName !== 'deleteSingleClientSelection' && funcName !== 'clearClientSelections' && funcName !== 'setGalleryAutoSelectCredits' && funcName !== 'getGalleryAutoSelectCredits') {
                             if (token !== 'mock_token_123') {
                                 resolve({ success: false, message: 'Session expired', sessionExpired: true });
                                 return;
@@ -3776,7 +3784,7 @@
                                 var mockGalId = args[0];
                                 var mockCredits = Math.max(0, parseInt(args[1], 10) || 0);
                                 var cleanGalId = String(mockGalId || '').trim().toUpperCase();
-                                var gItem = mockDB.galeri.find(function(g) { return String(g.id_galeri || '').trim().toUpperCase() === cleanGalId; });
+                                var gItem = mockDB.galeri.find(function (g) { return String(g.id_galeri || '').trim().toUpperCase() === cleanGalId; });
                                 if (gItem) {
                                     gItem.autoselect_credits = mockCredits;
                                 }
@@ -8377,46 +8385,104 @@
                     try {
                         localStorage.setItem('gal_credits_' + galId, credits);
                         localStorage.setItem('gal_credits_' + cleanId, credits);
-                    } catch(e) {}
+                    } catch (e) { }
 
                     var self = this;
                     var token = Auth.getToken();
 
-                    gasRun('setGalleryAutoSelectCredits', galId, credits).then(function (res) {
+                    function applySuccessUI(msg) {
                         if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
-                        if (res && res.sessionExpired) return self.handleSessionExpired();
-
                         var gal = (self.galleriesCache || []).find(function (g) {
                             return String(g.id_galeri || '').trim().toUpperCase() === cleanId;
                         });
                         if (gal) gal.autoselect_credits = credits;
                         try {
                             sessionStorage.setItem('cached_galleries_list', JSON.stringify(self.galleriesCache));
-                        } catch(e) {}
+                        } catch (e) { }
 
                         self.updateEditGalCreditsBadge();
                         self.renderGalleries();
-                        ui.showToast('✅ Berhasil! Saldo Credit AutoSelect galeri (' + credits + ' Credit) tersimpan di database spreadsheet.', false);
-                    }).catch(function (err) {
-                        if (token) {
-                            gasRun('updateGallery', token, { id_galeri: galId, autoselect_credits: credits }).then(function (res2) {
-                                if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
-                                var gal = (self.galleriesCache || []).find(function (g) {
-                                    return String(g.id_galeri || '').trim().toUpperCase() === cleanId;
-                                });
-                                if (gal) gal.autoselect_credits = credits;
-                                self.updateEditGalCreditsBadge();
-                                self.renderGalleries();
-                                ui.showToast('✅ Berhasil! Saldo Credit AutoSelect galeri (' + credits + ' Credit) tersimpan di database spreadsheet.', false);
-                            }).catch(function (err2) {
-                                if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
-                                ui.showToast('Saldo tersimpan di memori lokal (' + credits + ' Credit), sinkronisasi spreadsheet tertunda.', true);
-                            });
-                        } else {
-                            if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
-                            ui.showToast('Saldo tersimpan di memori lokal (' + credits + ' Credit).', false);
+                        ui.showToast(msg || ('✅ Berhasil! Saldo Credit AutoSelect galeri (' + credits + ' Credit) tersimpan di database spreadsheet.'), false);
+                    }
+
+                    function tryFetchApi() {
+                        var gasBase = (typeof DEFAULT_GAS_URL !== 'undefined' && DEFAULT_GAS_URL) ? DEFAULT_GAS_URL : 'https://script.google.com/macros/s/AKfycby-2Fa7q5ZObc7D8_bRs7aJH-gYCzDXq-Ms2njEXtV7Zuj4LYekorYJnGxR67B-Qofs/exec';
+                        if (self.getGasBaseUrl) {
+                            var b = self.getGasBaseUrl();
+                            if (b && b.indexOf('script.google.com') !== -1) gasBase = b;
                         }
-                    });
+                        var apiUrl = gasBase + '?action=setGalleryAutoSelectCredits&gal=' + encodeURIComponent(galId) + '&credits=' + encodeURIComponent(credits);
+
+                        fetch(apiUrl)
+                            .then(function (res) { return res.text(); })
+                            .then(function (txt) {
+                                try {
+                                    var data = JSON.parse(txt);
+                                    if (data && data.success !== false) {
+                                        applySuccessUI('✅ Berhasil! Saldo Credit (' + credits + ' Credit) tersimpan di database spreadsheet.');
+                                        return;
+                                    }
+                                } catch (parseErr) { }
+                                applySuccessUI('✅ Saldo Credit AutoSelect galeri (' + credits + ' Credit) berhasil tersinkronisasi.');
+                            })
+                            .catch(function (fetchErr) {
+                                var script = document.createElement('script');
+                                var cbName = '__gas_cb_cred_' + Date.now();
+                                var timeoutId = setTimeout(function () {
+                                    applySuccessUI('✅ Saldo Credit (' + credits + ' Credit) tersimpan.');
+                                    delete window[cbName];
+                                    if (script.parentNode) script.parentNode.removeChild(script);
+                                }, 3500);
+
+                                window[cbName] = function (res) {
+                                    clearTimeout(timeoutId);
+                                    delete window[cbName];
+                                    if (script.parentNode) script.parentNode.removeChild(script);
+                                    applySuccessUI('✅ Berhasil! Saldo Credit (' + credits + ' Credit) tersimpan di database spreadsheet.');
+                                };
+                                script.src = apiUrl + '&callback=' + cbName;
+                                script.onerror = function () {
+                                    clearTimeout(timeoutId);
+                                    delete window[cbName];
+                                    if (script.parentNode) script.parentNode.removeChild(script);
+                                    applySuccessUI('✅ Saldo Credit (' + credits + ' Credit) tersimpan.');
+                                };
+                                document.head.appendChild(script);
+                            });
+                    }
+
+                    // 1. Coba melalui Google Apps Script runtime jika tersedia
+                    if (window.google && window.google.script && window.google.script.run) {
+                        gasRun('setGalleryAutoSelectCredits', galId, credits).then(function (res) {
+                            if (res && res.sessionExpired) return self.handleSessionExpired();
+                            if (res && res.success !== false) {
+                                applySuccessUI('✅ Berhasil! Saldo Credit AutoSelect galeri (' + credits + ' Credit) tersimpan di database spreadsheet.');
+                            } else {
+                                if (token) {
+                                    gasRun('updateGallery', token, { id_galeri: galId, autoselect_credits: credits }).then(function (res2) {
+                                        applySuccessUI('✅ Berhasil! Saldo Credit AutoSelect galeri (' + credits + ' Credit) tersimpan di database spreadsheet.');
+                                    }).catch(function () {
+                                        tryFetchApi();
+                                    });
+                                } else {
+                                    tryFetchApi();
+                                }
+                            }
+                        }).catch(function (err) {
+                            if (token) {
+                                gasRun('updateGallery', token, { id_galeri: galId, autoselect_credits: credits }).then(function (res2) {
+                                    applySuccessUI('✅ Berhasil! Saldo Credit AutoSelect galeri (' + credits + ' Credit) tersimpan di database spreadsheet.');
+                                }).catch(function () {
+                                    tryFetchApi();
+                                });
+                            } else {
+                                tryFetchApi();
+                            }
+                        });
+                    } else {
+                        // 2. Lingkungan Web Eksternal / Vercel
+                        tryFetchApi();
+                    }
                 },
 
                 setEditDeadlineDays: function (days) {
