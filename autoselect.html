@@ -950,11 +950,7 @@
                 var locNum = (localCached !== null && !isNaN(Number(localCached))) ? Number(localCached) : undefined;
 
                 if (sCredits !== undefined) {
-                    if (sCredits === 1 && locNum !== undefined && locNum > 1) {
-                        asCreditState.credits = locNum;
-                    } else {
-                        asCreditState.credits = sCredits;
-                    }
+                    asCreditState.credits = sCredits;
                 } else if (locNum !== undefined) {
                     asCreditState.credits = locNum;
                 } else {
