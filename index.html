@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+.<!DOCTYPE html>
 <html lang="id">
 
 <head>
@@ -1632,7 +1632,7 @@
                             <label class="block text-sm font-medium text-gray-700 mb-1">
                                 <i class="fab fa-whatsapp text-emerald-600 mr-1"></i>Nomor Vendor
                             </label>
-                            <input type="text" id="galWaVendor" placeholder="Contoh: 081234567890"
+                            <input type="text" id="galWaVendor" placeholder="Contoh: 0895401147773"
                                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
                         </div>
                     </div>
@@ -2341,7 +2341,7 @@
                             <label class="block text-sm font-medium text-gray-700 mb-1">
                                 <i class="fab fa-whatsapp text-emerald-600 mr-1"></i>Nomor Vendor
                             </label>
-                            <input type="text" id="editGalWaVendor" placeholder="Contoh: 081234567890"
+                            <input type="text" id="editGalWaVendor" placeholder="Contoh: 0895401147773"
                                 class="w-full px-3.5 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 text-sm outline-none transition-all">
                         </div>
                     </div>
@@ -2788,7 +2788,7 @@
                     <label class="block text-xs font-bold text-gray-700">
                         <i class="fab fa-whatsapp text-emerald-600 mr-1"></i> Nomor WhatsApp Fotografer / Vendor:
                     </label>
-                    <input type="tel" id="reviewClientWaInput" placeholder="Contoh: 081234567890"
+                    <input type="tel" id="reviewClientWaInput" placeholder="Contoh: 0895401147773"
                         class="w-full px-3.5 py-2 text-xs sm:text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white" />
                     <p class="text-[10px] text-gray-500" id="reviewClientWaNote">Pesan kata pengantar dan daftar
                         nomor/nama foto terpilih langsung dikirimkan ke nomor ini saat "Kirim Sekarang" diklik.</p>
@@ -3326,7 +3326,7 @@
                     <span>Ingin membeli paket top up via WhatsApp?</span>
                     <button type="button" onclick="appState.closeGalleryCreditModal(); appState.openTopUpCreditModal();"
                         class="text-amber-700 hover:text-amber-900 font-bold underline cursor-pointer">
-                        Beli via WA Admin &rarr;
+                        Beli via WA Vendor &rarr;
                     </button>
                 </div>
             </div>
@@ -3608,9 +3608,9 @@
 
             // --- MOCK DATABASE (Canvas Mode) ---
             var mockDB = {
-                users: [{ id_user: 'U1', nama: 'For Photographers', email: 'totto.isw@gmail.com', role: 'Fotografer', paket: 'PRO', username: 'admin', passwordHash: 'bismillah_hash', autoselect_credits: 5, autoselect_price: 'Rp 5.000', autoselect_admin_wa: '081234567890' }],
+                users: [{ id_user: 'U1', nama: 'For Photographers', email: 'totto.isw@gmail.com', role: 'Fotografer', paket: 'PRO', username: 'admin', passwordHash: 'bismillah_hash', autoselect_credits: 5, autoselect_price: 'Rp 5.000', autoselect_admin_wa: '0895401147773', wa: '0895401147773', wa_vendor: '0895401147773' }],
                 galeri: [
-                    { id_galeri: 'GAL001', id_fotografer: 'U1', nama_vendor: 'Studio Foto Bahagia', nama_client: 'Anike', judul_acara: 'Wedding Special', link_drive: 'https://drive.google.com/drive/folders/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs', batas_foto: 30, deadline: '2026-10-15', tanggal_acara: '2026-09-20', highlight: 'Your Story in Frames', email_client: 'klien@email.com', whatsapp_client: '082149315005', whatsapp_vendor: '081234567890', izin_download: true, kirim_tanpa_drive: true, status: 'Sedang memilih' }
+                    { id_galeri: 'GAL001', id_fotografer: 'U1', nama_vendor: 'Studio Foto Bahagia', nama_client: 'Anike', judul_acara: 'Wedding Special', link_drive: 'https://drive.google.com/drive/folders/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs', batas_foto: 30, deadline: '2026-10-15', tanggal_acara: '2026-09-20', highlight: 'Your Story in Frames', email_client: 'klien@email.com', whatsapp_client: '082149315005', whatsapp_vendor: '0895401147773', izin_download: true, kirim_tanpa_drive: true, status: 'Sedang memilih' }
                 ],
                 foto: [], // Populated dynamically with Drive URLs
                 seleksi: [],
@@ -3986,7 +3986,7 @@
                                 if (storedCreds !== null && !isNaN(Number(storedCreds))) user.autoselect_credits = Number(storedCreds);
                                 else if (user.autoselect_credits === undefined) user.autoselect_credits = 5;
                                 user.autoselect_price = localStorage.getItem('autoselect_price') || user.autoselect_price || 'Rp 5.000';
-                                user.autoselect_admin_wa = localStorage.getItem('autoselect_admin_wa') || user.autoselect_admin_wa || user.wa || '081234567890';
+                                user.autoselect_admin_wa = localStorage.getItem('autoselect_admin_wa') || user.autoselect_admin_wa || user.wa || '0895401147773';
                                 resolve({ success: true, data: user });
                             }
                             else if (funcName === 'updateUserSettings') {
@@ -4023,7 +4023,7 @@
                                 if (storedCreds !== null && !isNaN(Number(storedCreds))) user.autoselect_credits = Number(storedCreds);
                                 else if (user.autoselect_credits === undefined) user.autoselect_credits = 5;
                                 var storedPrice = localStorage.getItem('autoselect_price') || user.autoselect_price || 'Rp 5.000';
-                                var storedWa = localStorage.getItem('autoselect_admin_wa') || user.autoselect_admin_wa || user.wa || '081234567890';
+                                var storedWa = localStorage.getItem('autoselect_admin_wa') || user.autoselect_admin_wa || user.wa || '0895401147773';
                                 resolve({ success: true, credits: user.autoselect_credits, price: storedPrice, adminWa: storedWa });
                             }
                             else if (funcName === 'deductAutoSelectCredit') {
@@ -5032,7 +5032,7 @@
                     }
                     var credParam = (creds !== undefined && !isNaN(Number(creds))) ? ('&c=' + encodeURIComponent(creds)) : '';
 
-                    // Sertakan nomor WhatsApp Vendor dari Pengaturan Profil Vendor
+                    // Sertakan nomor WhatsApp Vendor dari Pengaturan Profil Vendor (0895401147773)
                     var u = Auth.getUser() || {};
                     var vendorWa = u.wa || u.wa_vendor;
                     if (!vendorWa) {
@@ -5041,7 +5041,10 @@
                             vendorWa = appUser.wa || appUser.wa_vendor;
                         } catch (e) { }
                     }
-                    var waParam = vendorWa ? ('&wa=' + encodeURIComponent(vendorWa)) : '';
+                    if (!vendorWa || vendorWa === '081234567890') {
+                        vendorWa = localStorage.getItem('last_vendor_wa') || localStorage.getItem('autoselect_vendor_wa') || '0895401147773';
+                    }
+                    var waParam = vendorWa ? ('&wa=' + encodeURIComponent(vendorWa)) : '&wa=0895401147773';
                     return 'https://lensselect.vercel.app/autoselect?gal=' + encodeURIComponent(cleanId) + credParam + waParam;
                 },
 
@@ -5102,13 +5105,26 @@
                         if (window.location && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) isLocal = true;
                     } catch (e) { }
 
+                    var u = Auth.getUser() || {};
+                    var vendorWa = u.wa || u.wa_vendor;
+                    if (!vendorWa) {
+                        try {
+                            var appUser = JSON.parse(localStorage.getItem('appUser') || '{}');
+                            vendorWa = appUser.wa || appUser.wa_vendor;
+                        } catch (e) { }
+                    }
+                    if (!vendorWa || vendorWa === '081234567890') {
+                        vendorWa = localStorage.getItem('last_vendor_wa') || localStorage.getItem('autoselect_vendor_wa') || '0895401147773';
+                    }
+                    var waParam = vendorWa ? ('&wa=' + encodeURIComponent(vendorWa)) : '&wa=0895401147773';
+
                     var url = '';
                     if (isLocal) {
-                        url = 'AutoSelect.html?gal=' + encodeURIComponent(cleanGalId) + '&c=' + encodeURIComponent(currentCredits);
+                        url = 'AutoSelect.html?gal=' + encodeURIComponent(cleanGalId) + '&c=' + encodeURIComponent(currentCredits) + waParam;
                         try {
                             if (window.location && window.location.protocol && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
                                 var basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-                                url = window.location.origin + basePath + 'AutoSelect.html?gal=' + encodeURIComponent(cleanGalId) + '&c=' + encodeURIComponent(currentCredits);
+                                url = window.location.origin + basePath + 'AutoSelect.html?gal=' + encodeURIComponent(cleanGalId) + '&c=' + encodeURIComponent(currentCredits) + waParam;
                             }
                         } catch (e) { }
                     } else {
@@ -5883,7 +5899,7 @@
                                                 <label class="block text-sm font-medium text-gray-700 mb-1">WhatsApp Vendor</label>
                                                 <div class="relative">
                                                     <i class="fab fa-whatsapp absolute left-3.5 top-1/2 -translate-y-1/2 text-emerald-500"></i>
-                                                    <input type="text" id="setVendorWa" value="${escapeHTML(user.wa || '')}" class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all" placeholder="08123456789">
+                                                    <input type="text" id="setVendorWa" value="${escapeHTML(user.wa || user.wa_vendor || '0895401147773')}" class="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all" placeholder="0895401147773">
                                                 </div>
                                             </div>
                                         </div>
@@ -6315,9 +6331,12 @@
                             vendorWa = appUser.wa || appUser.wa_vendor;
                         } catch (e) { }
                     }
+                    if (!vendorWa || vendorWa === '081234567890') {
+                        vendorWa = localStorage.getItem('last_vendor_wa') || localStorage.getItem('autoselect_vendor_wa') || '0895401147773';
+                    }
                     var modalWa = document.getElementById('modal-topup-spa-vendor-wa');
                     if (modalWa) {
-                        modalWa.textContent = vendorWa || 'Belum diatur di Profil Vendor';
+                        modalWa.textContent = vendorWa || '0895401147773';
                     }
                     var modal = document.getElementById('modalTopUpCredit');
                     if (modal) modal.classList.remove('hidden');
@@ -6345,7 +6364,7 @@
 
                 submitTopUpViaWa: function () {
                     var u = Auth.getUser() || {};
-                    // Nomor WhatsApp diarahkan ke nomor WhatsApp vendor di Pengaturan Profil Vendor (bukan nama vendor di galeri)
+                    // Nomor WhatsApp diarahkan ke nomor WhatsApp vendor di Pengaturan Profil Vendor (0895401147773)
                     var vendorWa = u.wa || u.wa_vendor;
                     if (!vendorWa) {
                         try {
@@ -6353,12 +6372,11 @@
                             vendorWa = appUser.wa || appUser.wa_vendor;
                         } catch (e) { }
                     }
-                    if (!vendorWa) {
+                    if (!vendorWa || vendorWa === '081234567890') {
                         vendorWa = localStorage.getItem('last_vendor_wa') || localStorage.getItem('autoselect_vendor_wa');
                     }
-                    if (!vendorWa) {
-                        ui.showToast('Nomor WhatsApp Vendor belum diisi. Silakan isi di menu Pengaturan Studio ➔ Profil Vendor.', true);
-                        return;
+                    if (!vendorWa || vendorWa === '081234567890') {
+                        vendorWa = '0895401147773';
                     }
 
                     var cleanWa = String(vendorWa).replace(/[^\d]/g, '');
@@ -8214,6 +8232,11 @@
                 openCreateModal: function () {
                     var form = document.getElementById('formCreateGallery');
                     if (form) form.reset();
+                    var u = Auth.getUser() || {};
+                    var vendorWaInput = document.getElementById('galWaVendor');
+                    if (vendorWaInput) vendorWaInput.value = u.wa || u.wa_vendor || '0895401147773';
+                    var vendorNameInput = document.getElementById('galVendorName');
+                    if (vendorNameInput) vendorNameInput.value = u.nama || '';
                     var limitInput = document.getElementById('galLimit');
                     if (limitInput) limitInput.value = 30;
                     this.updateLimitBadge('create');
@@ -11478,8 +11501,8 @@
                             rawPhone = String(savedUser.wa_vendor || savedUser.wa || savedUser.whatsapp || '').trim();
                         } catch (e) { }
                     }
-                    if (!rawPhone) {
-                        rawPhone = '081234567890';
+                    if (!rawPhone || rawPhone === '081234567890') {
+                        rawPhone = '0895401147773';
                     }
 
                     // Bersihkan nomor WhatsApp (hapus karakter non-angka)
@@ -11549,8 +11572,8 @@
                             rawPhone = String(savedUser.wa_vendor || savedUser.wa || savedUser.whatsapp || '').trim();
                         } catch (e) { }
                     }
-                    if (!rawPhone) {
-                        rawPhone = '081234567890';
+                    if (!rawPhone || rawPhone === '081234567890') {
+                        rawPhone = '0895401147773';
                     }
 
                     // Bersihkan nomor WhatsApp
