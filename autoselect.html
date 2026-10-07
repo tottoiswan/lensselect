@@ -941,6 +941,15 @@
             // Inisialisasi saldo credit
             initCreditState();
 
+            // Cek parameter galeri jika dipanggil dari menu galeri
+            try {
+                var urlParams = new URLSearchParams(window.location.search);
+                var galParam = urlParams.get('gal');
+                if (galParam) {
+                    showToast('AutoSelect siap untuk Galeri: ' + galParam, false);
+                }
+            } catch (e) { }
+
             // 1. Textarea Real-time Parsing
             var textarea = document.getElementById('as-filelist');
             textarea.addEventListener('input', function () {
