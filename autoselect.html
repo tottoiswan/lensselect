@@ -54,6 +54,16 @@
                 </div>
             </div>
             <div class="flex items-center gap-2.5 flex-wrap">
+                <!-- Badge Galeri Aktif -->
+                <div id="as-gal-badge-container"
+                    class="hidden flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 shadow-2xs">
+                    <i class="fas fa-images text-blue-600"></i>
+                    <div class="text-left leading-tight">
+                        <span class="text-[10px] text-blue-600 block font-semibold uppercase tracking-wider">ID Galeri</span>
+                        <strong id="as-gal-id-text" class="text-xs font-bold text-blue-950 font-mono">-</strong>
+                    </div>
+                </div>
+
                 <!-- Badge Credit -->
                 <div id="as-credit-badge-container"
                     class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 shadow-2xs">
@@ -782,10 +792,18 @@
         }
 
         // ================================================================
-        // MANAJEMEN CREDIT AUTOSELECT (1 Credit = 1x Sortir)
         // ================================================================
+        // MANAJEMEN CREDIT AUTOSELECT PER GALERI (Database Spreadsheet Sheet 'Galeri')
+        // ================================================================
+        var DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycby-2Fa7q5ZObc7D8_bRs7aJH-gYCzDXq-Ms2njEXtV7Zuj4LYekorYJnGxR67B-Qofs/exec";
+
         var asCreditState = {
-            credits: 5,
+            galId: '',
+            credits: 0,
+            isLocked: false,
+            lockReason: '',
+            clientName: '',
+            eventTitle: '',
             price: 'Rp 5.000',
             adminWa: '081234567890',
             selectedPkgQty: 15,
@@ -794,20 +812,30 @@
         };
 
         function initCreditState() {
-            var stored = localStorage.getItem('autoselect_credits');
-            if (stored !== null && !isNaN(Number(stored))) {
-                asCreditState.credits = Number(stored);
+            var urlParams = new URLSearchParams(window.location.search);
+            var galParam = (urlParams.get('gal') || urlParams.get('galId') || urlParams.get('id') || '').trim();
+
+            if (!galParam) {
+                // KUNCI: Penggunaan link autoselect kosongan tidak bisa digunakan!
+                asCreditState.isLocked = true;
+                asCreditState.galId = '';
+                asCreditState.credits = 0;
+                asCreditState.lockReason = 'Kode ID Galeri Diperlukan. Link autoselect kosongan tidak dapat digunakan.';
+                applyLockState();
+                updateCreditDisplay();
+                return;
+            }
+
+            // Galeri diberikan via URL parameter (?gal=KODE_GALERI)
+            asCreditState.isLocked = false;
+            asCreditState.galId = galParam;
+
+            // Baca saldo dari cache lokal galeri untuk render instan
+            var cached = localStorage.getItem('gal_credits_' + galParam);
+            if (cached !== null && !isNaN(Number(cached))) {
+                asCreditState.credits = Number(cached);
             } else {
-                try {
-                    var u = JSON.parse(localStorage.getItem('appUser') || '{}');
-                    if (u && typeof u.autoselect_credits !== 'undefined') {
-                        asCreditState.credits = Number(u.autoselect_credits) || 0;
-                    } else {
-                        asCreditState.credits = 5;
-                    }
-                } catch (e) {
-                    asCreditState.credits = 5;
-                }
+                asCreditState.credits = 1; // Default awal 1 credit
             }
 
             var p = localStorage.getItem('autoselect_price');
@@ -816,22 +844,157 @@
             var wa = localStorage.getItem('autoselect_admin_wa');
             if (wa) asCreditState.adminWa = wa;
 
+            applyLockState();
             updateCreditDisplay();
 
-            // Sinkronisasi dengan Google Apps Script jika token tersedia
-            var token = localStorage.getItem('appToken');
-            if (typeof google !== 'undefined' && google.script && google.script.run && token) {
+            // Sinkronisasi data saldo credit langsung ke database spreadsheet (Sheet 'Galeri')
+            syncGalleryCreditFromBackend(galParam);
+        }
+
+        function syncGalleryCreditFromBackend(galId) {
+            if (!galId) return;
+
+            // 1. Lingkungan Google Apps Script Iframe
+            if (typeof google !== 'undefined' && google.script && google.script.run) {
                 google.script.run
                     .withSuccessHandler(function (res) {
-                        if (res && res.success) {
-                            if (res.credits !== undefined) asCreditState.credits = Number(res.credits);
-                            if (res.price) asCreditState.price = res.price;
-                            if (res.adminWa) asCreditState.adminWa = res.adminWa;
-                            localStorage.setItem('autoselect_credits', asCreditState.credits);
-                            updateCreditDisplay();
-                        }
+                        handleBackendCreditResponse(res);
                     })
-                    .getAutoSelectCredits(token);
+                    .withFailureHandler(function (err) {
+                        console.warn('Sync credit GAS gagal:', err);
+                    })
+                    .getGalleryAutoSelectCredits(galId);
+                return;
+            }
+
+            // 2. Lingkungan Vercel / Web Eksternal (JSON API via GAS Web App)
+            var apiUrl = DEFAULT_GAS_URL + '?action=getGalleryAutoSelectCredits&gal=' + encodeURIComponent(galId);
+            fetch(apiUrl)
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    handleBackendCreditResponse(data);
+                })
+                .catch(function (err) {
+                    console.warn('Fetch sync credit failed, fallback ke cache lokal:', err);
+                });
+        }
+
+        function handleBackendCreditResponse(res) {
+            if (!res) return;
+            if (res.locked || res.success === false) {
+                asCreditState.isLocked = true;
+                asCreditState.lockReason = res.message || 'Galeri tidak ditemukan di database spreadsheet.';
+                asCreditState.credits = 0;
+                applyLockState();
+                updateCreditDisplay();
+                showToast(asCreditState.lockReason, true);
+                return;
+            }
+
+            if (res.success) {
+                asCreditState.isLocked = false;
+                asCreditState.credits = (res.credits !== undefined && !isNaN(Number(res.credits))) ? Number(res.credits) : 1;
+                asCreditState.clientName = res.clientName || '';
+                asCreditState.eventTitle = res.eventTitle || '';
+                localStorage.setItem('gal_credits_' + asCreditState.galId, asCreditState.credits);
+                applyLockState();
+                updateCreditDisplay();
+            }
+        }
+
+        function applyLockState() {
+            var lockBanner = document.getElementById('as-lock-banner');
+            var startBtn = document.getElementById('as-start-btn');
+            var startBtnText = document.getElementById('as-start-btn-text');
+            var srcBtn = document.getElementById('btn-pick-src');
+            var destBtn = document.getElementById('btn-pick-dest');
+            var textarea = document.getElementById('as-filelist');
+
+            if (asCreditState.isLocked) {
+                // Tampilkan banner peringatan penguncian
+                if (!lockBanner) {
+                    lockBanner = document.createElement('div');
+                    lockBanner.id = 'as-lock-banner';
+                    lockBanner.className = 'mb-6 p-5 bg-rose-50 border-2 border-rose-300 rounded-2xl text-rose-950 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm animate-fadeIn';
+                    var container = document.getElementById('app-container');
+                    if (container) {
+                        var headerEl = container.firstElementChild;
+                        if (headerEl && headerEl.nextSibling) {
+                            container.insertBefore(lockBanner, headerEl.nextSibling);
+                        } else {
+                            container.prepend(lockBanner);
+                        }
+                    }
+                }
+                lockBanner.innerHTML = `
+                    <div class="flex items-start gap-3.5">
+                        <div class="w-12 h-12 rounded-2xl bg-rose-600 text-white flex items-center justify-center text-xl shrink-0 shadow-md shadow-rose-600/30">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-base sm:text-lg font-bold text-rose-900 leading-tight">AutoSelect Terkunci: Kode ID Galeri Diperlukan</h3>
+                            <p class="text-xs sm:text-sm text-rose-800 mt-1 leading-relaxed">
+                                Fitur sortir AutoSelect hanya dapat digunakan melalui tautan resmi yang memiliki kode ID galeri. Jika hanya menggunakan link autoselect saja <strong>tidak bisa digunakan</strong>.
+                            </p>
+                            <p class="text-xs text-rose-700 mt-1.5 font-semibold">
+                                Format link yang benar: <code class="bg-rose-100 px-1.5 py-0.5 rounded text-rose-900 font-mono font-bold">https://lensselect.vercel.app/autoselect?gal=KODE_GALERI</code> atau buka menu <strong>Kelola Galeri &rarr; Ubah &rarr; Pengaturan Credit AutoSelect</strong> di Dashboard.
+                            </p>
+                        </div>
+                    </div>
+                    <a href="/" class="shrink-0 px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition shadow-xs flex items-center gap-2">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Ke Dashboard</span>
+                    </a>
+                `;
+                lockBanner.classList.remove('hidden');
+
+                // Kunci interaksi tombol dan form
+                if (startBtn) {
+                    startBtn.disabled = true;
+                    startBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                    startBtn.classList.remove('cursor-pointer');
+                    if (startBtnText) startBtnText.textContent = 'AutoSelect Terkunci (Wajib ID Galeri)';
+                }
+                if (srcBtn) {
+                    srcBtn.disabled = true;
+                    srcBtn.classList.add('opacity-60', 'cursor-not-allowed');
+                }
+                if (destBtn) {
+                    destBtn.disabled = true;
+                    destBtn.classList.add('opacity-60', 'cursor-not-allowed');
+                }
+                if (textarea) {
+                    textarea.disabled = true;
+                    textarea.placeholder = 'AutoSelect terkunci. Silakan buka melalui link galeri https://lensselect.vercel.app/autoselect?gal=KODE_GALERI untuk menggunakan sortir.';
+                }
+            } else {
+                if (lockBanner) {
+                    lockBanner.classList.add('hidden');
+                }
+                if (textarea) {
+                    textarea.disabled = false;
+                }
+                if (srcBtn) {
+                    srcBtn.disabled = false;
+                    srcBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+                }
+                if (destBtn) {
+                    destBtn.disabled = false;
+                    destBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+                }
+                if (startBtn) {
+                    if (asCreditState.credits <= 0) {
+                        startBtn.disabled = true;
+                        startBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                        startBtn.classList.remove('cursor-pointer');
+                        if (startBtnText) startBtnText.textContent = 'Credit Galeri Habis (0 Credit)';
+                    } else {
+                        startBtn.disabled = false;
+                        startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                        startBtn.classList.add('cursor-pointer');
+                        if (startBtnText) startBtnText.textContent = 'Mulai Sortir & Copy File';
+                    }
+                }
             }
         }
 
@@ -840,6 +1003,26 @@
             var container = document.getElementById('as-credit-badge-container');
             var modalCount = document.getElementById('modal-topup-current-credit');
             var modalAdminWa = document.getElementById('modal-topup-admin-wa');
+            var galBadge = document.getElementById('as-gal-badge-container');
+            var galIdText = document.getElementById('as-gal-id-text');
+
+            if (asCreditState.isLocked) {
+                if (countEl) countEl.textContent = 'Terkunci';
+                if (container) {
+                    container.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 shadow-2xs';
+                    if (countEl) countEl.className = 'text-xs font-bold text-rose-700 font-mono';
+                }
+                if (galBadge) galBadge.classList.add('hidden');
+                return;
+            }
+
+            // Tampilkan ID Galeri Aktif
+            if (galBadge && galIdText && asCreditState.galId) {
+                galBadge.classList.remove('hidden');
+                var label = asCreditState.galId;
+                if (asCreditState.clientName) label += ' (' + asCreditState.clientName + ')';
+                galIdText.textContent = label;
+            }
 
             if (countEl) {
                 countEl.textContent = asCreditState.credits + 'x Sortir';
@@ -850,6 +1033,7 @@
             if (modalAdminWa) {
                 modalAdminWa.textContent = asCreditState.adminWa || '081234567890';
             }
+
             if (container) {
                 if (asCreditState.credits <= 0) {
                     container.className = 'flex items-center gap-2 px-3 py-1.5 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 shadow-2xs';
@@ -862,25 +1046,35 @@
         }
 
         async function deductCredit() {
-            if (asCreditState.credits <= 0) return false;
-            asCreditState.credits--;
-            localStorage.setItem('autoselect_credits', asCreditState.credits);
-
-            try {
-                var u = JSON.parse(localStorage.getItem('appUser') || '{}');
-                u.autoselect_credits = asCreditState.credits;
-                localStorage.setItem('appUser', JSON.stringify(u));
-            } catch (e) { }
-
-            updateCreditDisplay();
-
-            // Hubungkan ke backend jika ada
-            var token = localStorage.getItem('appToken');
-            if (typeof google !== 'undefined' && google.script && google.script.run && token) {
-                try {
-                    google.script.run.deductAutoSelectCredit(token);
-                } catch (e) { }
+            if (asCreditState.isLocked) {
+                showToast('AutoSelect terkunci! Buka melalui link galeri resmi untuk menggunakan fitur ini.', true);
+                return false;
             }
+            if (asCreditState.credits <= 0) {
+                showToast('Credit AutoSelect untuk galeri ini habis (0 Credit). Silakan tambah credit pada menu Ubah Galeri di Dashboard.', true);
+                return false;
+            }
+
+            // Potong 1 Credit untuk galeri ini
+            asCreditState.credits = Math.max(0, asCreditState.credits - 1);
+            localStorage.setItem('gal_credits_' + asCreditState.galId, asCreditState.credits);
+            updateCreditDisplay();
+            applyLockState();
+
+            // Simpan langsung ke database spreadsheet sheet 'Galeri'
+            if (asCreditState.galId) {
+                if (typeof google !== 'undefined' && google.script && google.script.run) {
+                    try {
+                        google.script.run.deductGalleryAutoSelectCredit(asCreditState.galId);
+                    } catch (e) { }
+                } else {
+                    try {
+                        var deductUrl = DEFAULT_GAS_URL + '?action=deductGalleryAutoSelectCredit&gal=' + encodeURIComponent(asCreditState.galId);
+                        fetch(deductUrl).catch(function (err) { console.warn('Deduct API call error:', err); });
+                    } catch (e) { }
+                }
+            }
+
             return true;
         }
 
@@ -906,7 +1100,6 @@
             var labelEl = document.getElementById('modal-topup-pkg-label');
             if (labelEl) labelEl.textContent = label + ' (' + price + ')';
 
-            // Update styling kartu pilihan
             document.querySelectorAll('.credit-pkg-card').forEach(function (card) {
                 var radio = card.querySelector('input[type="radio"]');
                 if (radio && radio.checked) {
@@ -929,7 +1122,8 @@
             } catch (e) { }
 
             var greeting = userNama ? ('Halo Admin, saya ' + userNama + '.') : 'Halo Admin,';
-            var msg = greeting + '\n\nSaya ingin top-up *Credit AutoSelect & Sortir Foto*:\n- Pilihan Paket: *' + asCreditState.selectedPkgLabel + '*\n- Jumlah: *' + asCreditState.selectedPkgQty + ' Credit*\n- Biaya: *' + asCreditState.selectedPkgPrice + '*\n- Saldo Saat Ini: *' + asCreditState.credits + ' Credit*\n\nMohon informasi rekening/instruksi pembayarannya. Terima kasih!';
+            var galInfo = asCreditState.galId ? ('\n- Kode Galeri: *' + asCreditState.galId + '*') : '';
+            var msg = greeting + '\n\nSaya ingin top-up *Credit AutoSelect Galeri*:' + galInfo + '\n- Pilihan Paket: *' + asCreditState.selectedPkgLabel + '*\n- Jumlah: *' + asCreditState.selectedPkgQty + ' Credit*\n- Biaya: *' + asCreditState.selectedPkgPrice + '*\n- Saldo Galeri Saat Ini: *' + asCreditState.credits + ' Credit*\n\nMohon info instruksi pembayarannya agar saldo credit galeri dapat ditambahkan. Terima kasih!';
 
             var url = 'https://wa.me/' + wa + '?text=' + encodeURIComponent(msg);
             window.open(url, '_blank');
@@ -938,17 +1132,8 @@
 
         // Inisialisasi saat DOM siap
         document.addEventListener('DOMContentLoaded', function () {
-            // Inisialisasi saldo credit
+            // Inisialisasi saldo credit & verifikasi ID galeri
             initCreditState();
-
-            // Cek parameter galeri jika dipanggil dari menu galeri
-            try {
-                var urlParams = new URLSearchParams(window.location.search);
-                var galParam = urlParams.get('gal');
-                if (galParam) {
-                    showToast('AutoSelect siap untuk Galeri: ' + galParam, false);
-                }
-            } catch (e) { }
 
             // 1. Textarea Real-time Parsing
             var textarea = document.getElementById('as-filelist');
@@ -1008,6 +1193,10 @@
             // 7. Pemilihan Folder Master (Folder Sumber)
             var sourceInput = document.getElementById('as-source-input');
             document.getElementById('btn-pick-src').addEventListener('click', async function () {
+                if (asCreditState.isLocked) {
+                    showToast('AutoSelect terkunci! Akses hanya dapat digunakan melalui link galeri resmi (contoh: ?gal=KODE_GALERI).', true);
+                    return;
+                }
                 if (asState.supportsFSA && window.showDirectoryPicker) {
                     try {
                         var dirHandle = await window.showDirectoryPicker({ mode: 'read' });
@@ -1056,6 +1245,10 @@
 
             // 8. Pemilihan Folder Tujuan (Konsep Baru)
             document.getElementById('btn-pick-dest').addEventListener('click', async function () {
+                if (asCreditState.isLocked) {
+                    showToast('AutoSelect terkunci! Akses hanya dapat digunakan melalui link galeri resmi (contoh: ?gal=KODE_GALERI).', true);
+                    return;
+                }
                 if (asState.supportsFSA && window.showDirectoryPicker) {
                     try {
                         var dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
@@ -1082,11 +1275,15 @@
 
             // 9. Tombol Eksekusi: "Mulai Sortir & Copy File"
             document.getElementById('as-start-btn').addEventListener('click', async function () {
+                if (asCreditState.isLocked) {
+                    showToast('AutoSelect terkunci! Anda wajib menggunakan link dengan kode ID galeri resmi (contoh: ?gal=KODE_GALERI).', true);
+                    return;
+                }
                 if (asState.isProcessing) return;
 
                 // Verifikasi Saldo Credit Terlebih Dahulu
                 if (asCreditState.credits <= 0) {
-                    showToast('Saldo credit AutoSelect Anda habis (0 Credit). Silakan top-up credit.', true);
+                    showToast('Credit AutoSelect untuk galeri ini habis (0 Credit). Silakan tambah credit pada menu Ubah Galeri di Dashboard.', true);
                     openCreditTopUpModal();
                     return;
                 }
@@ -1292,11 +1489,11 @@
                     // Potong 1 Credit untuk 1x Sesi Sortir Ini
                     var deductSuccess = await deductCredit();
                     if (!deductSuccess) {
-                        showToast('Saldo credit tidak mencukupi (0 Credit). Silakan top-up credit terlebih dahulu.', true);
+                        showToast('Credit AutoSelect untuk galeri ini habis (0 Credit). Silakan tambah credit pada menu Ubah Galeri di Dashboard.', true);
                         openCreditTopUpModal();
                         return;
                     }
-                    asLog(`[CREDIT] 1 Credit telah digunakan untuk proses sortir ini. Sisa credit Anda: ${asCreditState.credits}x sortir.`, 'info');
+                    asLog(`[CREDIT GALERI] 1 Credit telah digunakan untuk galeri ${asCreditState.galId}. Sisa credit: ${asCreditState.credits}x sortir.`, 'info');
 
                     // 4. Eksekusi Penyalinan
                     if (asState.destMode === 'direct' && asState.destHandle) {
