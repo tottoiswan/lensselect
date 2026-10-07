@@ -1202,7 +1202,7 @@
                         <i class="fas fa-magic w-5 text-indigo-500"></i> AutoSelect File
                     </div>
                     <span id="sidebar-autoselect-credit-badge"
-                        class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">5x</span>
+                        class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 inline-flex items-center gap-0.5"><span>🪙</span><span>5x</span></span>
                 </button>
                 <button onclick="appState.navigate('jobs')" id="nav-jobs"
                     class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">
@@ -3641,6 +3641,12 @@
                                 resolve({ success: true, totalGaleri: mockDB.galeri.length, totalJobs: mockDB.jobs.length });
                             }
                             else if (funcName === 'getGalleries') {
+                                (mockDB.galeri || []).forEach(function (g) {
+                                    try {
+                                        var loc = localStorage.getItem('gal_credits_' + g.id_galeri);
+                                        if (loc !== null && !isNaN(Number(loc))) g.autoselect_credits = Number(loc);
+                                    } catch (e) { }
+                                });
                                 resolve({ success: true, data: mockDB.galeri });
                             }
                             else if (funcName === 'createGallery') {
@@ -3693,6 +3699,10 @@
                                 if (gal) {
                                     var oldLink = gal.link_drive;
                                     Object.assign(gal, payload);
+                                    if (payload.autoselect_credits !== undefined) {
+                                        gal.autoselect_credits = Math.max(0, parseInt(payload.autoselect_credits, 10) || 0);
+                                        try { localStorage.setItem('gal_credits_' + payload.id_galeri, gal.autoselect_credits); } catch (e) { }
+                                    }
                                     if (payload.link_drive && payload.link_drive !== oldLink) {
                                         var driveId = extractDriveId(payload.link_drive);
                                         if (driveId) {
@@ -4800,6 +4810,22 @@
                         if (!this.galleriesCache || this.galleriesCache.length === 0) {
                             gasRun('getGalleries', Auth.getToken()).then(function (res) {
                                 if (res && res.success && res.data) {
+                                    res.data.forEach(function (g) {
+                                        try {
+                                            var cleanId = String(g.id_galeri || '').trim().toUpperCase();
+                                            var locCred = localStorage.getItem('gal_credits_' + cleanId) || localStorage.getItem('gal_credits_' + g.id_galeri);
+                                            if (locCred !== null && !isNaN(Number(locCred))) {
+                                                var nLoc = Number(locCred);
+                                                if (g.autoselect_credits === undefined || g.autoselect_credits === null || (g.autoselect_credits === 1 && nLoc !== 1)) {
+                                                    g.autoselect_credits = nLoc;
+                                                }
+                                            }
+                                            if (g.autoselect_credits !== undefined && g.autoselect_credits !== null) {
+                                                localStorage.setItem('gal_credits_' + g.id_galeri, g.autoselect_credits);
+                                                localStorage.setItem('gal_credits_' + cleanId, g.autoselect_credits);
+                                            }
+                                        } catch (e) { }
+                                    });
                                     appState.galleriesCache = res.data;
                                     try { sessionStorage.setItem('cached_galleries_list', JSON.stringify(res.data)); } catch (e) { }
                                 }
@@ -4921,9 +4947,26 @@
                     }
                 },
 
-                buildGalleryAutoSelectUrl: function (galId) {
+                buildGalleryAutoSelectUrl: function (galId, optCredits) {
                     if (!galId) return 'https://lensselect.vercel.app/autoselect';
-                    return 'https://lensselect.vercel.app/autoselect?gal=' + encodeURIComponent(galId);
+                    var cleanId = String(galId).trim();
+                    var creds = optCredits;
+                    if (creds === undefined) {
+                        var gal = (this.galleriesCache || []).find(function (g) {
+                            return String(g.id_galeri || '').toUpperCase() === cleanId.toUpperCase();
+                        });
+                        if (gal && gal.autoselect_credits !== undefined && !isNaN(Number(gal.autoselect_credits))) {
+                            creds = Number(gal.autoselect_credits);
+                        } else {
+                            var loc = null;
+                            try {
+                                loc = localStorage.getItem('gal_credits_' + cleanId) || localStorage.getItem('gal_credits_' + cleanId.toUpperCase());
+                            } catch (e) { }
+                            if (loc !== null && !isNaN(Number(loc))) creds = Number(loc);
+                        }
+                    }
+                    var credParam = (creds !== undefined && !isNaN(Number(creds))) ? ('&c=' + encodeURIComponent(creds)) : '';
+                    return 'https://lensselect.vercel.app/autoselect?gal=' + encodeURIComponent(cleanId) + credParam;
                 },
 
                 openAutoSelectPage: function (galId) {
@@ -4938,6 +4981,32 @@
                         }
                     }
 
+                    var cleanGalId = String(galId || '').trim();
+                    var gal = (this.galleriesCache || []).find(function (g) {
+                        return String(g.id_galeri || '').trim().toUpperCase() === cleanGalId.toUpperCase();
+                    });
+
+                    var currentCredits = undefined;
+                    if (gal && gal.autoselect_credits !== undefined && !isNaN(Number(gal.autoselect_credits))) {
+                        currentCredits = Number(gal.autoselect_credits);
+                    } else {
+                        var loc = null;
+                        try {
+                            loc = localStorage.getItem('gal_credits_' + cleanGalId) || localStorage.getItem('gal_credits_' + cleanGalId.toUpperCase());
+                        } catch (e) { }
+                        if (loc !== null && !isNaN(Number(loc))) {
+                            currentCredits = Number(loc);
+                        } else {
+                            currentCredits = 1;
+                        }
+                    }
+
+                    // Sinkronkan ke localStorage seketika
+                    try {
+                        localStorage.setItem('gal_credits_' + cleanGalId, currentCredits);
+                        localStorage.setItem('gal_credits_' + cleanGalId.toUpperCase(), currentCredits);
+                    } catch (e) { }
+
                     var isLocal = false;
                     try {
                         if (window.location && window.location.protocol === 'file:') isLocal = true;
@@ -4946,15 +5015,15 @@
 
                     var url = '';
                     if (isLocal) {
-                        url = 'AutoSelect.html?gal=' + encodeURIComponent(galId);
+                        url = 'AutoSelect.html?gal=' + encodeURIComponent(cleanGalId) + '&c=' + encodeURIComponent(currentCredits);
                         try {
                             if (window.location && window.location.protocol && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
                                 var basePath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/') + 1);
-                                url = window.location.origin + basePath + 'AutoSelect.html?gal=' + encodeURIComponent(galId);
+                                url = window.location.origin + basePath + 'AutoSelect.html?gal=' + encodeURIComponent(cleanGalId) + '&c=' + encodeURIComponent(currentCredits);
                             }
                         } catch (e) { }
                     } else {
-                        url = this.buildGalleryAutoSelectUrl(galId);
+                        url = this.buildGalleryAutoSelectUrl(cleanGalId, currentCredits);
                     }
 
                     var newTab = null;
@@ -6096,11 +6165,11 @@
                     var creds = this.getAutoSelectCreditsCount();
                     var navBadge = document.getElementById('sidebar-autoselect-credit-badge');
                     if (navBadge) {
-                        navBadge.textContent = creds + 'x';
+                        navBadge.innerHTML = '<span>🪙</span><span>' + creds + 'x</span>';
                         if (creds <= 0) {
-                            navBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300';
+                            navBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300 inline-flex items-center gap-0.5';
                         } else {
-                            navBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200';
+                            navBadge.className = 'px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 inline-flex items-center gap-0.5';
                         }
                     }
                     var spaBadge = document.getElementById('as-spa-credit-count');
@@ -6228,6 +6297,13 @@
               `;
 
                         list.forEach(function (g) {
+                            var gCleanId = String(g.id_galeri || '').trim().toUpperCase();
+                            var gLoc = null;
+                            try { gLoc = localStorage.getItem('gal_credits_' + gCleanId) || localStorage.getItem('gal_credits_' + g.id_galeri); } catch (e) { }
+                            var galCredits = (g.autoselect_credits !== undefined && !isNaN(Number(g.autoselect_credits))) ? Number(g.autoselect_credits) : (gLoc !== null && !isNaN(Number(gLoc)) ? Number(gLoc) : 1);
+                            if (galCredits === 1 && gLoc !== null && !isNaN(Number(gLoc)) && Number(gLoc) !== 1) {
+                                galCredits = Number(gLoc);
+                            }
                             var isFinished = g.status === 'Selesai';
                             var statusColor = isFinished ? 'bg-emerald-100 text-emerald-800' : 'bg-blue-100 text-blue-800';
                             var dlActive = !!g.izin_download;
@@ -6281,10 +6357,10 @@
                               <i class="fas fa-edit text-blue-600"></i>
                               <span>Ubah</span>
                             </button>
-                            <button type="button" onclick="appState.openAutoSelectPage('${escapeHTML(g.id_galeri)}')" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-300 transition-colors cursor-pointer" title="Buka AutoSelect untuk sortir foto pilihan klien galeri ini (${g.autoselect_credits !== undefined ? g.autoselect_credits : 1} Credit)">
+                            <button type="button" onclick="appState.openAutoSelectPage('${escapeHTML(g.id_galeri)}')" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-300 transition-colors cursor-pointer" title="Buka AutoSelect untuk sortir foto pilihan klien galeri ini (${galCredits} Credit)">
                               <i class="fas fa-magic text-amber-600"></i>
                               <span>AutoSelect</span>
-                              <span class="ml-0.5 px-1.5 py-0.2 rounded-md bg-amber-200/90 text-amber-950 font-mono text-[10px] font-black">${g.autoselect_credits !== undefined ? g.autoselect_credits : 1}x</span>
+                              <span class="ml-0.5 px-1.5 py-0.5 rounded-md bg-amber-200/90 text-amber-950 font-mono text-[10px] font-black inline-flex items-center gap-0.5"><span>🪙</span><span>${galCredits}x</span></span>
                             </button>
                             <button type="button" onclick="appState.previewClient('${escapeHTML(g.id_galeri)}')" class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200 transition-colors" title="Preview Tampilan Klien">
                               <i class="fas fa-eye text-gray-500"></i>
@@ -6308,6 +6384,13 @@
                         // MOBILE CARDS VIEW (visible on mobile, hidden on md+)
                         html += `<div class="block md:hidden space-y-3.5 mb-6">`;
                         list.forEach(function (g) {
+                            var gCleanId = String(g.id_galeri || '').trim().toUpperCase();
+                            var gLoc = null;
+                            try { gLoc = localStorage.getItem('gal_credits_' + gCleanId) || localStorage.getItem('gal_credits_' + g.id_galeri); } catch (e) { }
+                            var galCredits = (g.autoselect_credits !== undefined && !isNaN(Number(g.autoselect_credits))) ? Number(g.autoselect_credits) : (gLoc !== null && !isNaN(Number(gLoc)) ? Number(gLoc) : 1);
+                            if (galCredits === 1 && gLoc !== null && !isNaN(Number(gLoc)) && Number(gLoc) !== 1) {
+                                galCredits = Number(gLoc);
+                            }
                             var isFinished = g.status === 'Selesai';
                             var statusColor = isFinished ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : 'bg-blue-100 text-blue-800 border-blue-200';
                             var dlActive = !!g.izin_download;
@@ -6366,10 +6449,10 @@
                         <button type="button" onclick="appState.openEditModal('${escapeHTML(g.id_galeri)}')" class="py-2 px-3 rounded-xl text-xs font-semibold bg-gray-50 text-gray-700 border border-gray-200 flex items-center justify-center gap-1">
                           <i class="fas fa-edit"></i> Ubah
                         </button>
-                        <button type="button" onclick="appState.openAutoSelectPage('${escapeHTML(g.id_galeri)}')" class="py-2 px-3 rounded-xl text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300 flex items-center justify-center gap-1.5" title="Buka AutoSelect untuk galeri ini (${g.autoselect_credits !== undefined ? g.autoselect_credits : 1} Credit)">
+                        <button type="button" onclick="appState.openAutoSelectPage('${escapeHTML(g.id_galeri)}')" class="py-2 px-3 rounded-xl text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300 flex items-center justify-center gap-1.5" title="Buka AutoSelect untuk galeri ini (${galCredits} Credit)">
                           <i class="fas fa-magic text-amber-600"></i>
                           <span>AutoSelect</span>
-                          <span class="px-1.5 py-0.2 rounded-md bg-amber-200/90 text-amber-950 font-mono text-[10px] font-black">${g.autoselect_credits !== undefined ? g.autoselect_credits : 1}x</span>
+                          <span class="px-1.5 py-0.5 rounded-md bg-amber-200/90 text-amber-950 font-mono text-[10px] font-black inline-flex items-center gap-0.5"><span>🪙</span><span>${galCredits}x</span></span>
                         </button>
                         <button type="button" onclick="appState.previewClient('${escapeHTML(g.id_galeri)}')" class="py-2 px-3 rounded-xl text-xs font-semibold bg-gray-50 text-gray-700 border border-gray-200 flex items-center justify-center gap-1">
                           <i class="fas fa-eye"></i>
@@ -6422,6 +6505,22 @@
                         if (res && res.sessionExpired) return appState.handleSessionExpired();
 
                         if (res && res.success && res.data) {
+                            res.data.forEach(function (g) {
+                                try {
+                                    var cleanId = String(g.id_galeri || '').trim().toUpperCase();
+                                    var locCred = localStorage.getItem('gal_credits_' + cleanId) || localStorage.getItem('gal_credits_' + g.id_galeri);
+                                    if (locCred !== null && !isNaN(Number(locCred))) {
+                                        var nLoc = Number(locCred);
+                                        if (g.autoselect_credits === undefined || g.autoselect_credits === null || (g.autoselect_credits === 1 && nLoc !== 1)) {
+                                            g.autoselect_credits = nLoc;
+                                        }
+                                    }
+                                    if (g.autoselect_credits !== undefined && g.autoselect_credits !== null) {
+                                        localStorage.setItem('gal_credits_' + g.id_galeri, g.autoselect_credits);
+                                        localStorage.setItem('gal_credits_' + cleanId, g.autoselect_credits);
+                                    }
+                                } catch (e) { }
+                            });
                             appState.galleriesCache = res.data;
                             try { sessionStorage.setItem('cached_galleries_list', JSON.stringify(res.data)); } catch (e) { }
                             if (appState.activePage === 'galleries') {
@@ -8089,15 +8188,22 @@
 
                     // Pengaturan Credit AutoSelect Galeri
                     var editCredits = document.getElementById('editGalCredits');
+                    var credsVal = 1;
                     if (editCredits) {
-                        var credsVal = (gal.autoselect_credits !== undefined && !isNaN(Number(gal.autoselect_credits))) ? Number(gal.autoselect_credits) : 1;
+                        var cleanId = String(gal.id_galeri).toUpperCase();
+                        var localSaved = null;
+                        try { localSaved = localStorage.getItem('gal_credits_' + cleanId) || localStorage.getItem('gal_credits_' + gal.id_galeri); } catch (e) { }
+                        credsVal = (gal.autoselect_credits !== undefined && !isNaN(Number(gal.autoselect_credits))) ? Number(gal.autoselect_credits) : (localSaved !== null && !isNaN(Number(localSaved)) ? Number(localSaved) : 1);
+                        if (credsVal === 1 && localSaved !== null && !isNaN(Number(localSaved)) && Number(localSaved) !== 1) {
+                            credsVal = Number(localSaved);
+                        }
                         editCredits.value = credsVal;
                     }
                     this.updateEditGalCreditsBadge();
 
                     var autoSelectUrlInput = document.getElementById('editGalAutoSelectUrl');
                     if (autoSelectUrlInput) {
-                        autoSelectUrlInput.value = this.buildGalleryAutoSelectUrl(gal.id_galeri);
+                        autoSelectUrlInput.value = this.buildGalleryAutoSelectUrl(gal.id_galeri, credsVal);
                     }
 
                     this.updateLimitBadge('edit');
@@ -8118,6 +8224,10 @@
                     if (input && badge) {
                         var val = parseInt(input.value, 10) || 0;
                         badge.textContent = val + 'x Sortir';
+                        var autoSelectUrlInput = document.getElementById('editGalAutoSelectUrl');
+                        if (autoSelectUrlInput && this.currentEditGalId) {
+                            autoSelectUrlInput.value = this.buildGalleryAutoSelectUrl(this.currentEditGalId, val);
+                        }
                     }
                 },
 
@@ -8145,6 +8255,14 @@
                 },
 
                 openEditGalAutoSelectUrl: function () {
+                    var editCredits = document.getElementById('editGalCredits');
+                    if (this.currentEditGalId && editCredits) {
+                        var num = parseInt(editCredits.value, 10) || 0;
+                        try {
+                            localStorage.setItem('gal_credits_' + this.currentEditGalId, num);
+                            localStorage.setItem('gal_credits_' + String(this.currentEditGalId).toUpperCase(), num);
+                        } catch (e) { }
+                    }
                     var input = document.getElementById('editGalAutoSelectUrl');
                     if (input && input.value) {
                         window.open(input.value, '_blank');
@@ -8258,14 +8376,23 @@
                             ui.closeModal('modalEditGallery');
                             ui.showToast('Galeri & Credit AutoSelect berhasil diperbarui.', false);
 
+                            var targetCredits = (res && res.autoselect_credits !== undefined) ? Number(res.autoselect_credits) : payload.autoselect_credits;
+                            if (targetCredits !== undefined) {
+                                payload.autoselect_credits = targetCredits;
+                                try {
+                                    localStorage.setItem('gal_credits_' + payload.id_galeri, targetCredits);
+                                    localStorage.setItem('gal_credits_' + String(payload.id_galeri).toUpperCase(), targetCredits);
+                                } catch (e) { }
+                            }
+
                             // Update data galeri di cache lokal appState
                             var gal = (appState.galleriesCache || []).find(function (g) { return g.id_galeri === payload.id_galeri; });
                             if (gal) {
                                 Object.assign(gal, payload);
-                                try {
-                                    localStorage.setItem('gal_credits_' + payload.id_galeri, payload.autoselect_credits);
-                                } catch (e) { }
                             }
+                            try {
+                                sessionStorage.setItem('cached_galleries_list', JSON.stringify(appState.galleriesCache));
+                            } catch (e) { }
 
                             // Jika sedang membuka mode / preview klien di appState, perbarui datanya
                             if (appState.clientData && appState.clientData.gallery && appState.clientData.gallery.id_galeri === payload.id_galeri) {
@@ -8342,6 +8469,13 @@
                             u.autoselect_credits = nextCredit;
                             Auth.set(Auth.getToken(), u);
                             appState.updateCreditBadges();
+
+                            if (res.id) {
+                                try {
+                                    localStorage.setItem('gal_credits_' + res.id, 1);
+                                    localStorage.setItem('gal_credits_' + String(res.id).toUpperCase(), 1);
+                                } catch (e) { }
+                            }
 
                             var msg = 'Galeri berhasil dibuat! 🎁 +1 Credit AutoSelect ditambahkan sehingga AutoSelect siap digunakan.';
                             if (res.photos_imported > 0) {
