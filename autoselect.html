@@ -826,14 +826,29 @@
                 return;
             }
 
-            // Galeri diberikan via URL parameter (?gal=KODE_GALERI)
+            var cleanGalId = galParam.toUpperCase();
             asCreditState.isLocked = false;
-            asCreditState.galId = galParam;
+            asCreditState.galId = cleanGalId;
 
-            // Baca saldo dari cache lokal galeri untuk render instan
-            var cached = localStorage.getItem('gal_credits_' + galParam);
-            if (cached !== null && !isNaN(Number(cached))) {
-                asCreditState.credits = Number(cached);
+            // 1. Cek parameter credit langsung dari link URL (?c=... atau ?credits=...) jika dikirim dari Galeri Dashboard
+            var paramCredits = urlParams.get('c') || urlParams.get('credits') || urlParams.get('credit');
+            var pCreditsNum = (paramCredits !== null && paramCredits !== '' && !isNaN(Number(paramCredits))) ? Math.max(0, parseInt(paramCredits, 10)) : null;
+
+            // 2. Baca saldo dari cache lokal galeri (baik key original maupun uppercase)
+            var cached = null;
+            try {
+                cached = localStorage.getItem('gal_credits_' + cleanGalId) || localStorage.getItem('gal_credits_' + galParam);
+            } catch (e) { }
+            var cachedNum = (cached !== null && !isNaN(Number(cached))) ? Number(cached) : null;
+
+            if (pCreditsNum !== null) {
+                asCreditState.credits = pCreditsNum;
+                try {
+                    localStorage.setItem('gal_credits_' + cleanGalId, pCreditsNum);
+                    localStorage.setItem('gal_credits_' + galParam, pCreditsNum);
+                } catch (e) { }
+            } else if (cachedNum !== null) {
+                asCreditState.credits = cachedNum;
             } else {
                 asCreditState.credits = 1; // Default awal 1 credit
             }
@@ -848,7 +863,7 @@
             updateCreditDisplay();
 
             // Sinkronisasi data saldo credit langsung ke database spreadsheet (Sheet 'Galeri')
-            syncGalleryCreditFromBackend(galParam);
+            syncGalleryCreditFromBackend(cleanGalId);
         }
 
         function syncGalleryCreditFromBackend(galId) {
@@ -870,9 +885,14 @@
             // 2. Lingkungan Vercel / Web Eksternal (JSON API via GAS Web App)
             var apiUrl = DEFAULT_GAS_URL + '?action=getGalleryAutoSelectCredits&gal=' + encodeURIComponent(galId);
             fetch(apiUrl)
-                .then(function (res) { return res.json(); })
-                .then(function (data) {
-                    handleBackendCreditResponse(data);
+                .then(function (res) { return res.text(); })
+                .then(function (text) {
+                    try {
+                        var data = JSON.parse(text);
+                        handleBackendCreditResponse(data);
+                    } catch (parseErr) {
+                        console.warn('Fetch sync credit non-JSON, pertahankan credit lokal:', parseErr);
+                    }
                 })
                 .catch(function (err) {
                     console.warn('Fetch sync credit failed, fallback ke cache lokal:', err);
@@ -893,10 +913,28 @@
 
             if (res.success) {
                 asCreditState.isLocked = false;
-                asCreditState.credits = (res.credits !== undefined && !isNaN(Number(res.credits))) ? Number(res.credits) : 1;
+                var sCredits = (res.credits !== undefined && !isNaN(Number(res.credits))) ? Number(res.credits) : undefined;
+                var localCached = null;
+                try { localCached = localStorage.getItem('gal_credits_' + asCreditState.galId) || localStorage.getItem('gal_credits_' + asCreditState.galId.toUpperCase()); } catch (e) { }
+                var locNum = (localCached !== null && !isNaN(Number(localCached))) ? Number(localCached) : undefined;
+
+                if (sCredits !== undefined) {
+                    if (sCredits === 1 && locNum !== undefined && locNum > 1) {
+                        asCreditState.credits = locNum;
+                    } else {
+                        asCreditState.credits = sCredits;
+                    }
+                } else if (locNum !== undefined) {
+                    asCreditState.credits = locNum;
+                } else {
+                    asCreditState.credits = 1;
+                }
                 asCreditState.clientName = res.clientName || '';
                 asCreditState.eventTitle = res.eventTitle || '';
-                localStorage.setItem('gal_credits_' + asCreditState.galId, asCreditState.credits);
+                try {
+                    localStorage.setItem('gal_credits_' + asCreditState.galId, asCreditState.credits);
+                    localStorage.setItem('gal_credits_' + asCreditState.galId.toUpperCase(), asCreditState.credits);
+                } catch (e) { }
                 applyLockState();
                 updateCreditDisplay();
             }
@@ -1057,7 +1095,10 @@
 
             // Potong 1 Credit untuk galeri ini
             asCreditState.credits = Math.max(0, asCreditState.credits - 1);
-            localStorage.setItem('gal_credits_' + asCreditState.galId, asCreditState.credits);
+            try {
+                localStorage.setItem('gal_credits_' + asCreditState.galId, asCreditState.credits);
+                localStorage.setItem('gal_credits_' + asCreditState.galId.toUpperCase(), asCreditState.credits);
+            } catch (e) { }
             updateCreditDisplay();
             applyLockState();
 
