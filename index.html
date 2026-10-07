@@ -1196,13 +1196,10 @@
                     class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">
                     <i class="fas fa-images w-5"></i> Galeri
                 </button>
-                <button onclick="appState.openAutoSelectPage()" id="nav-autoselect"
-                    class="w-full flex items-center justify-between px-4 py-2.5 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">
-                    <div class="flex items-center gap-3">
-                        <i class="fas fa-magic w-5 text-indigo-500"></i> AutoSelect File
-                    </div>
-                    <span id="sidebar-autoselect-credit-badge"
-                        class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200 inline-flex items-center gap-0.5"><span>🪙</span><span>5x</span></span>
+                <button onclick="appState.openStandaloneAutoSelect()" id="nav-autoselect"
+                    class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors cursor-pointer"
+                    title="Buka AutoSelect (https://lensselect.vercel.app/autoselect)">
+                    <i class="fas fa-magic w-5 text-indigo-500"></i> AutoSelect File
                 </button>
                 <button onclick="appState.navigate('jobs')" id="nav-jobs"
                     class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors">
@@ -4969,16 +4966,29 @@
                     return 'https://lensselect.vercel.app/autoselect?gal=' + encodeURIComponent(cleanId) + credParam;
                 },
 
+                openStandaloneAutoSelect: function () {
+                    var url = 'https://lensselect.vercel.app/autoselect';
+                    var newTab = null;
+                    try {
+                        newTab = window.open(url, '_blank');
+                    } catch (e) {
+                        newTab = null;
+                    }
+                    if (!newTab || newTab.closed || typeof newTab.closed === 'undefined') {
+                        var a = document.createElement('a');
+                        a.href = url;
+                        a.target = '_blank';
+                        a.rel = 'noopener noreferrer';
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                    }
+                },
+
                 openAutoSelectPage: function (galId) {
                     if (!galId) {
-                        var list = (this.galleriesCache && Array.isArray(this.galleriesCache)) ? this.galleriesCache : [];
-                        if (list.length > 0 && list[0].id_galeri) {
-                            galId = list[0].id_galeri;
-                        } else {
-                            ui.showToast('Silakan pilih galeri atau buat galeri baru terlebih dahulu untuk menggunakan AutoSelect.', true);
-                            this.navigate('galleries');
-                            return;
-                        }
+                        this.openStandaloneAutoSelect();
+                        return;
                     }
 
                     var cleanGalId = String(galId || '').trim();
