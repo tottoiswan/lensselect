@@ -650,12 +650,36 @@ function getGalleryAutoSelectCredits(galId) {
       if (String(data[i][map['id_galeri']] || '').trim().toUpperCase() === cleanGalId) {
         var raw = map['autoselect_credits'] !== undefined ? data[i][map['autoselect_credits']] : 1;
         var credits = (raw !== '' && raw !== undefined && !isNaN(Number(raw))) ? Number(raw) : 1;
+        
+        // Ambil nomor WhatsApp vendor dari pengaturan profil vendor di sheet 'User' (wa_vendor)
+        var vendorWa = '';
+        var vendorName = '';
+        var fotograferId = map['id_fotografer'] !== undefined ? data[i][map['id_fotografer']] : '';
+        if (fotograferId) {
+          try {
+            var userSheet = ss.getSheetByName('User');
+            if (userSheet) {
+              var userMap = ensureUserColumns(userSheet);
+              var userData = userSheet.getDataRange().getValues();
+              for (var u = 1; u < userData.length; u++) {
+                if (String(userData[u][userMap['id_user']] || '').trim() === String(fotograferId).trim()) {
+                  vendorWa = (userMap['wa_vendor'] !== undefined && userData[u][userMap['wa_vendor']]) ? String(userData[u][userMap['wa_vendor']]).trim() : '';
+                  vendorName = (userMap['nama'] !== undefined && userData[u][userMap['nama']]) ? String(userData[u][userMap['nama']]).trim() : '';
+                  break;
+                }
+              }
+            }
+          } catch(uErr) {}
+        }
+
         return {
           success: true,
           galId: cleanGalId,
           clientName: String(data[i][map['nama_client']] || ''),
           eventTitle: String(data[i][map['judul_acara']] || ''),
           credits: credits,
+          vendorWa: vendorWa,
+          vendorName: vendorName,
           locked: false
         };
       }
