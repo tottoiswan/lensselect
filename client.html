@@ -1638,7 +1638,7 @@
                     deadline: '2026-10-25',
                     highlight: 'Setiap detik adalah kenangan abadi yang tak tergantikan.',
                     whatsapp_client: '082149315005',
-                    whatsapp_vendor: '081234567890',
+                    whatsapp_vendor: '0895401147773',
                     nama_vendor: 'Ttwins Photography Studio',
                     izin_download: true,
                     status: 'Aktif'
@@ -3604,8 +3604,8 @@
                         rawPhone = String(savedUser.wa_vendor || savedUser.wa || savedUser.whatsapp || '').trim();
                     } catch (e) { }
                 }
-                if (!rawPhone) {
-                    rawPhone = '081234567890';
+                if (!rawPhone || rawPhone === '081234567890') {
+                    rawPhone = '0895401147773';
                 }
 
                 var cleanPhone = rawPhone.replace(/[^0-9]/g, '');
