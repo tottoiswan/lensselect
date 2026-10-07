@@ -3175,12 +3175,15 @@
                         <strong id="modal-topup-spa-pkg-label" class="text-gray-900">Paket 15x Sortir (Rp
                             60.000)</strong>
                     </div>
+                    <div class="flex items-center justify-between text-gray-600">
+                        <span>WhatsApp Vendor:</span>
+                        <strong id="modal-topup-spa-vendor-wa" class="text-emerald-700 font-mono">-</strong>
+                    </div>
                 </div>
 
                 <div class="text-[11px] text-gray-500 leading-relaxed flex items-center gap-1.5">
                     <i class="fas fa-shield-alt text-emerald-600"></i>
-                    <span>Setelah konfirmasi pembayaran, Admin akan langsung menambahkan saldo credit ke akun Anda via
-                        Menu Pengaturan Admin.</span>
+                    <span>Setelah konfirmasi pembayaran, saldo credit akan langsung ditambahkan ke sistem akun Anda.</span>
                 </div>
             </div>
 
@@ -3194,7 +3197,7 @@
                 <button type="button" onclick="appState.submitTopUpViaWa()"
                     class="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md shadow-emerald-600/25 flex items-center justify-center gap-2 cursor-pointer">
                     <i class="fab fa-whatsapp text-base"></i>
-                    <span>Kirim Pesan Top-Up ke Admin</span>
+                    <span>Kirim Pesan Top-Up ke WhatsApp Vendor</span>
                 </button>
             </div>
         </div>
@@ -5028,7 +5031,18 @@
                         }
                     }
                     var credParam = (creds !== undefined && !isNaN(Number(creds))) ? ('&c=' + encodeURIComponent(creds)) : '';
-                    return 'https://lensselect.vercel.app/autoselect?gal=' + encodeURIComponent(cleanId) + credParam;
+
+                    // Sertakan nomor WhatsApp Vendor dari Pengaturan Profil Vendor
+                    var u = Auth.getUser() || {};
+                    var vendorWa = u.wa || u.wa_vendor;
+                    if (!vendorWa) {
+                        try {
+                            var appUser = JSON.parse(localStorage.getItem('appUser') || '{}');
+                            vendorWa = appUser.wa || appUser.wa_vendor;
+                        } catch (e) { }
+                    }
+                    var waParam = vendorWa ? ('&wa=' + encodeURIComponent(vendorWa)) : '';
+                    return 'https://lensselect.vercel.app/autoselect?gal=' + encodeURIComponent(cleanId) + credParam + waParam;
                 },
 
                 openStandaloneAutoSelect: function () {
@@ -6293,6 +6307,18 @@
 
                 openTopUpCreditModal: function () {
                     this.updateCreditBadges();
+                    var u = Auth.getUser() || {};
+                    var vendorWa = u.wa || u.wa_vendor;
+                    if (!vendorWa) {
+                        try {
+                            var appUser = JSON.parse(localStorage.getItem('appUser') || '{}');
+                            vendorWa = appUser.wa || appUser.wa_vendor;
+                        } catch (e) { }
+                    }
+                    var modalWa = document.getElementById('modal-topup-spa-vendor-wa');
+                    if (modalWa) {
+                        modalWa.textContent = vendorWa || 'Belum diatur di Profil Vendor';
+                    }
                     var modal = document.getElementById('modalTopUpCredit');
                     if (modal) modal.classList.remove('hidden');
                 },
@@ -6319,20 +6345,35 @@
 
                 submitTopUpViaWa: function () {
                     var u = Auth.getUser() || {};
-                    var adminWa = localStorage.getItem('autoselect_admin_wa') || u.autoselect_admin_wa || u.wa || '081234567890';
-                    var cleanWa = adminWa.replace(/[^\d]/g, '');
+                    // Nomor WhatsApp diarahkan ke nomor WhatsApp vendor di Pengaturan Profil Vendor (bukan nama vendor di galeri)
+                    var vendorWa = u.wa || u.wa_vendor;
+                    if (!vendorWa) {
+                        try {
+                            var appUser = JSON.parse(localStorage.getItem('appUser') || '{}');
+                            vendorWa = appUser.wa || appUser.wa_vendor;
+                        } catch (e) { }
+                    }
+                    if (!vendorWa) {
+                        vendorWa = localStorage.getItem('last_vendor_wa') || localStorage.getItem('autoselect_vendor_wa');
+                    }
+                    if (!vendorWa) {
+                        ui.showToast('Nomor WhatsApp Vendor belum diisi. Silakan isi di menu Pengaturan Studio ➔ Profil Vendor.', true);
+                        return;
+                    }
+
+                    var cleanWa = String(vendorWa).replace(/[^\d]/g, '');
                     if (cleanWa.startsWith('0')) cleanWa = '62' + cleanWa.substring(1);
-                    if (!cleanWa.startsWith('62')) cleanWa = '62' + cleanWa;
+                    else if (cleanWa.startsWith('8')) cleanWa = '62' + cleanWa;
 
                     var pkg = this._selectedCreditPkg || { qty: 15, price: 'Rp 60.000', label: 'Paket 15x Sortir' };
                     var cur = this.getAutoSelectCreditsCount();
-                    var namaUser = u.nama || u.username || 'Fotografer';
+                    var namaVendor = u.nama || 'Vendor';
 
-                    var msg = 'Halo Admin, saya ' + namaUser + '.\n\nSaya ingin top-up *Credit AutoSelect & Sortir Foto*:\n- Pilihan Paket: *' + pkg.label + '*\n- Jumlah: *' + pkg.qty + ' Credit*\n- Biaya: *' + pkg.price + '*\n- Saldo Saat Ini: *' + cur + ' Credit*\n\nMohon info instruksi/rekening pembayarannya. Terima kasih!';
+                    var msg = 'Halo Kak / Vendor ' + namaVendor + ',\n\nSaya ingin top-up *Credit AutoSelect & Sortir Foto*:\n- Pilihan Paket: *' + pkg.label + '*\n- Jumlah: *' + pkg.qty + ' Credit*\n- Biaya: *' + pkg.price + '*\n- Saldo Saat Ini: *' + cur + ' Credit*\n\nMohon info instruksi / rekening pembayarannya. Terima kasih!';
 
                     var url = 'https://wa.me/' + cleanWa + '?text=' + encodeURIComponent(msg);
                     window.open(url, '_blank');
-                    ui.showToast('Membuka WhatsApp Admin untuk konfirmasi pembayaran...', false);
+                    ui.showToast('Membuka WhatsApp Vendor untuk konfirmasi pembayaran...', false);
                 },
 
                 buildGalleriesHtml: function (data) {
