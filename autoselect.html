@@ -856,8 +856,27 @@
             var p = localStorage.getItem('autoselect_price');
             if (p) asCreditState.price = p;
 
-            var wa = localStorage.getItem('autoselect_admin_wa');
-            if (wa) asCreditState.adminWa = wa;
+            // Prioritaskan nomor WhatsApp Vendor yang ada di profil vendor
+            var paramWa = (urlParams.get('wa') || urlParams.get('v_wa') || urlParams.get('vendor_wa') || '').trim();
+            if (paramWa) {
+                asCreditState.adminWa = paramWa;
+                try { localStorage.setItem('autoselect_vendor_wa', paramWa); } catch (e) { }
+            } else {
+                var savedVendorWa = '';
+                try {
+                    savedVendorWa = localStorage.getItem('autoselect_vendor_wa') || localStorage.getItem('last_vendor_wa');
+                    if (!savedVendorWa) {
+                        var u = JSON.parse(localStorage.getItem('appUser') || '{}');
+                        savedVendorWa = u.wa || u.wa_vendor;
+                    }
+                } catch (e) { }
+                if (savedVendorWa) {
+                    asCreditState.adminWa = savedVendorWa;
+                } else {
+                    var wa = localStorage.getItem('autoselect_admin_wa');
+                    if (wa) asCreditState.adminWa = wa;
+                }
+            }
 
             applyLockState();
             updateCreditDisplay();
@@ -931,6 +950,14 @@
                 }
                 asCreditState.clientName = res.clientName || '';
                 asCreditState.eventTitle = res.eventTitle || '';
+                if (res.vendorWa) {
+                    asCreditState.adminWa = res.vendorWa;
+                    asCreditState.vendorName = res.vendorName || '';
+                    try {
+                        localStorage.setItem('autoselect_vendor_wa', res.vendorWa);
+                        localStorage.setItem('last_vendor_wa', res.vendorWa);
+                    } catch (e) { }
+                }
                 try {
                     localStorage.setItem('gal_credits_' + asCreditState.galId, asCreditState.credits);
                     localStorage.setItem('gal_credits_' + asCreditState.galId.toUpperCase(), asCreditState.credits);
@@ -1152,9 +1179,21 @@
         }
 
         function executeTopUpViaWa() {
-            var wa = (asCreditState.adminWa || '081234567890').replace(/[^\d]/g, '');
+            var rawWa = asCreditState.adminWa || '';
+            if (!rawWa) {
+                try {
+                    rawWa = localStorage.getItem('autoselect_vendor_wa') || localStorage.getItem('last_vendor_wa');
+                    if (!rawWa) {
+                        var u = JSON.parse(localStorage.getItem('appUser') || '{}');
+                        rawWa = u.wa || u.wa_vendor;
+                    }
+                } catch (e) { }
+            }
+            if (!rawWa) rawWa = '081234567890';
+
+            var wa = rawWa.replace(/[^\d]/g, '');
             if (wa.startsWith('0')) wa = '62' + wa.substring(1);
-            if (!wa.startsWith('62')) wa = '62' + wa;
+            else if (wa.startsWith('8')) wa = '62' + wa;
 
             var userNama = '';
             try {
@@ -1162,13 +1201,15 @@
                 userNama = u.nama || u.username || '';
             } catch (e) { }
 
-            var greeting = userNama ? ('Halo Admin, saya ' + userNama + '.') : 'Halo Admin,';
+            var vendorLabel = asCreditState.vendorName ? (' ' + asCreditState.vendorName) : '';
+            var greeting = userNama ? ('Halo Kak / Vendor' + vendorLabel + ', saya ' + userNama + '.') : ('Halo Kak / Vendor' + vendorLabel + ',');
             var galInfo = asCreditState.galId ? ('\n- Kode Galeri: *' + asCreditState.galId + '*') : '';
-            var msg = greeting + '\n\nSaya ingin top-up *Credit AutoSelect Galeri*:' + galInfo + '\n- Pilihan Paket: *' + asCreditState.selectedPkgLabel + '*\n- Jumlah: *' + asCreditState.selectedPkgQty + ' Credit*\n- Biaya: *' + asCreditState.selectedPkgPrice + '*\n- Saldo Galeri Saat Ini: *' + asCreditState.credits + ' Credit*\n\nMohon info instruksi pembayarannya agar saldo credit galeri dapat ditambahkan. Terima kasih!';
+            var clientInfo = asCreditState.clientName ? ('\n- Nama Klien: *' + asCreditState.clientName + '*') : '';
+            var msg = greeting + '\n\nSaya ingin top-up *Credit AutoSelect Galeri*:' + galInfo + clientInfo + '\n- Pilihan Paket: *' + asCreditState.selectedPkgLabel + '*\n- Jumlah: *' + asCreditState.selectedPkgQty + ' Credit*\n- Biaya: *' + asCreditState.selectedPkgPrice + '*\n- Saldo Galeri Saat Ini: *' + asCreditState.credits + ' Credit*\n\nMohon info nomor rekening / QRIS pembayarannya agar saldo credit galeri dapat ditambahkan. Terima kasih!';
 
             var url = 'https://wa.me/' + wa + '?text=' + encodeURIComponent(msg);
             window.open(url, '_blank');
-            showToast('Membuka WhatsApp Admin untuk konfirmasi pembayaran...', false);
+            showToast('Membuka WhatsApp Vendor untuk konfirmasi pembayaran...', false);
         }
 
         // Inisialisasi saat DOM siap
@@ -1780,21 +1821,21 @@
                     </label>
                 </div>
 
-                <!-- Box Detail WhatsApp Admin -->
+                <!-- Box Detail WhatsApp Vendor -->
                 <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200 text-xs space-y-1.5">
                     <div class="flex items-center justify-between text-gray-600">
                         <span>Paket Dipilih:</span>
                         <strong id="modal-topup-pkg-label" class="text-gray-900">Paket 15x Sortir (Rp 60.000)</strong>
                     </div>
                     <div class="flex items-center justify-between text-gray-600">
-                        <span>WhatsApp Admin:</span>
+                        <span>WhatsApp Vendor:</span>
                         <strong id="modal-topup-admin-wa" class="text-emerald-700 font-mono">081234567890</strong>
                     </div>
                 </div>
 
                 <div class="text-[11px] text-gray-500 leading-relaxed flex items-center gap-1.5">
                     <i class="fas fa-shield-alt text-emerald-600"></i>
-                    <span>Setelah pembayaran, Admin akan langsung mengupdate saldo credit Anda di sistem.</span>
+                    <span>Setelah pembayaran, Vendor akan langsung menambahkan saldo credit galeri di sistem.</span>
                 </div>
             </div>
 
@@ -1808,7 +1849,7 @@
                 <button type="button" onclick="executeTopUpViaWa()"
                     class="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 active:scale-95 text-white rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md shadow-emerald-600/25 flex items-center justify-center gap-2 cursor-pointer">
                     <i class="fab fa-whatsapp text-base"></i>
-                    <span>Kirim Pesan Top-Up ke Admin</span>
+                    <span>Kirim Pesan Top-Up ke WhatsApp Vendor</span>
                 </button>
             </div>
         </div>
