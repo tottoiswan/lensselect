@@ -1822,23 +1822,17 @@
 
                 <div class="space-y-3 text-xs sm:text-sm text-gray-600">
                     <p class="text-gray-800 font-medium leading-relaxed">
-                        Kami kumpulkan total foto JPG yang dipilih klien untuk <strong id="dlPilihanClientNameText"
-                            class="text-blue-600">nama client</strong> ke dalam satu folder Drive, jadi kamu bisa
-                        langsung mengunduhnya sekaligus — praktis untuk diserahkan ke pembuat album.
+                        Sistem akan mengumpulkan dan menyalin seluruh file JPG foto yang dipilih klien untuk <strong id="dlPilihanClientNameText"
+                            class="text-blue-600">nama client</strong> langsung ke dalam subfolder khusus di dalam <strong>folder Google Drive yang telah Anda setting di awal</strong> saat pembuatan galeri.
                     </p>
                     <p class="text-gray-600 leading-relaxed">
-                        Yang disalin hanya file JPG — sesuai foto yang diupload ke galeri. Butuh RAW? Pakai tombol
-                        Import ke Lightroom di atas.
+                        File foto terpilih langsung disalin ke folder tersebut, serta dibuatkan link pintasan/shortcut dan file link di dalamnya sehingga siap diunduh atau diserahkan langsung ke editor album.
                     </p>
                     <div
-                        class="p-3 bg-amber-50 rounded-xl border border-amber-200 text-amber-900 text-xs flex items-start gap-2.5">
-                        <i class="fas fa-clock text-amber-500 mt-0.5 shrink-0"></i>
-                        <span>Folder bersifat sementara dan otomatis terhapus setelah 3 hari untuk menghemat ruang.
-                            Segera unduh setelah folder siap.</span>
+                        class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-900 text-xs flex items-start gap-2.5">
+                        <i class="fas fa-check-circle text-emerald-600 mt-0.5 shrink-0 text-sm"></i>
+                        <span>Folder dan file foto langsung dibuat di dalam folder Google Drive induk galeri, dan link foldernya otomatis dibuat dan disalin ke clipboard Anda.</span>
                     </div>
-                    <p class="text-xs text-gray-500 italic">
-                        Butuh lagi nanti? Klik tombol ini lagi, gratis — folder dibuat ulang tanpa biaya tambahan.
-                    </p>
                 </div>
 
                 <!-- Google Drive Link Box & Tombol Salin Link Pilihan -->
@@ -1898,7 +1892,7 @@
                         onclick="appState.confirmCreateDownloadFolder()"
                         class="px-5 py-2.5 text-xs sm:text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-md shadow-blue-500/25 transition-all flex items-center gap-2 cursor-pointer">
                         <i class="fas fa-folder-plus" id="iconDownloadPilihanBtn"></i>
-                        <span id="btnConfirmDownloadPilihanText">Buat folder & download</span>
+                        <span id="btnConfirmDownloadPilihanText">Buat folder & download otomatis</span>
                     </button>
                 </div>
             </div>
@@ -3967,17 +3961,38 @@
                                 resolve({ success: true });
                             }
                             else if (funcName === 'createSelectedPhotosDriveFolder') {
-                                var token = args[0], galId = args[1];
+                                var token = args[0], galId = args[1], clientSelections = args[2];
                                 var gal = mockDB.galeri.find(g => g.id_galeri === galId);
-                                var selCount = mockDB.seleksi.filter(s => s.id_galeri === galId).length;
-                                var folderUrl = (gal && gal.link_drive) ? gal.link_drive : 'https://drive.google.com';
+                                var selCount = (clientSelections && clientSelections.length) || mockDB.seleksi.filter(s => s.id_galeri === galId).length;
+                                var parentUrl = (gal && gal.link_drive) ? gal.link_drive : 'https://drive.google.com/drive/folders/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs';
+                                var parentId = extractDriveId(parentUrl) || '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs';
+                                var subfolderId = 'seleksi_' + (galId || 'gal').toLowerCase() + '_' + Math.random().toString(36).substring(2, 8);
+                                var folderUrl = 'https://drive.google.com/drive/folders/' + subfolderId;
+
+                                if (selCount === 0) {
+                                    resolve({
+                                        success: false,
+                                        copiedCount: 0,
+                                        message: 'Klien belum memilih foto untuk galeri ini.'
+                                    });
+                                    return;
+                                }
+
+                                if (gal) {
+                                    gal.link_drive_seleksi = folderUrl;
+                                }
+                                try {
+                                    localStorage.setItem('gal_seleksi_drive_' + galId, folderUrl);
+                                } catch (e) {}
+
                                 resolve({
                                     success: true,
                                     folderUrl: folderUrl,
-                                    folderName: '[SELEKSI] - ' + ((gal && gal.nama_client) || 'Klien') + ' (' + selCount + ' Foto JPG)',
+                                    parentFolderUrl: parentUrl,
+                                    folderName: '[SELEKSI FOTO] - ' + ((gal && gal.nama_client) || 'Klien') + ' (' + selCount + ' Foto JPG)',
                                     totalSelected: selCount,
                                     copiedCount: selCount,
-                                    message: 'Folder Drive berhasil disiapkan dengan ' + selCount + ' foto JPG.'
+                                    message: 'Folder foto pilihan berhasil dibuat langsung di dalam folder Drive induk (' + parentId + '). Sebanyak ' + selCount + ' file telah disalin dan link folder disiapkan!'
                                 });
                             }
                             else if (funcName === 'getUserSettings') {
@@ -5612,8 +5627,10 @@
                     }
                     var clientName = (gal && (gal.nama_client || gal.judul_acara)) || 'Klien';
                     var savedDriveUrl = (gal && gal.link_drive) || '';
+                    var savedSeleksiUrl = (gal && gal.link_drive_seleksi) || localStorage.getItem('gal_seleksi_drive_' + galId) || '';
+
                     this.currentDownloadGalId = galId;
-                    this.currentDownloadDriveUrl = savedDriveUrl;
+                    this.currentDownloadDriveUrl = savedSeleksiUrl || savedDriveUrl;
 
                     var nameEl = document.getElementById('dlPilihanClientName');
                     var nameTextEl = document.getElementById('dlPilihanClientNameText');
@@ -5634,20 +5651,33 @@
                         btn.disabled = false;
                         btn.onclick = function () { appState.confirmCreateDownloadFolder(); };
                     }
-                    if (btnText) btnText.textContent = 'Buat folder & download';
-                    if (btnIcon) btnIcon.className = 'fas fa-folder-plus';
 
-                    if (savedDriveUrl) {
-                        if (linkInput) linkInput.value = savedDriveUrl;
-                        if (linkTitle) linkTitle.textContent = 'Link Google Drive Tersimpan:';
+                    if (savedSeleksiUrl) {
+                        if (linkInput) linkInput.value = savedSeleksiUrl;
+                        if (linkTitle) linkTitle.textContent = 'Link Folder Foto Pilihan (Di dalam Folder Utama Drive):';
                         if (linkStatus) {
-                            linkStatus.textContent = 'Drive Tersimpan';
+                            linkStatus.textContent = 'Folder Foto Pilihan Siap';
+                            linkStatus.className = 'text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
+                        }
+                        if (directLink) {
+                            directLink.href = savedSeleksiUrl;
+                            directLink.classList.remove('pointer-events-none', 'opacity-50');
+                        }
+                        if (btnText) btnText.textContent = 'Perbarui / Buat Ulang Folder Otomatis';
+                        if (btnIcon) btnIcon.className = 'fas fa-sync-alt';
+                    } else if (savedDriveUrl) {
+                        if (linkInput) linkInput.value = savedDriveUrl;
+                        if (linkTitle) linkTitle.textContent = 'Folder Google Drive Utama (Disetting di awal):';
+                        if (linkStatus) {
+                            linkStatus.textContent = 'Folder Induk Tersimpan';
                             linkStatus.className = 'text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800';
                         }
                         if (directLink) {
                             directLink.href = savedDriveUrl;
                             directLink.classList.remove('pointer-events-none', 'opacity-50');
                         }
+                        if (btnText) btnText.textContent = 'Buat folder & download otomatis';
+                        if (btnIcon) btnIcon.className = 'fas fa-folder-plus';
                     } else {
                         if (linkInput) linkInput.value = '';
                         if (linkTitle) linkTitle.textContent = 'Link Google Drive:';
@@ -5659,18 +5689,38 @@
                             directLink.href = '#';
                             directLink.classList.add('pointer-events-none', 'opacity-50');
                         }
+                        if (btnText) btnText.textContent = 'Buat folder & download otomatis';
+                        if (btnIcon) btnIcon.className = 'fas fa-folder-plus';
                     }
 
-                    // Query jumlah seleksi foto
+                    // Query jumlah seleksi foto & periksa update link dari server
                     gasRun('getPublicGallery', galId).then(function (res) {
                         var count = (res && res.selections && res.selections.length) || 0;
                         if (badgeEl) badgeEl.textContent = count + ' Foto JPG Dipilih';
-                        if (res && res.gallery && res.gallery.link_drive && !appState.currentDownloadDriveUrl) {
-                            appState.currentDownloadDriveUrl = res.gallery.link_drive;
-                            if (linkInput) linkInput.value = res.gallery.link_drive;
-                            if (directLink) {
-                                directLink.href = res.gallery.link_drive;
-                                directLink.classList.remove('pointer-events-none', 'opacity-50');
+                        appState.currentPublicGalleryData = res;
+                        if (res && res.gallery) {
+                            if (res.gallery.link_drive_seleksi && !savedSeleksiUrl) {
+                                appState.currentDownloadDriveUrl = res.gallery.link_drive_seleksi;
+                                localStorage.setItem('gal_seleksi_drive_' + galId, res.gallery.link_drive_seleksi);
+                                if (linkInput) linkInput.value = res.gallery.link_drive_seleksi;
+                                if (linkTitle) linkTitle.textContent = 'Link Folder Foto Pilihan (Di dalam Folder Utama Drive):';
+                                if (linkStatus) {
+                                    linkStatus.textContent = 'Folder Foto Pilihan Siap';
+                                    linkStatus.className = 'text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
+                                }
+                                if (directLink) {
+                                    directLink.href = res.gallery.link_drive_seleksi;
+                                    directLink.classList.remove('pointer-events-none', 'opacity-50');
+                                }
+                                if (btnText) btnText.textContent = 'Perbarui / Buat Ulang Folder Otomatis';
+                                if (btnIcon) btnIcon.className = 'fas fa-sync-alt';
+                            } else if (res.gallery.link_drive && !appState.currentDownloadDriveUrl) {
+                                appState.currentDownloadDriveUrl = res.gallery.link_drive;
+                                if (linkInput) linkInput.value = res.gallery.link_drive;
+                                if (directLink) {
+                                    directLink.href = res.gallery.link_drive;
+                                    directLink.classList.remove('pointer-events-none', 'opacity-50');
+                                }
                             }
                         }
                     }).catch(function () {
@@ -5695,21 +5745,93 @@
                     var linkStatus = document.getElementById('dlPilihanLinkStatusBadge');
                     var directLink = document.getElementById('btnBukaDriveDirect');
 
+                    // 1. Kumpulkan payload seleksi secara teliti (id_foto, nama_file, driveId)
+                    var selectionsPayload = [];
+
+                    // Sumber A: dari selectionPageState (jika sedang membuka halaman pemilihan galeri)
+                    if (this.selectionPageState && this.selectionPageState.galId === galId && this.selectionPageState.selected && this.selectionPageState.selected.size > 0) {
+                        var photoList = this.selectionPageState.photos || [];
+                        var photoMapById = {};
+                        var photoMapByName = {};
+                        photoList.forEach(function (p) {
+                            if (p.id_foto) photoMapById[String(p.id_foto).trim().toUpperCase()] = p;
+                            if (p.nama_file) photoMapByName[String(p.nama_file).trim().toUpperCase()] = p;
+                        });
+                        this.selectionPageState.selected.forEach(function (note, pId) {
+                            var cleanId = String(pId || '').trim();
+                            var pObj = photoMapById[cleanId.toUpperCase()] || photoMapByName[cleanId.toUpperCase()] || {};
+                            selectionsPayload.push({
+                                id_foto: cleanId,
+                                nama_file: pObj.nama_file || (cleanId.indexOf('.') !== -1 ? cleanId : (cleanId + '.jpg')),
+                                driveId: pObj.id_drive || extractDriveId(pObj.url_foto) || (cleanId.length >= 25 ? cleanId : '')
+                            });
+                        });
+                    }
+
+                    // Sumber B: dari data galeri publik (currentPublicGalleryData) yang diambil saat modal dibuka
+                    if (selectionsPayload.length === 0 && this.currentPublicGalleryData && this.currentPublicGalleryData.gallery && this.currentPublicGalleryData.gallery.id_galeri === galId) {
+                        var pubSelections = this.currentPublicGalleryData.selections || [];
+                        var pubPhotos = this.currentPublicGalleryData.photos || [];
+                        var pubMapById = {};
+                        var pubMapByName = {};
+                        pubPhotos.forEach(function (p) {
+                            if (p.id_foto) pubMapById[String(p.id_foto).trim().toUpperCase()] = p;
+                            if (p.nama_file) pubMapByName[String(p.nama_file).trim().toUpperCase()] = p;
+                        });
+                        pubSelections.forEach(function (s) {
+                            var sId = String(s.id_foto || '').trim();
+                            var pObj = pubMapById[sId.toUpperCase()] || pubMapByName[sId.toUpperCase()] || {};
+                            selectionsPayload.push({
+                                id_foto: sId,
+                                nama_file: pObj.nama_file || (sId.indexOf('.') !== -1 ? sId : (sId + '.jpg')),
+                                driveId: pObj.id_drive || extractDriveId(pObj.url_foto) || (sId.length >= 25 ? sId : '')
+                            });
+                        });
+                    }
+
+                    // Sumber C: periksa cache localStorage
+                    if (selectionsPayload.length === 0) {
+                        try {
+                            var rawLoc = localStorage.getItem('gal_selections_' + galId);
+                            if (rawLoc) {
+                                var parsedLoc = JSON.parse(rawLoc);
+                                if (Array.isArray(parsedLoc)) {
+                                    selectionsPayload = parsedLoc;
+                                }
+                            }
+                        } catch (e) {}
+                    }
+
                     if (btn) btn.disabled = true;
-                    if (btnText) btnText.textContent = 'Menyiapkan folder di Drive...';
+                    if (btnText) btnText.textContent = 'Menyalin file foto & membuat folder di Drive...';
                     if (btnIcon) btnIcon.className = 'fas fa-spinner fa-spin';
 
-                    gasRun('createSelectedPhotosDriveFolder', Auth.getToken(), galId).then(function (res) {
+                    gasRun('createSelectedPhotosDriveFolder', Auth.getToken(), galId, selectionsPayload).then(function (res) {
                         if (btn) btn.disabled = false;
 
-                        if (res && res.success) {
+                        if (res && res.sessionExpired) {
+                            if (btnText) btnText.textContent = 'Buat folder & download otomatis';
+                            if (btnIcon) btnIcon.className = 'fas fa-folder-plus';
+                            ui.showToast('Sesi berakhir, silakan login kembali.', true);
+                            appState.handleSessionExpired();
+                            return;
+                        }
+
+                        if (res && res.success && res.copiedCount > 0) {
                             var targetUrl = res.folderUrl || appState.currentDownloadDriveUrl;
                             appState.currentDownloadDriveUrl = targetUrl;
 
+                            // Simpan link folder pilihan ke cache & storage
+                            try {
+                                localStorage.setItem('gal_seleksi_drive_' + galId, targetUrl);
+                                var gal = (appState.galleriesCache || []).find(function (g) { return g.id_galeri === galId; });
+                                if (gal) gal.link_drive_seleksi = targetUrl;
+                            } catch (e) {}
+
                             if (linkInput) linkInput.value = targetUrl;
-                            if (linkTitle) linkTitle.textContent = 'Folder Foto Pilihan (Google Drive):';
+                            if (linkTitle) linkTitle.textContent = 'Link Folder Foto Pilihan (Di dalam Folder Utama Drive):';
                             if (linkStatus) {
-                                linkStatus.textContent = 'Folder Drive Siap & Terbuka';
+                                linkStatus.textContent = res.copiedCount + ' File Berhasil Disalin';
                                 linkStatus.className = 'text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800';
                             }
                             if (directLink) {
@@ -5717,46 +5839,42 @@
                                 directLink.classList.remove('pointer-events-none', 'opacity-50');
                             }
 
-                            if (btnText) btnText.textContent = 'Buka Google Drive';
+                            // Otomatis salin link folder ke clipboard
+                            if (navigator.clipboard && navigator.clipboard.writeText) {
+                                navigator.clipboard.writeText(targetUrl).catch(function () {});
+                            }
+
+                            if (btnText) btnText.textContent = 'Buka Google Drive (' + res.copiedCount + ' File)';
                             if (btnIcon) btnIcon.className = 'fas fa-external-link-alt';
                             btn.onclick = function () { window.open(targetUrl, '_blank'); };
 
-                            // Langsung arahkan ke Google Drive yang tersimpan / folder pilihan
+                            // Buka subfolder yang baru dibuat di Google Drive (TIDAK membuka folder induk yang kosong)
                             if (targetUrl) {
                                 var newTab = window.open(targetUrl, '_blank');
                                 if (!newTab) {
-                                    ui.showToast('Folder disiapkan! Klik tombol "Buka Google Drive" jika tidak terbuka otomatis.', false);
+                                    ui.showToast((res.message || 'Folder disiapkan!') + ' Link folder telah disalin ke clipboard.', false);
                                 } else {
-                                    ui.showToast(res.message || 'Mengarahkan ke Google Drive... Folder berhasil disiapkan!', false);
+                                    ui.showToast((res.message || 'Membuka folder Google Drive...') + ' Link folder disalin ke clipboard!', false);
                                 }
                             } else {
                                 ui.showToast(res.message || 'Folder Drive berhasil disiapkan!', false);
                             }
                         } else {
-                            if (btnText) btnText.textContent = 'Buat folder & download';
+                            if (btnText) btnText.textContent = 'Buat folder & download otomatis';
                             if (btnIcon) btnIcon.className = 'fas fa-folder-plus';
 
-                            // Jika gagal membuat subfolder baru, periksa apakah ada link drive yang tersimpan
-                            var fallbackDrive = appState.currentDownloadDriveUrl;
-                            if (fallbackDrive) {
-                                ui.showToast((res && res.message ? res.message + '. ' : '') + 'Mengarahkan ke Google Drive tersimpan...', true);
-                                window.open(fallbackDrive, '_blank');
-                            } else {
-                                ui.showToast((res && res.message) || 'Gagal membuat folder di Drive.', true);
-                            }
+                            // Jangan arahkan ke folder utama jika 0 file tersalin! Tampilkan error yang jelas
+                            var errMsg = (res && res.message) || 'Gagal menyalin file foto terpilih ke Google Drive.';
+                            ui.showToast(errMsg, true);
                         }
                     }).catch(function (err) {
                         if (btn) btn.disabled = false;
-                        if (btnText) btnText.textContent = 'Buat folder & download';
+                        if (btnText) btnText.textContent = 'Buat folder & download otomatis';
                         if (btnIcon) btnIcon.className = 'fas fa-folder-plus';
 
-                        var fallbackDrive = appState.currentDownloadDriveUrl;
-                        if (fallbackDrive) {
-                            ui.showToast('Gagal memproses folder, mengarahkan ke Google Drive galeri tersimpan...', true);
-                            window.open(fallbackDrive, '_blank');
-                        } else {
-                            ui.showToast('Terjadi kesalahan: ' + ((err && err.message) || ''), true);
-                        }
+                        // Tampilkan pesan error dan JANGAN redirect ke folder induk yang kosong
+                        var errMsg = (err && err.message) || 'Terjadi kesalahan sistem saat menyalin foto.';
+                        ui.showToast('Gagal memproses folder Google Drive: ' + errMsg, true);
                     });
                 },
 
