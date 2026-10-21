@@ -214,7 +214,7 @@ function setupDatabase() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
   var sheets = {
     'User': ['id_user', 'nama', 'email', 'role', 'paket', 'username', 'password', 'wa_vendor', 'logo_vendor', 'custom_domain'],
-    'Galeri': ['id_galeri', 'id_fotografer', 'nama_client', 'judul_acara', 'link_drive', 'batas_foto', 'deadline', 'tanggal_acara', 'highlight', 'email_client', 'whatsapp_client', 'izin_download', 'status', 'whatsapp_vendor', 'nama_vendor', 'kirim_tanpa_drive'],
+    'Galeri': ['id_galeri', 'id_fotografer', 'nama_client', 'judul_acara', 'link_drive', 'batas_foto', 'deadline', 'tanggal_acara', 'highlight', 'email_client', 'whatsapp_client', 'izin_download', 'status', 'whatsapp_vendor', 'nama_vendor', 'kirim_tanpa_drive', 'link_drive_seleksi'],
     'Foto': ['id_foto', 'id_galeri', 'nama_file', 'url_foto', 'nomor_foto', 'nama_folder'],
     'Seleksi': ['id_seleksi', 'id_galeri', 'id_foto', 'pesan_client', 'tanggal_pilih'],
     'Job': ['id_job', 'id_fotografer', 'nama_client', 'tanggal_acara', 'status'],
@@ -334,7 +334,7 @@ function ensureGalleryVendorColumn(galSheet, optMap) {
   var nextCol = headers.length + 1;
   var changed = false;
 
-  var requiredCols = ['whatsapp_vendor', 'nama_vendor', 'kirim_tanpa_drive', 'autoselect_credits'];
+  var requiredCols = ['whatsapp_vendor', 'nama_vendor', 'kirim_tanpa_drive', 'autoselect_credits', 'link_drive_seleksi'];
   for (var c = 0; c < requiredCols.length; c++) {
     var colName = requiredCols[c];
     if (map[colName] === undefined) {
@@ -914,6 +914,7 @@ function getGalleries(token) {
           whatsapp_vendor: (map['whatsapp_vendor'] !== undefined && data[i][map['whatsapp_vendor']]) ? String(data[i][map['whatsapp_vendor']]) : '',
           nama_vendor: (map['nama_vendor'] !== undefined && data[i][map['nama_vendor']]) ? String(data[i][map['nama_vendor']]) : '',
           kirim_tanpa_drive: (map['kirim_tanpa_drive'] !== undefined && data[i][map['kirim_tanpa_drive']] !== '') ? (data[i][map['kirim_tanpa_drive']] === true || data[i][map['kirim_tanpa_drive']] === 'true' || String(data[i][map['kirim_tanpa_drive']]).toLowerCase() === 'true' || data[i][map['kirim_tanpa_drive']] === 1) : true,
+          link_drive_seleksi: (map['link_drive_seleksi'] !== undefined && data[i][map['link_drive_seleksi']]) ? String(data[i][map['link_drive_seleksi']]) : '',
           izin_download: data[i][map['izin_download']] === true || data[i][map['izin_download']] === 'true' || String(data[i][map['izin_download']]).toLowerCase() === 'true' || String(data[i][map['izin_download']]).toLowerCase() === 'ya' || String(data[i][map['izin_download']]) === '1',
           autoselect_credits: galCredits,
           status: data[i][map['status']]
@@ -1708,6 +1709,7 @@ function getPublicGallery(galId) {
           whatsapp_vendor: (galMap['whatsapp_vendor'] !== undefined && galData[i][galMap['whatsapp_vendor']]) ? String(galData[i][galMap['whatsapp_vendor']]) : '',
           nama_vendor: (galMap['nama_vendor'] !== undefined && galData[i][galMap['nama_vendor']]) ? String(galData[i][galMap['nama_vendor']]) : '',
           kirim_tanpa_drive: (galMap['kirim_tanpa_drive'] !== undefined && galData[i][galMap['kirim_tanpa_drive']] !== '') ? (galData[i][galMap['kirim_tanpa_drive']] === true || galData[i][galMap['kirim_tanpa_drive']] === 'true' || String(galData[i][galMap['kirim_tanpa_drive']]).toLowerCase() === 'true' || galData[i][galMap['kirim_tanpa_drive']] === 1) : true,
+          link_drive_seleksi: (galMap['link_drive_seleksi'] !== undefined && galData[i][galMap['link_drive_seleksi']]) ? String(galData[i][galMap['link_drive_seleksi']]) : '',
           izin_download: galData[i][galMap['izin_download']] === true || galData[i][galMap['izin_download']] === 'true' || String(galData[i][galMap['izin_download']]).toLowerCase() === 'true' || String(galData[i][galMap['izin_download']]).toLowerCase() === 'ya' || String(galData[i][galMap['izin_download']]) === '1',
           status: galData[i][galMap['status']]
         };
@@ -2105,37 +2107,110 @@ function clearClientSelections(galId) {
   }
 }
 
-function createSelectedPhotosDriveFolder(token, galId) {
+function createSelectedPhotosDriveFolder(token, galId, clientSelections) {
   try {
     var user = verifyToken(token);
-    if (!user) throw new Error("Sesi berakhir, silakan login kembali.");
+    if (!user) {
+      return { success: false, sessionExpired: true, message: "Sesi login telah berakhir, silakan login kembali." };
+    }
     var cleanGalId = String(galId || '').trim().toUpperCase();
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var galSheet = ss.getSheetByName('Galeri');
+    if (!galSheet) throw new Error("Database galeri tidak ditemukan.");
+    var galMap = ensureGalleryVendorColumn(galSheet);
     var galData = galSheet.getDataRange().getValues();
-    var galMap = getColumnMap(galSheet);
     var gallery = null;
+    var galRowIndex = -1;
     for (var i = 1; i < galData.length; i++) {
       if (String(galData[i][galMap['id_galeri']] || '').trim().toUpperCase() === cleanGalId) {
+        galRowIndex = i + 1;
         gallery = {
           id_galeri: galData[i][galMap['id_galeri']],
           nama_client: galData[i][galMap['nama_client']] || 'Client',
           judul_acara: galData[i][galMap['judul_acara']] || 'Acara',
-          link_drive: galData[i][galMap['link_drive']] || ''
+          link_drive: galData[i][galMap['link_drive']] || '',
+          link_drive_seleksi: (galMap['link_drive_seleksi'] !== undefined && galData[i][galMap['link_drive_seleksi']]) ? String(galData[i][galMap['link_drive_seleksi']]) : ''
         };
         break;
       }
     }
     if (!gallery) throw new Error("Galeri tidak ditemukan.");
 
-    // Ambil daftar id_foto yang dipilih
+    if (!gallery.link_drive || !gallery.link_drive.trim()) {
+      throw new Error("Link Google Drive belum dicantumkan di galeri ini. Silakan cantumkan link folder Google Drive terlebih dahulu melalui menu Ubah Galeri.");
+    }
+
+    // 1. Tentukan folder induk Drive dari link yang di-setting di awal
+    var parentDriveId = extractDriveId(gallery.link_drive);
+    if (!parentDriveId) {
+      throw new Error("ID folder Google Drive tidak valid dari link yang dicantumkan.");
+    }
+
+    var parentFolder = null;
+    try {
+      parentFolder = DriveApp.getFolderById(parentDriveId);
+    } catch (fErr) {
+      throw new Error("Gagal mengakses folder Google Drive yang di-setting di awal (" + fErr.message + "). Pastikan izin folder Google Drive dapat diakses.");
+    }
+    if (!parentFolder) {
+      throw new Error("Folder Google Drive yang di-setting di awal tidak dapat ditemukan.");
+    }
+
+    // 2. Pre-scan seluruh file foto di dalam parentFolder dan semua subfolder secara rekursif
+    var allDriveFiles = [];
+    try {
+      collectDriveImageFiles(parentFolder, allDriveFiles, 0, []);
+    } catch (scErr) {
+      Logger.log('Pre-scan drive image files error: ' + scErr);
+    }
+
+    var driveFileById = {};
+    var driveFileByName = {};
+    var driveFileByNameNoExt = {};
+    for (var f = 0; f < allDriveFiles.length; f++) {
+      var df = allDriveFiles[f];
+      var fFile = df.file;
+      var fId = df.id || (fFile ? fFile.getId() : '');
+      var fName = (df.name || (fFile ? fFile.getName() : '')).trim().toLowerCase();
+      var fNameNoExt = fName.replace(/\.[^/.]+$/, '').trim().toLowerCase();
+      if (fId) driveFileById[fId] = fFile;
+      if (fName && !driveFileByName[fName]) driveFileByName[fName] = fFile;
+      if (fNameNoExt && !driveFileByNameNoExt[fNameNoExt]) driveFileByNameNoExt[fNameNoExt] = fFile;
+    }
+
+    // 3. Kumpulkan daftar seleksi foto klien (dari clientSelections payload dan/atau sheet Seleksi)
+    var selMap = {};
+    var selectedPhotoIds = [];
+
+    // Prioritas A: payload seleksi yang dikirim langsung dari frontend
+    if (clientSelections && Array.isArray(clientSelections) && clientSelections.length > 0) {
+      for (var cs = 0; cs < clientSelections.length; cs++) {
+        var it = clientSelections[cs];
+        var cId = (it && (it.id_foto || it.id)) ? String(it.id_foto || it.id).trim() : '';
+        var cName = (it && (it.nama_file || it.name)) ? String(it.nama_file || it.name).trim() : '';
+        var cDrive = (it && (it.driveId || it.id_drive)) ? String(it.driveId || it.id_drive).trim() : '';
+        var key = (cId || cName).toUpperCase();
+        if (key && !selMap[key]) {
+          selMap[key] = { id: cId, name: cName, driveId: cDrive };
+          selectedPhotoIds.push(cId || cName);
+        }
+      }
+    }
+
+    // Prioritas B: baca dari sheet Seleksi di Google Spreadsheet
     var selSheet = ss.getSheetByName('Seleksi');
     var selData = selSheet ? selSheet.getDataRange().getValues() : [];
-    var selMap = getColumnMap(selSheet);
-    var selectedPhotoIds = [];
-    for (var s = 1; s < selData.length; s++) {
-      if (String(selData[s][selMap['id_galeri']] || '').trim().toUpperCase() === cleanGalId) {
-        selectedPhotoIds.push(String(selData[s][selMap['id_foto']] || '').trim());
+    if (selData.length > 1) {
+      var selSheetMap = getColumnMap(selSheet);
+      for (var s = 1; s < selData.length; s++) {
+        if (String(selData[s][selSheetMap['id_galeri']] || '').trim().toUpperCase() === cleanGalId) {
+          var sPId = String(selData[s][selSheetMap['id_foto']] || '').trim();
+          var sKey = sPId.toUpperCase();
+          if (sPId && !selMap[sKey]) {
+            selMap[sKey] = { id: sPId, name: '', driveId: '' };
+            selectedPhotoIds.push(sPId);
+          }
+        }
       }
     }
 
@@ -2143,39 +2218,69 @@ function createSelectedPhotosDriveFolder(token, galId) {
       throw new Error("Klien belum memilih foto untuk galeri ini.");
     }
 
-    // Ambil detail foto dari sheet Foto
+    // 4. Pastikan data foto tersedia di sheet Foto; jika masih kosong, otomatis import dari folder Drive
     var photoSheet = ss.getSheetByName('Foto');
     var photoData = photoSheet ? photoSheet.getDataRange().getValues() : [];
     var photoMap = getColumnMap(photoSheet);
+    var hasPhotosInSheet = false;
+    for (var chk = 1; chk < photoData.length; chk++) {
+      if (String(photoData[chk][photoMap['id_galeri']] || '').trim().toUpperCase() === cleanGalId) {
+        hasPhotosInSheet = true;
+        break;
+      }
+    }
+    if (!hasPhotosInSheet && gallery.link_drive) {
+      try {
+        importPhotosFromDriveFolder(ss, gallery.id_galeri, gallery.link_drive);
+        photoData = photoSheet.getDataRange().getValues();
+        photoMap = getColumnMap(photoSheet);
+      } catch (impErr) {
+        Logger.log('Auto import photos error: ' + impErr);
+      }
+    }
+
+    // 5. Susun daftar foto yang akan disalin (photosToCopy)
     var photosToCopy = [];
+    var matchedKeys = {};
+
     for (var p = 1; p < photoData.length; p++) {
       var pGalId = String(photoData[p][photoMap['id_galeri']] || '').trim().toUpperCase();
-      var pId = String(photoData[p][photoMap['id_foto']] || '').trim();
-      if (pGalId === cleanGalId && selectedPhotoIds.indexOf(pId) !== -1) {
-        var dUrl = String(photoData[p][photoMap['url_foto']] || '');
-        var dId = extractDriveId(dUrl);
+      if (pGalId === cleanGalId) {
+        var pId = String(photoData[p][photoMap['id_foto']] || '').trim();
+        var pIdUpper = pId.toUpperCase();
+        var pName = String(photoData[p][photoMap['nama_file']] || '').trim();
+        var pNameUpper = pName.toUpperCase();
+        var pNomor = String(photoData[p][photoMap['nomor_foto']] || '').trim();
+
+        var matchedMeta = selMap[pIdUpper] || (pNameUpper && selMap[pNameUpper]) || (pNomor && selMap[pNomor]);
+        if (matchedMeta) {
+          var dUrl = String(photoData[p][photoMap['url_foto']] || '');
+          var dId = extractDriveId(dUrl) || matchedMeta.driveId || '';
+          photosToCopy.push({
+            id_foto: pId,
+            nama_file: pName || matchedMeta.name || ('Foto_' + (photosToCopy.length + 1) + '.jpg'),
+            driveId: dId
+          });
+          matchedKeys[pIdUpper] = true;
+          if (pNameUpper) matchedKeys[pNameUpper] = true;
+        }
+      }
+    }
+
+    // Masukkan juga item seleksi yang belum tercatat di sheet Foto
+    for (var mKey in selMap) {
+      if (!matchedKeys[mKey]) {
+        var unItem = selMap[mKey];
         photosToCopy.push({
-          id_foto: pId,
-          nama_file: photoData[p][photoMap['nama_file']] || 'photo.jpg',
-          driveId: dId
+          id_foto: unItem.id || mKey,
+          nama_file: unItem.name || (unItem.id && unItem.id.indexOf('.') !== -1 ? unItem.id : (unItem.id + '.jpg')),
+          driveId: unItem.driveId || ''
         });
       }
     }
 
-    // Tentukan folder induk Drive
-    var parentDriveId = extractDriveId(gallery.link_drive);
-    var parentFolder = null;
-    if (parentDriveId) {
-      try {
-        parentFolder = DriveApp.getFolderById(parentDriveId);
-      } catch (err) {}
-    }
-    if (!parentFolder) {
-      parentFolder = DriveApp.getRootFolder();
-    }
-
-    // Buat subfolder khusus seleksi: [SELEKSI SEMENTARA 3 HARI] - Nama Client
-    var targetFolderName = '[SELEKSI SEMENTARA 3 HARI] - ' + (gallery.nama_client || 'Klien') + ' (' + selectedPhotoIds.length + ' Foto JPG)';
+    // 6. Buat subfolder khusus seleksi LANGSUNG DI DALAM parentFolder (folder yang disetting di awal)
+    var targetFolderName = '[SELEKSI FOTO] - ' + (gallery.nama_client || 'Klien') + ' - ' + (gallery.judul_acara || 'Acara') + ' (' + selectedPhotoIds.length + ' Foto)';
     var targetFolder = null;
     var existingSubfolders = parentFolder.getFoldersByName(targetFolderName);
     if (existingSubfolders.hasNext()) {
@@ -2184,34 +2289,182 @@ function createSelectedPhotosDriveFolder(token, galId) {
       targetFolder = parentFolder.createFolder(targetFolderName);
     }
 
-    // Salin foto JPG ke dalam subfolder
+    // Set permission agar folder baru dapat diakses siapa saja yang memiliki link
+    try {
+      targetFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch (shErr) {}
+
+    // 7. Salin file foto pilihan ke dalam subfolder secara teliti (multi-level search)
     var copiedCount = 0;
+    var copiedNames = [];
+    var copyErrors = [];
+
     for (var c = 0; c < photosToCopy.length; c++) {
       var item = photosToCopy[c];
-      if (item.driveId) {
+      var file = null;
+      var cleanName = (item.nama_file || '').trim();
+      var cleanNameLower = cleanName.toLowerCase();
+      var cleanNameNoExt = cleanNameLower.replace(/\.[^/.]+$/, '').trim();
+      var candDriveId = item.driveId || extractDriveId(item.id_foto) || ((item.id_foto && item.id_foto.length >= 20 && item.id_foto.indexOf(' ') === -1) ? item.id_foto : '');
+
+      // Metode 1: Cari via driveFileById dari pre-scan rekursif
+      if (candDriveId && driveFileById[candDriveId]) {
+        file = driveFileById[candDriveId];
+      }
+      // Metode 2: Cari via DriveApp.getFileById
+      if (!file && candDriveId) {
         try {
-          var file = DriveApp.getFileById(item.driveId);
-          var filesInTarget = targetFolder.getFilesByName(file.getName());
-          if (!filesInTarget.hasNext()) {
-            file.makeCopy(file.getName(), targetFolder);
+          var cand = DriveApp.getFileById(candDriveId);
+          if (cand && typeof cand.makeCopy === 'function') {
+            file = cand;
+          }
+        } catch (e1) {}
+      }
+      // Metode 3: Cari via nama file lengkap dari scan rekursif
+      if (!file && cleanNameLower && driveFileByName[cleanNameLower]) {
+        file = driveFileByName[cleanNameLower];
+      }
+      // Metode 4: Cari via nama file tanpa ekstensi dari scan rekursif
+      if (!file && cleanNameNoExt && driveFileByNameNoExt[cleanNameNoExt]) {
+        file = driveFileByNameNoExt[cleanNameNoExt];
+      }
+      // Metode 5: Cari langsung di parentFolder dengan searchFiles
+      if (!file && cleanName) {
+        try {
+          var it = parentFolder.searchFiles("title contains '" + cleanName.replace(/'/g, "\\'") + "' and trashed = false");
+          if (it.hasNext()) {
+            file = it.next();
+          }
+        } catch (e2) {}
+      }
+      // Metode 6: Cari langsung di parentFolder dengan getFilesByName
+      if (!file && cleanName) {
+        try {
+          var it2 = parentFolder.getFilesByName(cleanName);
+          if (it2.hasNext()) {
+            file = it2.next();
+          }
+        } catch (e3) {}
+      }
+
+      if (file) {
+        try {
+          var targetName = cleanName || file.getName();
+          var existingInTarget = targetFolder.getFilesByName(targetName);
+          if (!existingInTarget.hasNext()) {
+            try {
+              file.makeCopy(targetName, targetFolder);
+            } catch (mcErr) {
+              // Fallback blob copy jika makeCopy terhalang izin kepemilikan antar drive
+              var blob = file.getBlob();
+              targetFolder.createFile(blob).setName(targetName);
+            }
           }
           copiedCount++;
-        } catch (copyErr) {}
+          copiedNames.push(targetName);
+        } catch (copyErr) {
+          copyErrors.push(cleanName + ': ' + copyErr.message);
+          Logger.log('Copy file error (' + cleanName + '): ' + copyErr.message);
+        }
+      } else {
+        copyErrors.push(cleanName + ': file tidak ditemukan di Google Drive');
       }
     }
 
-    if (targetFolder) {
-      recordTempFolder(targetFolder.getId(), cleanGalId, targetFolderName, targetFolder.getUrl(), 3);
-      setupDailyCleanupTrigger();
+    // Jika sama sekali tidak ada file yang berhasil disalin, jangan tampilkan sukses kosong!
+    if (copiedCount === 0) {
+      var sampleErr = copyErrors.slice(0, 3).join('; ');
+      return {
+        success: false,
+        copiedCount: 0,
+        totalSelected: selectedPhotoIds.length,
+        folderUrl: targetFolder.getUrl(),
+        message: 'Folder disiapkan, namun 0 dari ' + selectedPhotoIds.length + ' file foto berhasil disalin ke folder Drive. Penyebab: ' + (sampleErr || 'Nama file foto terpilih tidak ditemukan di dalam Google Drive.')
+      };
     }
+
+    // --- MEMBUATKAN LINK FOLDER DI DALAM FOLDER YANG DI-SETTING DI AWAL ---
+    // 1. Buat Shortcut Google Drive di dalam folder induk (parentFolder)
+    try {
+      if (typeof parentFolder.createShortcut === 'function') {
+        var scName = 'Link Folder Foto Pilihan - ' + (gallery.nama_client || 'Klien');
+        var exSc = parentFolder.getFilesByName(scName);
+        if (!exSc.hasNext()) {
+          parentFolder.createShortcut(targetFolder.getId());
+        }
+      } else if (typeof DriveApp.createShortcut === 'function') {
+        var sc = DriveApp.createShortcut(targetFolder.getId());
+        try { sc.moveTo(parentFolder); } catch (mvErr) {}
+      }
+    } catch (scErr) {
+      Logger.log('Shortcut creation: ' + scErr.message);
+    }
+
+    // 2. Buat file .url (Internet Shortcut) di dalam folder induk agar bisa diklik langsung di komputer/browser
+    try {
+      var urlFileName = 'LINK_FOLDER_FOTO_PILIHAN.url';
+      var existingUrls = parentFolder.getFilesByName(urlFileName);
+      var urlContent = '[InternetShortcut]\r\nURL=' + targetFolder.getUrl() + '\r\n';
+      if (existingUrls.hasNext()) {
+        existingUrls.next().setContent(urlContent);
+      } else {
+        parentFolder.createFile(urlFileName, urlContent, MimeType.PLAIN_TEXT);
+      }
+    } catch (urlFileErr) {
+      Logger.log('URL file create err: ' + urlFileErr.message);
+    }
+
+    // 3. Buat file info teks LINK_FOLDER_FOTO_PILIHAN.txt di dalam folder induk
+    try {
+      var txtFileName = 'LINK_FOLDER_FOTO_PILIHAN.txt';
+      var existingTxt = parentFolder.getFilesByName(txtFileName);
+      var txtBody = '=== LINK FOLDER FOTO PILIHAN KLIEN ===\r\n\r\n' +
+                    'Klien        : ' + (gallery.nama_client || 'Klien') + '\r\n' +
+                    'Acara        : ' + (gallery.judul_acara || 'Acara') + '\r\n' +
+                    'Total Dipilih: ' + selectedPhotoIds.length + ' Foto\r\n' +
+                    'Total Disalin: ' + copiedCount + ' Foto\r\n' +
+                    'Folder Induk : ' + parentFolder.getName() + '\r\n' +
+                    'Waktu Proses : ' + new Date().toLocaleString('id-ID') + '\r\n\r\n' +
+                    'LINK FOLDER GOOGLE DRIVE SELEKSI:\r\n' +
+                    targetFolder.getUrl() + '\r\n\r\n' +
+                    'Daftar File yang Telah Disalin:\r\n' +
+                    copiedNames.map(function(fn, idx) { return (idx + 1) + '. ' + fn; }).join('\r\n');
+      if (existingTxt.hasNext()) {
+        existingTxt.next().setContent(txtBody);
+      } else {
+        parentFolder.createFile(txtFileName, txtBody, MimeType.PLAIN_TEXT);
+      }
+    } catch (txtErr) {
+      Logger.log('TXT file create err: ' + txtErr.message);
+    }
+
+    // Simpan link folder seleksi ke database Galeri
+    try {
+      if (galRowIndex > 1) {
+        if (galMap['link_drive_seleksi'] !== undefined) {
+          galSheet.getRange(galRowIndex, galMap['link_drive_seleksi'] + 1).setValue(targetFolder.getUrl());
+        } else {
+          var lastCol = galSheet.getLastColumn();
+          galSheet.getRange(1, lastCol + 1).setValue('link_drive_seleksi');
+          galSheet.getRange(galRowIndex, lastCol + 1).setValue(targetFolder.getUrl());
+        }
+      }
+      CacheService.getScriptCache().put('gal_seleksi_folder_' + cleanGalId, targetFolder.getUrl(), 21600);
+    } catch (saveColErr) {
+      Logger.log('Save link_drive_seleksi err: ' + saveColErr.message);
+    }
+
+    // Catat log audit
+    logAction('DRIVE_AUTO_COPY_SUCCESS', cleanGalId, 'Copied: ' + copiedCount + '/' + selectedPhotoIds.length + ' to ' + targetFolderName);
 
     return {
       success: true,
       folderUrl: targetFolder.getUrl(),
+      parentFolderUrl: parentFolder.getUrl(),
       folderName: targetFolderName,
       totalSelected: selectedPhotoIds.length,
       copiedCount: copiedCount,
-      message: 'Folder sementara (aktif 3 hari) berhasil disiapkan dengan ' + copiedCount + ' foto JPG.'
+      message: 'Berhasil membuat folder dan menyalin ' + copiedCount + ' file foto ke dalam folder Drive yang di-setting (' + parentFolder.getName() + '). Link folder berhasil dibuat di dalamnya!'
     };
   } catch (e) {
     return { success: false, message: e.message };
