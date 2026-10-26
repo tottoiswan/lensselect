@@ -987,6 +987,9 @@ function updateGallery(token, payload) {
       var numCredits = Math.max(0, parseInt(payload.autoselect_credits, 10) || 0);
       sheet.getRange(rowIndex, map['autoselect_credits'] + 1).setValue(numCredits);
     }
+    if (payload.status !== undefined && map['status'] !== undefined) {
+      sheet.getRange(rowIndex, map['status'] + 1).setValue(sanitizeInput(payload.status));
+    }
 
     SpreadsheetApp.flush();
 
@@ -996,6 +999,42 @@ function updateGallery(token, payload) {
 
     logAction('UPDATE_GALLERY', user.id_user, payload.id_galeri);
     return { success: true, autoselect_credits: payload.autoselect_credits };
+  } catch (e) {
+    return { success: false, message: e.message };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function unlockGallerySelection(token, galId) {
+  var user = validateSession(token);
+  if (!user) return { success: false, message: 'Session expired', sessionExpired: true };
+
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(5000);
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Galeri');
+    var map = ensureGalleryVendorColumn(sheet);
+    var data = sheet.getDataRange().getValues();
+    var rowIndex = -1;
+
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][map['id_galeri']] === galId && data[i][map['id_fotografer']] === user.id_user) {
+        rowIndex = i + 1;
+        break;
+      }
+    }
+
+    if (rowIndex === -1) return { success: false, message: 'Galeri tidak ditemukan.' };
+
+    sheet.getRange(rowIndex, map['status'] + 1).setValue('Aktif');
+    SpreadsheetApp.flush();
+
+    var cleanGalId = String(galId).trim().toUpperCase();
+    try { CacheService.getScriptCache().remove('pub_gal_' + cleanGalId); } catch(cErr) {}
+
+    logAction('UNLOCK_GALLERY_SELECTION', user.id_user, galId);
+    return { success: true, message: 'Kunci seleksi galeri berhasil dibuka.' };
   } catch (e) {
     return { success: false, message: e.message };
   } finally {
