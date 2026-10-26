@@ -238,11 +238,11 @@
         }
 
         .photo-item.photo-portrait .photo-img-wrapper {
-            aspect-ratio: 2 / 3;
+            aspect-ratio: 2 / 3 !important;
         }
 
         .photo-item.photo-landscape .photo-img-wrapper {
-            aspect-ratio: 3 / 2;
+            aspect-ratio: 3 / 2 !important;
         }
 
         .photo-item .photo-img-wrapper img,
@@ -253,6 +253,7 @@
             object-fit: cover !important;
             object-position: center !important;
             display: block !important;
+            image-orientation: from-image;
         }
 
         /* Area tombol & nama file di bawah gambar (Terpisah rapi tanpa menutupi foto) */
@@ -290,6 +291,15 @@
             .photo-item {
                 border-radius: 0.75rem !important;
                 border-width: 1.5px !important;
+            }
+
+            /* Di mode HP, pastikan foto potret tampil tinggi/tegak asli (jangan dibuat landscape) */
+            .photo-item.photo-portrait .photo-img-wrapper {
+                aspect-ratio: 2 / 3 !important;
+            }
+
+            .photo-item.photo-landscape .photo-img-wrapper {
+                aspect-ratio: 3 / 2 !important;
             }
 
             .photo-item .photo-card-bottom {
@@ -1568,7 +1578,7 @@
         function formatPhotoDisplayUrl(url, targetSize) {
             if (!url) return '';
             var isMobile = (typeof window !== 'undefined' && (window.innerWidth <= 640 || (window.screen && window.screen.width <= 640)));
-            var defaultSize = isMobile ? 'w360' : 'w600';
+            var defaultSize = isMobile ? 's400' : 's800';
             var sz = targetSize || defaultSize;
             var driveId = extractDriveId(url);
             if (driveId && (url.indexOf('drive.google.com') !== -1 || url.indexOf('google.com') !== -1 || url.indexOf('googleusercontent.com') !== -1)) {
@@ -1728,6 +1738,25 @@
             },
 
             init: function () {
+                var self = this;
+                try {
+                    if (window.BroadcastChannel) {
+                        var bc = new BroadcastChannel('gallery_sync_channel');
+                        bc.onmessage = function (ev) {
+                            if (ev.data && (ev.data.type === 'GALLERY_UNLOCKED' || ev.data.type === 'GALLERY_STATUS_CHANGED')) {
+                                var curGal = self.clientData.gallery;
+                                if (curGal && String(curGal.id_galeri).toUpperCase() === String(ev.data.galId).toUpperCase()) {
+                                    self.loadGallery();
+                                }
+                            }
+                        };
+                    }
+                    window.addEventListener('storage', function (e) {
+                        if (e.key && e.key.indexOf('gal_unlocked_') === 0) {
+                            self.loadGallery();
+                        }
+                    });
+                } catch (e) {}
                 var self = this;
                 var targetGalId = '';
 
@@ -2847,16 +2876,50 @@
                 if (!img || !img.naturalWidth || !img.naturalHeight) return;
                 var card = document.getElementById(cardId) || (img.closest ? img.closest('.photo-item') : null);
                 if (!card) return;
-                var isLandscape = img.naturalWidth > img.naturalHeight;
-                var targetClass = isLandscape ? 'photo-landscape' : 'photo-portrait';
-                var removeClass = isLandscape ? 'photo-portrait' : 'photo-landscape';
+
+                var photoId = card.id ? card.id.replace('photo-', '') : '';
+                var rotDeg = 0;
+                try { rotDeg = parseInt(localStorage.getItem('photo_rot_' + photoId) || '0', 10) || 0; } catch (e) {}
+
+                var isSwapped = (rotDeg === 90 || rotDeg === 270);
+                var effectiveWidth = isSwapped ? img.naturalHeight : img.naturalWidth;
+                var effectiveHeight = isSwapped ? img.naturalWidth : img.naturalHeight;
+                // Jika tinggi > lebar, foto adalah POTRET asli (tegak). Jangan dibuat landscape.
+                var isPortrait = effectiveHeight > effectiveWidth;
+
+                var targetClass = isPortrait ? 'photo-portrait' : 'photo-landscape';
+                var removeClass = isPortrait ? 'photo-landscape' : 'photo-portrait';
                 card.classList.add(targetClass);
                 card.classList.remove(removeClass);
 
                 // Terapkan rasio aspek asli foto ke wrapper secara presisi tanpa distorsi
                 var wrapper = card.querySelector('.photo-img-wrapper');
                 if (wrapper) {
-                    wrapper.style.setProperty('aspect-ratio', img.naturalWidth + ' / ' + img.naturalHeight, 'important');
+                    wrapper.style.setProperty('aspect-ratio', effectiveWidth + ' / ' + effectiveHeight, 'important');
+                }
+
+                if (rotDeg > 0) {
+                    img.style.transform = 'rotate(' + rotDeg + 'deg)';
+                } else {
+                    img.style.transform = '';
+                }
+            },
+
+            rotatePhoto: function (photoId) {
+                var cur = 0;
+                try { cur = parseInt(localStorage.getItem('photo_rot_' + photoId) || '0', 10) || 0; } catch (e) {}
+                var next = (cur + 90) % 360;
+                try { localStorage.setItem('photo_rot_' + photoId, next); } catch (e) {}
+                var card = document.getElementById('photo-' + photoId);
+                if (card) {
+                    var img = card.querySelector('.photo-img-wrapper img');
+                    if (img) this.handlePhotoOrient(img, card.id);
+                }
+                if (typeof lightbox !== 'undefined' && lightbox.isOpen) {
+                    var lbImg = document.getElementById('lbImage');
+                    if (lbImg) {
+                        lbImg.style.transform = next > 0 ? ('rotate(' + next + 'deg) scale(' + (lightbox.zoom || 1) + ')') : ('scale(' + (lightbox.zoom || 1) + ')');
+                    }
                 }
             },
 
@@ -2952,6 +3015,9 @@
                     <!-- Bagian Foto (Bebas dari tombol yang menutupi gambar) -->
                     <div class="photo-img-wrapper cursor-pointer relative overflow-hidden group bg-gray-100" onclick="clientApp.openLightbox('${escapeHTML(p.id_foto)}')">
                         ${badgeHtml}
+                        <button type="button" onclick="event.stopPropagation(); clientApp.rotatePhoto('${escapeHTML(p.id_foto)}')" class="absolute top-2 left-2 z-20 w-7 h-7 rounded-full bg-black/50 hover:bg-black/75 text-white flex items-center justify-center text-xs backdrop-blur-sm transition-transform active:scale-90" title="Putar Orientasi Foto (90°)">
+                            <i class="fas fa-redo text-[10px]"></i>
+                        </button>
                         <img src="${escapeHTML(displayUrl)}" alt="${escapeHTML(p.nama_file)}" loading="${idx < 8 ? 'eager' : 'lazy'}" decoding="async" ${idx < 4 ? 'fetchpriority="high"' : ''} onload="clientApp.handlePhotoOrient(this, 'photo-${escapeHTML(p.id_foto)}')" class="w-full h-full block object-cover transition-transform duration-300 group-hover:scale-[1.02]" onerror="handleImageError(this, '${escapeHTML(driveId)}')">
                         
                         <div class="absolute inset-0 bg-black/15 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none z-10">
