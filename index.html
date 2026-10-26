@@ -302,11 +302,11 @@
         }
 
         .photo-item.photo-portrait .photo-img-wrapper {
-            aspect-ratio: 2 / 3;
+            aspect-ratio: 2 / 3 !important;
         }
 
         .photo-item.photo-landscape .photo-img-wrapper {
-            aspect-ratio: 3 / 2;
+            aspect-ratio: 3 / 2 !important;
         }
 
         .photo-item .photo-img-wrapper img,
@@ -317,6 +317,7 @@
             object-fit: cover !important;
             object-position: center !important;
             display: block !important;
+            image-orientation: from-image;
         }
 
         .photo-item:hover {
@@ -339,10 +340,10 @@
         .photo-item img {
             width: 100%;
             height: 100%;
-            aspect-ratio: 1 / 1 !important;
             object-fit: cover !important;
             object-position: center;
             display: block;
+            image-orientation: from-image;
             background-color: #f1f5f9;
             transition: transform 0.25s ease;
         }
@@ -524,6 +525,15 @@
             .photo-item .photo-img-wrapper {
                 min-height: 0 !important;
                 /* Padatkan foto landscape tanpa celah kosong buatan */
+            }
+
+            /* Di mode HP, pastikan foto potret tampil tinggi/tegak asli (jangan dibuat landscape) */
+            .photo-item.photo-portrait .photo-img-wrapper {
+                aspect-ratio: 2 / 3 !important;
+            }
+
+            .photo-item.photo-landscape .photo-img-wrapper {
+                aspect-ratio: 3 / 2 !important;
             }
 
             #clientPhotoSentinel,
@@ -3564,7 +3574,7 @@
             function formatPhotoDisplayUrl(url, targetSize) {
                 if (!url) return '';
                 var isMobile = (typeof window !== 'undefined' && (window.innerWidth <= 640 || (window.screen && window.screen.width <= 640)));
-                var defaultSize = isMobile ? 'w360' : 'w600';
+                var defaultSize = isMobile ? 's400' : 's800';
                 var sz = targetSize || defaultSize;
                 var driveId = extractDriveId(url);
                 if (driveId && (url.indexOf('drive.google.com') !== -1 || url.indexOf('google.com') !== -1 || url.indexOf('googleusercontent.com') !== -1)) {
@@ -3740,6 +3750,14 @@
                                 curUser.autoselect_credits = nextMockCred;
                                 Auth.set(Auth.getToken(), curUser);
                                 resolve({ success: true, id: payload.id_galeri, data: payload, photos_imported: photoCount, autoselect_credits: nextMockCred });
+                            }
+                            else if (funcName === 'unlockGallerySelection') {
+                                var galId = args[1];
+                                var gal = (mockDB.galeri || []).find(g => String(g.id_galeri) === String(galId));
+                                if (gal) {
+                                    gal.status = 'Aktif';
+                                }
+                                resolve({ success: true, message: 'Kunci seleksi galeri berhasil dibuka.' });
                             }
                             else if (funcName === 'updateGallery') {
                                 var payload = args[1];
@@ -4621,10 +4639,32 @@
                 clientFilter: 'all',
 
                 init: function () {
+                    var self = this;
                     initializeRuntimeMode();
                     this.setupResponsiveSidebar();
                     this.setupLandingPasteListener();
                     this.checkRouting();
+
+                    try {
+                        if (window.BroadcastChannel) {
+                            var bc = new BroadcastChannel('gallery_sync_channel');
+                            bc.onmessage = function (ev) {
+                                if (ev.data && (ev.data.type === 'GALLERY_UNLOCKED' || ev.data.type === 'GALLERY_STATUS_CHANGED')) {
+                                    if (self.clientData && self.clientData.gallery && String(self.clientData.gallery.id_galeri).toUpperCase() === String(ev.data.galId).toUpperCase()) {
+                                        self.loadClientGallery(ev.data.galId);
+                                    }
+                                }
+                            };
+                        }
+                        window.addEventListener('storage', function (e) {
+                            if (e.key && e.key.indexOf('gal_unlocked_') === 0) {
+                                var gId = e.key.replace('gal_unlocked_', '');
+                                if (self.clientData && self.clientData.gallery && String(self.clientData.gallery.id_galeri).toUpperCase() === String(gId).toUpperCase()) {
+                                    self.loadClientGallery(gId);
+                                }
+                            }
+                        });
+                    } catch (e) {}
                 },
 
                 setupLandingPasteListener: function () {
@@ -6809,6 +6849,10 @@
                               <span>Pemilihan Galeri</span>
                             </button>
                             ${isFinished ? `
+                            <button type="button" onclick="appState.unlockGallerySelection('${escapeHTML(g.id_galeri)}')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-600 active:scale-95 text-white shadow-xs hover:shadow-amber-500/25 transition-all cursor-pointer" title="Buka Kunci Seleksi agar Klien dapat Memperbaiki Pilihan Foto">
+                              <i class="fas fa-unlock"></i>
+                              <span>Buka Kunci</span>
+                            </button>
                             <button type="button" onclick="appState.openDownloadPilihanModal('${escapeHTML(g.id_galeri)}')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-700 text-white shadow-xs hover:shadow-indigo-500/25 transition-all cursor-pointer" title="Download Foto Pilihan Klien (Folder Drive)">
                               <i class="fas fa-folder-download"></i>
                               <span>Download Pilihan</span>
@@ -6909,6 +6953,10 @@
                           <span>Pemilihan Galeri</span>
                         </button>
                         ${isFinished ? `
+                        <button type="button" onclick="appState.unlockGallerySelection('${escapeHTML(g.id_galeri)}')" class="flex-1 min-w-[130px] py-2 px-2.5 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-600 active:scale-95 text-white flex items-center justify-center gap-1.5 shadow-2xs transition-all cursor-pointer" title="Buka Kunci Seleksi Klien">
+                          <i class="fas fa-unlock"></i>
+                          <span>Buka Kunci</span>
+                        </button>
                         <button type="button" onclick="appState.openDownloadPilihanModal('${escapeHTML(g.id_galeri)}')" class="flex-1 min-w-[130px] py-2 px-2.5 rounded-xl text-xs font-bold bg-indigo-600 text-white flex items-center justify-center gap-1.5 shadow-2xs">
                           <i class="fas fa-folder-download"></i>
                           <span>Download Pilihan</span>
@@ -10639,16 +10687,84 @@
                     if (!img || !img.naturalWidth || !img.naturalHeight) return;
                     var card = document.getElementById(cardId) || (img.closest ? img.closest('.photo-item') : null);
                     if (!card) return;
-                    var isLandscape = img.naturalWidth > img.naturalHeight;
-                    var targetClass = isLandscape ? 'photo-landscape' : 'photo-portrait';
-                    var removeClass = isLandscape ? 'photo-portrait' : 'photo-landscape';
+
+                    var photoId = card.id ? card.id.replace('photo-', '').replace('studio-card-', '') : '';
+                    var rotDeg = 0;
+                    try { rotDeg = parseInt(localStorage.getItem('photo_rot_' + photoId) || '0', 10) || 0; } catch (e) {}
+
+                    var isSwapped = (rotDeg === 90 || rotDeg === 270);
+                    var effectiveWidth = isSwapped ? img.naturalHeight : img.naturalWidth;
+                    var effectiveHeight = isSwapped ? img.naturalWidth : img.naturalHeight;
+                    // Jika tinggi > lebar, foto adalah POTRET asli kamera (tegak). Jangan dibuat landscape.
+                    var isPortrait = effectiveHeight > effectiveWidth;
+
+                    var targetClass = isPortrait ? 'photo-portrait' : 'photo-landscape';
+                    var removeClass = isPortrait ? 'photo-landscape' : 'photo-portrait';
                     card.classList.add(targetClass);
                     card.classList.remove(removeClass);
 
                     var wrapper = card.querySelector('.photo-img-wrapper');
                     if (wrapper) {
-                        wrapper.style.setProperty('aspect-ratio', img.naturalWidth + ' / ' + img.naturalHeight, 'important');
+                        wrapper.style.setProperty('aspect-ratio', effectiveWidth + ' / ' + effectiveHeight, 'important');
                     }
+
+                    if (rotDeg > 0) {
+                        img.style.transform = 'rotate(' + rotDeg + 'deg)';
+                    } else {
+                        img.style.transform = '';
+                    }
+                },
+
+                rotatePhoto: function (photoId) {
+                    var cur = 0;
+                    try { cur = parseInt(localStorage.getItem('photo_rot_' + photoId) || '0', 10) || 0; } catch (e) {}
+                    var next = (cur + 90) % 360;
+                    try { localStorage.setItem('photo_rot_' + photoId, next); } catch (e) {}
+                    var card = document.getElementById('photo-' + photoId) || document.getElementById('studio-card-' + photoId);
+                    if (card) {
+                        var img = card.querySelector('.photo-img-wrapper img') || card.querySelector('img');
+                        if (img) this.handlePhotoOrient(img, card.id);
+                    }
+                    if (typeof lightbox !== 'undefined' && lightbox.isOpen) {
+                        var lbImg = document.getElementById('lbImage');
+                        if (lbImg) {
+                            lbImg.style.transform = next > 0 ? ('rotate(' + next + 'deg) scale(' + (lightbox.zoom || 1) + ')') : ('scale(' + (lightbox.zoom || 1) + ')');
+                        }
+                    }
+                },
+
+                unlockGallerySelection: function (galId) {
+                    var self = this;
+                    var gal = (this.galleriesCache || []).find(function (g) { return g.id_galeri === galId; });
+                    var clientName = gal ? (gal.nama_client || galId) : galId;
+
+                    showConfirm(
+                        'Buka Kunci Seleksi Galeri?',
+                        'Status galeri "' + escapeHTML(clientName) + '" akan diubah kembali menjadi "Aktif". Klien dapat memilih ulang / memperbaiki foto dan mengirimkan hasil seleksi kembali. Setelah klien mengirim ulang, galeri otomatis terkunci kembali.',
+                        function () {
+                            showLoading(true, 'Membuka kunci seleksi...');
+                            gasRun('unlockGallerySelection', Auth.getToken(), galId).then(function (res) {
+                                showLoading(false);
+                                if (res && res.success) {
+                                    showToast('Kunci seleksi galeri berhasil dibuka! Klien sekarang dapat mengubah seleksi foto.', 'success');
+                                    if (gal) gal.status = 'Aktif';
+                                    try {
+                                        localStorage.setItem('gal_unlocked_' + galId, Date.now());
+                                        if (window.BroadcastChannel) {
+                                            var bc = new BroadcastChannel('gallery_sync_channel');
+                                            bc.postMessage({ type: 'GALLERY_UNLOCKED', galId: galId });
+                                        }
+                                    } catch (e) {}
+                                    self.loadGalleries();
+                                } else {
+                                    showToast((res && res.message) || 'Gagal membuka kunci galeri', 'error');
+                                }
+                            }).catch(function (err) {
+                                showLoading(false);
+                                showToast('Terjadi kesalahan: ' + (err.message || err), 'error');
+                            });
+                        }
+                    );
                 },
 
                 renderClientCardBottomHtml: function (p, isSelected, selectedOrder, isFinished, isQuotaFull, note) {
@@ -10743,7 +10859,9 @@
                         <!-- Bagian Foto (Bebas dari tombol yang menutupi gambar) -->
                         <div class="photo-img-wrapper cursor-pointer relative overflow-hidden group bg-gray-100" onclick="appState.openPhotoInLightbox('${escapeHTML(p.id_foto)}')">
                             ${badgeHtml}
-                            
+                            <button type="button" onclick="event.stopPropagation(); appState.rotatePhoto('${escapeHTML(p.id_foto)}')" class="absolute top-2 left-2 z-20 w-7 h-7 rounded-full bg-black/50 hover:bg-black/75 text-white flex items-center justify-center text-xs backdrop-blur-sm transition-transform active:scale-90" title="Putar Orientasi Foto (90°)">
+                                <i class="fas fa-redo text-[10px]"></i>
+                            </button>
                             <img src="${escapeHTML(displayUrl)}" alt="${escapeHTML(p.nama_file)}" loading="${idx < 8 ? 'eager' : 'lazy'}" decoding="async" ${idx < 4 ? 'fetchpriority="high"' : ''} onload="appState.handlePhotoOrient(this, 'photo-${escapeHTML(p.id_foto)}')" class="w-full h-full block object-cover transition-transform duration-300 group-hover:scale-[1.02]" onerror="handleImageError(this, '${escapeHTML(driveId)}')">
                             
                             <!-- Overlay icon perbesar saat hover (Tengah) -->
